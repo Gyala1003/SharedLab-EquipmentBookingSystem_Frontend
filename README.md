@@ -75,3 +75,9 @@ src/app/
     ├── home/               <-- (TẠO MỚI: Trang chủ)
     ├── auth/               <-- (TẠO MỚI: Trang đăng nhập)
     └── users/              <-- (TẠO MỚI: Trang quản lý danh sách người dùng)
+
+
+src/public/
+└── i18n/           quản lý toàn bộ nội dung chữ hiển thị trên giao diện của ứng dụng theo cơ chế Đa ngôn ngữ (i18n - Internationalization).
+    ├── vi.json                    
+    └── en.json 
