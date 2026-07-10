@@ -57,3 +57,21 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+============================================================
+
+cấu trúc của tree và nhiệm vụ của từng nhánh.
+src/app/
+├── core/                   <-- (TẠO MỚI: Chứa các dịch vụ hệ thống chạy ngầm)
+│   ├── auth/               <-- (TẠO MỚI: Xử lý lưu token, kiểm tra đăng nhập)
+│   ├── config/             <-- (TẠO MỚI: Cấu hình URL của API hệ thống)
+│   └── http/               <-- (TẠO MỚI: Bộ chặn bắt lỗi HTTP toàn cục)
+│
+├── shared/                 <-- (TẠO MỚI: Chứa những thứ dùng chung cho nhiều trang)
+│   ├── ui/                 <-- (TẠO MỚI: Các nút bấm, thẻ bài, vòng xoay loading)
+│   └── layout/             <-- (TẠO MỚI: Khung giao diện chính, thanh menu)
+│
+└── features/               <-- (TẠO MỚI: Nơi chứa giao diện các trang cụ thể)
+    ├── home/               <-- (TẠO MỚI: Trang chủ)
+    ├── auth/               <-- (TẠO MỚI: Trang đăng nhập)
+    └── users/              <-- (TẠO MỚI: Trang quản lý danh sách người dùng)
