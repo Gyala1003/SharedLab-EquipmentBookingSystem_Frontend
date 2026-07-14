@@ -1,24 +1,98 @@
-<footer class="border-t bg-gray-50">
-    <div
-        class="mx-auto max-w-7xl px-6 py-10">
-        <h2 class="text-lg font-semibold">
-            Shared Lab & Equipment Booking System
-        </h2>
+<footer class="mt-auto border-t border-slate-200 bg-white">
 
-        <p class="mt-2 text-gray-500">
-            Laboratory and equipment reservation platform.
-        </p>
+  <div class="mx-auto flex max-w-7xl flex-col gap-10 px-6 py-10 md:flex-row md:justify-between">
 
-        <div class="mt-6 flex gap-6">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Github</a>
-            <a href="#">Contact</a>
-        </div>
+    <!-- Brand -->
 
-        <p class="mt-8 text-sm text-gray-400">
-            ©2026 SharedLab
-        </p>
+    <div class="max-w-sm">
+
+      <app-logo />
+
+      <p class="mt-4 text-sm leading-6 text-slate-500">
+        Nền tảng tập trung quản lý đặt lịch phòng thí nghiệm và thiết bị 
+        trong các trường đại học và viện nghiên cứu.
+      </p>
 
     </div>
+
+    <!-- Navigation -->
+
+    <div>
+
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-900">
+        Điều hướng
+      </h3>
+
+      <ul class="mt-4 space-y-2">
+
+        <li>
+          <a routerLink="/" class="text-slate-500 hover:text-sky-600">
+            Trang chủ
+          </a>
+        </li>
+
+        <li>
+          <a routerLink="/" class="text-slate-500 hover:text-sky-600">
+            Phòng thí nghiệm
+          </a>
+        </li>
+
+        <li>
+          <a routerLink="/" class="text-slate-500 hover:text-sky-600">
+            Thiết bị
+          </a>
+        </li>
+
+      </ul>
+
+    </div>
+
+    <!-- Contact -->
+
+    <div>
+
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-900">
+        Liên hệ
+      </h3>
+
+      <ul class="mt-4 space-y-2">
+
+        <li class="text-slate-500">
+          support@sharedlab.edu
+        </li>
+
+        <li class="text-slate-500">
+          +84 123 456 789
+        </li>
+
+      </ul>
+
+    </div>
+
+  </div>
+
+  <div class="border-t border-slate-200">
+
+    <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-5 text-sm text-slate-500 md:flex-row">
+
+      <span>
+        © 2026 Hệ Thống Đặt Lịch Phòng Thí Nghiệm & Thiết Bị Dùng Chung
+      </span>
+
+      <div class="flex gap-6">
+
+        <a href="#" class="hover:text-sky-600">
+          Bảo mật
+        </a>
+
+        <a href="#" class="hover:text-sky-600">
+          Điều khoản
+        </a>
+
+      </div>
+
+    </div>
+
+  </div>
+
 </footer>

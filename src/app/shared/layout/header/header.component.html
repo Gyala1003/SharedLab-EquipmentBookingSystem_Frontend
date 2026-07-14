@@ -1,50 +1,42 @@
 <header class="border-b border-slate-200 bg-white">
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6" >
 
-        <a routerLink="/"
-            class="text-xl font-bold text-sky-600">
-            SharedLab
-        </a>
+        <app-logo />
 
         <nav class="flex items-center gap-8">
 
             <a routerLink="/"
                 class="text-slate-700 hover:text-sky-600">
-                Home
+                Trang chủ
             </a>
 
             <a routerLink="/"
                 class="text-slate-700 hover:text-sky-600">
-                Laboratories
+                Phòng thí nghiệm
             </a>
 
             <a routerLink="/"
                 class="text-slate-700 hover:text-sky-600">
-                Equipment
+                Thiết bị
             </a>
 
             <a routerLink="/"
                 class="text-slate-700 hover:text-sky-600">
-                About
+                Giới thiệu
             </a>
 
             <a routerLink="/"
                 class="text-slate-700 hover:text-sky-600">
-                Contact
+                Liên hệ
             </a>
 
         </nav>
 
         <div class="flex gap-3">
-            
-            <button class="rounded-md border border-slate-300 px-4 py-2">
-                Login
-            </button>
 
-            
-            <button class="rounded-md bg-sky-600 px-4 py-2 text-white">
-                Register
-            </button>
+            <app-button>
+                Đăng nhập
+            </app-button>
 
         </div>
     </div>
