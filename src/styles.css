@@ -1,2 +1,35 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
+
+@theme {
+    /* ======= Colors ======= */
+
+    --color-primary: #0284c7;
+    --color-primary-hover: #0369a1;
+    --color-secondary: #64748b;
+    --color-success: #16a34a;
+    --color-warning: #f59e0b;
+    --color-danger: #dc2626;
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-border: #e2e8f0;
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
+
+    /* ===== Radius ===== */
+
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+  /* ===== Shadow ===== */
+
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* ===== Font ===== */
+
+    --font-sans: "Inter", sans-serif;
+}

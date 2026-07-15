@@ -60,283 +60,286 @@ For more information on using the Angular CLI, including detailed command refere
 
 ============================================================
 
-cấu trúc của tree và nhiệm vụ của từng nhánh.
-src/app/
-├── core/                   <-- (TẠO MỚI: Chứa các dịch vụ hệ thống chạy ngầm)
-│   ├── auth/               <-- (TẠO MỚI: Xử lý lưu token, kiểm tra đăng nhập)
-│   ├── config/             <-- (TẠO MỚI: Cấu hình URL của API hệ thống)
-│   └── http/               <-- (TẠO MỚI: Bộ chặn bắt lỗi HTTP toàn cục)
-│
-├── shared/                 <-- (TẠO MỚI: Chứa những thứ dùng chung cho nhiều trang)
-│   ├── ui/                 <-- (TẠO MỚI: Các nút bấm, thẻ bài, vòng xoay loading)
-│   └── layout/             <-- (TẠO MỚI: Khung giao diện chính, thanh menu)
-│
-└── features/               <-- (TẠO MỚI: Nơi chứa giao diện các trang cụ thể)
-    ├── home/               <-- (TẠO MỚI: Trang chủ)
-    ├── auth/               <-- (TẠO MỚI: Trang đăng nhập)
-    └── users/              <-- (TẠO MỚI: Trang quản lý danh sách người dùng)
+# Shared Lab & Equipment Booking System - Frontend
 
-
-src/public/
-└── i18n/           quản lý toàn bộ nội dung chữ hiển thị trên giao diện của ứng dụng theo cơ chế Đa ngôn ngữ (i18n - Internationalization).
-    ├── vi.json                    
-    └── en.json 
-
-==============================================================================================================================
-
-# Frontend Development Guideline
-
-> **Mục tiêu:** Thiết lập nền tảng chung (Base Layout & Base UI) để toàn bộ thành viên Front-end phát triển trên cùng một tiêu chuẩn, tránh xung đột giao diện và giảm thời gian tích hợp sau này.
+Frontend của hệ thống **Shared Lab & Equipment Booking System** được phát triển bằng **Angular 22** theo kiến trúc **Feature-based Architecture** kết hợp **Standalone Components**.
 
 ---
 
-# Quy chuẩn bắt buộc trước khi phát triển
+# Công nghệ sử dụng
 
-## 1. Cấu hình TailwindCSS (Design System)
-
-Đây là bước đầu tiên và bắt buộc trước khi bất kỳ thành viên nào bắt đầu code giao diện.
-
-Mục đích:
-
-- Định nghĩa màu sắc chủ đạo của hệ thống.
-- Định nghĩa font chữ.
-- Định nghĩa spacing.
-- Định nghĩa border radius.
-- Định nghĩa shadow.
-- Định nghĩa breakpoint responsive.
-
-Toàn bộ thành viên phải sử dụng chung các giá trị đã được định nghĩa.
-
-**Không tự ý sử dụng màu sắc hoặc kích thước ngoài Design System.**
-
-Ví dụ:
-
-- Primary Color
-- Secondary Color
-- Success Color
-- Error Color
-- Font Family
-- Font Size
-- Border Radius
-
-Điều này giúp toàn bộ giao diện thống nhất và dễ bảo trì.
+| Công nghệ | Mục đích |
+|-----------|----------|
+| Angular 22 | Frontend Framework |
+| TailwindCSS 4 | Xây dựng giao diện |
+| Angular Router | Điều hướng |
+| ngx-translate | Đa ngôn ngữ (i18n) |
+| RxJS | Reactive Programming |
+| FullCalendar *(sẽ tích hợp)* | Hiển thị lịch đặt phòng |
 
 ---
 
-## 2. Base Layout (Application Shell)
+# Cấu trúc dự án
 
-Base Layout là khung giao diện dùng chung cho toàn bộ hệ thống.
+```text
+src
+│
+├── app
+│   ├── core
+│   ├── shared
+│   └── features
+│
+├── public
+│   └── i18n
+│
+└── styles.css
+```
 
-Layout chịu trách nhiệm:
+---
+
+## app/core
+
+Chứa các thành phần xử lý hệ thống.
+
+```text
+core
+├── auth
+├── config
+└── http
+```
+
+| Thư mục | Chức năng |
+|----------|-----------|
+| auth | Xử lý xác thực, token |
+| config | Cấu hình hệ thống |
+| http | Interceptor và xử lý HTTP |
+
+---
+
+## app/shared
+
+Chứa các thành phần dùng chung cho toàn bộ dự án.
+
+```text
+shared
+├── layout
+└── ui
+```
+
+### layout
+
+Khung giao diện dùng chung.
+
+```text
+layout
+├── header
+├── footer
+└── public-layout
+```
+
+Chịu trách nhiệm hiển thị:
 
 - Header
-- Sidebar (nếu có)
 - Footer
-- Router Outlet (vùng hiển thị nội dung)
+- Router Outlet
 
-Ví dụ:
-
+```text
+Header
+   │
+Router Outlet
+   │
+Footer
 ```
-+----------------------------------------------------+
-| Header                                             |
-+----------------------------------------------------+
-| Sidebar |                                         |
-|         |           Router Outlet                 |
-|         |                                         |
-+----------------------------------------------------+
-| Footer                                             |
-+----------------------------------------------------+
-```
-
-**Lưu ý**
-
-Feature không được phép tự tạo Header hoặc Footer riêng.
-
-Toàn bộ trang phải được render bên trong `<router-outlet>` của Layout.
 
 ---
 
-## 3. Quy chuẩn Shared UI
+### ui
 
-Các thành phần có khả năng tái sử dụng phải đặt trong:
+Các UI Component tái sử dụng.
 
+```text
+ui
+├── button
+└── logo
 ```
+
+Nguyên tắc:
+
+- Không viết lại Button nhiều lần.
+- Không viết lại Logo nhiều lần.
+- Feature chỉ sử dụng Shared UI.
+
+---
+
+## app/features
+
+Chứa các chức năng của hệ thống.
+
+```text
+features
+├── home
+├── auth
+└── users
+```
+
+Mỗi Feature chịu trách nhiệm một nghiệp vụ riêng.
+
+Feature **không chứa** Header hoặc Footer.
+
+---
+
+## public/i18n
+
+Quản lý đa ngôn ngữ.
+
+```text
+public
+└── i18n
+    ├── vi.json
+    └── en.json
+```
+
+Toàn bộ nội dung hiển thị trên giao diện phải được lấy từ file ngôn ngữ.
+
+Không hard-code text trực tiếp trong Component.
+
+---
+
+# Frontend Convention
+
+## TailwindCSS
+
+Ưu tiên sử dụng TailwindCSS khi xây dựng giao diện.
+
+Chỉ sử dụng CSS thuần khi Tailwind không đáp ứng.
+
+---
+
+## Màu sắc mặc định
+
+| Thành phần | Tailwind |
+|------------|----------|
+| Primary | sky-600 |
+| Hover | sky-700 |
+| Background | slate-50 |
+| Surface | white |
+| Border | slate-200 |
+| Text | slate-900 |
+| Text Secondary | slate-500 |
+| Success | green-600 |
+| Warning | amber-500 |
+| Error | red-600 |
+
+---
+
+## Border Radius
+
+| Thành phần | Quy chuẩn |
+|------------|-----------|
+| Button | rounded-md |
+| Card | rounded-xl |
+| Input | rounded-md |
+
+---
+
+## Shadow
+
+| Thành phần | Quy chuẩn |
+|------------|-----------|
+| Card | shadow-sm |
+| Dropdown | shadow-md |
+
+---
+
+## Font
+
+Font mặc định:
+
+- Inter
+
+---
+
+## Shared UI
+
+Các component có khả năng tái sử dụng phải đặt trong:
+
+```text
 shared/ui
 ```
 
 Ví dụ:
 
 - Button
-- Card
+- Logo
 - Input
-- Logo
-- Badge
+- Loading
 - Modal
-- Spinner
-
-Không được viết lại nhiều lần ở từng Feature.
 
 ---
 
-# Công việc đã hoàn thành
+## Layout
 
-## 1. Cấu hình TailwindCSS
+Mọi trang đều phải hiển thị thông qua:
 
-Đã tích hợp TailwindCSS vào Angular.
-
-Đã cấu hình PostCSS để Angular nhận diện Tailwind.
-
+```text
+Public Layout
+        │
+        ▼
+Header
+        │
+        ▼
+Router Outlet
+        │
+        ▼
+Footer
 ```
-.postcssrc.json
-```
 
-```json
-{
-    "plugins": {
-        "@tailwindcss/postcss": {}
-    }
-}
-```
+Feature không tự tạo Layout riêng nếu chưa có yêu cầu.
 
 ---
 
-## 2. Xây dựng Base Layout
+# Tiến độ hiện tại
 
-Đã tạo các thành phần:
+## Hoàn thành
 
-```
-shared/
-└── layout/
-    ├── header/
-    ├── footer/
-    └── public-layout/
-```
-
-Trong đó:
-
-### Header
-
-- Logo hệ thống
-- Menu điều hướng
-- Nút đăng nhập
-
-Header là thành phần dùng chung cho toàn bộ hệ thống và được hiển thị trên tất cả các trang sử dụng Public Layout.
-
-### Footer
-
-- Logo
-- Thông tin hệ thống
-- Điều hướng nhanh
-- Chính sách
-
-### Public Layout
-
-Chịu trách nhiệm hiển thị:
-
-- Header
-- Router Outlet
-- Footer
-
-Cấu trúc:
-
-```
-+------------------------------------------------------+
-| Header                                               |
-+------------------------------------------------------+
-|                                                      |
-|                Router Outlet                         |
-|                                                      |
-+------------------------------------------------------+
-| Footer                                               |
-+------------------------------------------------------+
-```
+- Khởi tạo Angular 22 (Standalone).
+- Cấu hình Angular Router.
+- Tích hợp TailwindCSS 4.
+- Cấu hình PostCSS cho Tailwind.
+- Tích hợp ngx-translate.
+- Thiết lập cấu trúc thư mục theo Feature-based Architecture.
+- Xây dựng Base Layout.
+  - Header
+  - Footer
+  - Public Layout
+- Xây dựng Base UI.
+  - Button
+  - Logo
+  - Tích hợp Calendar Library(ở nhánh khác chuẩn bị merge về dev là có)
+  - Hoàn thiện Base UI.(sẽ bỏ xung thêm trong tương lai trong quá trình hoàn thiện dự án do thiếu dữ liệu ban đầu)
+  - Hoàn thiện Core Routing.(sẽ bỏ xung thêm trong tương lai trong quá trình hoàn thiện dự án do thiếu dữ liệu ban đầu)
 
 ---
 
-## 3. Xây dựng Base UI
+## Đang thực hiện
 
-Đã tạo các UI Component đầu tiên:
-
-```
-shared/
-└── ui/
-    ├── button/
-    └── logo/
-```
-
-Mục tiêu:
-
-- Dùng chung trong toàn bộ hệ thống.
-- Giảm việc lặp lại code.
-- Đồng nhất giao diện.
 
 ---
 
-# Cấu trúc thư mục hiện tại
+## Chưa thực hiện
 
-```
-src/app
-│
-├── core/
-│
-├── shared/
-│   │
-│   ├── layout/
-│   │   ├── header/
-│   │   ├── footer/
-│   │   └── public-layout/
-│   │
-│   └── ui/
-│       ├── button/
-│       └── logo/
-│
-└── features/
-```
+- Home Feature.
+- Authentication.
+- Laboratory.
+- Equipment.
+- Booking.
+- User Management.
 
 ---
 
-# Nguyên tắc phát triển
+# Ghi chú
 
-- Không viết giao diện trực tiếp trong Feature nếu UI có thể tái sử dụng.
-- Ưu tiên sử dụng Shared UI Component.
-- Không chỉnh sửa Base Layout nếu chưa được thống nhất trong nhóm.
-- Các Feature chỉ hiển thị nội dung bên trong `<router-outlet>`.
-
----
-
-# Công việc đã hoàn thành
-
-### Header
-
-Đã xây dựng Header dùng chung cho toàn hệ thống bao gồm:
-
-- Logo hệ thống
-- Menu điều hướng
-- Nút đăng nhập
-
-Header được tái sử dụng thông qua Public Layout.
-
-### Footer
-
-Đã xây dựng Footer dùng chung cho toàn hệ thống bao gồm:
-
-- Logo
-- Thông tin hệ thống
-- Điều hướng nhanh
-- Chính sách và bản quyền
-
-Footer được hiển thị trên tất cả các trang sử dụng Public Layout.
-
----
-
-# Trạng thái hiện tại
-
-| Hạng mục | Trạng thái |
-|----------|------------|
-| TailwindCSS |  Hoàn thành |
-| Design System |  Đang xây dựng |
-| Base Layout |  Hoàn thành |
-| Base UI |  Đang phát triển |
-| Home Feature |  Chưa bắt đầu |
-| Authentication |  Chưa bắt đầu |
-| Booking | Chưa bắt đầu |
+- Mọi Feature phải sử dụng Shared UI nếu component đã tồn tại.
+- Không hard-code chuỗi hiển thị, sử dụng `ngx-translate`.
+- Không tự định nghĩa màu sắc ngoài quy chuẩn nếu chưa được thống nhất trong nhóm.
+- Ưu tiên TailwindCSS khi phát triển giao diện.
