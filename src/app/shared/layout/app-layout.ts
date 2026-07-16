@@ -4,10 +4,13 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core'
 import { AuthStore } from '../../core/auth/auth.store'
 import { env } from '../../core/config/env'
 import { ButtonComponent } from '../ui/button'
+import { FooterComponent } from './footer/footer.component'
+
+
 
 @Component({
   selector: 'app-layout',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, ButtonComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, ButtonComponent, FooterComponent  ],
   template: `
     <div class="min-h-screen bg-surface-light">
       <header class="border-b border-slate-200 bg-white">
@@ -62,6 +65,8 @@ import { ButtonComponent } from '../ui/button'
       <main class="mx-auto max-w-6xl px-4 py-6">
         <router-outlet />
       </main>
+  <app-footer />
+
     </div>
   `,
 })
@@ -82,4 +87,7 @@ export class AppLayoutComponent {
     this.store.logout()
     void this.router.navigate(['/auth/login'])
   }
+
+
+  
 }
