@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { PublicLayoutComponent } from './shared/layout/public-layout/public-layout.component';
-import { HomeComponent } from './feature/home/home.component';
+import { HomeComponent } from './features/home/home.component';
 
 export const routes: Routes = [
     {
