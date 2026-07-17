@@ -1,0 +1,36 @@
+{
+  "app": { "name": "Hệ thống đặt lịch Lab & Thiết bị" },
+  "nav": { "users": "Người dùng", "login": "Đăng nhập", "logout": "Đăng xuất" },
+  "home": {
+    "title": "Chào mừng",
+    "subtitle": "Quản lý đặt lịch phòng thí nghiệm và thiết bị."
+  },
+  "auth": {
+    "loginTitle": "Đăng nhập",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "submit": "Đăng nhập",
+    "error": "Email hoặc mật khẩu không đúng."
+  },
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "back": "Về trang chủ"
+  },
+  "users": {
+    "title": "Danh sách người dùng",
+    "add": "Thêm người dùng",
+    "name": "Họ tên",
+    "email": "Email",
+    "role": "Vai trò",
+    "actions": "Thao tác",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "empty": "Chưa có người dùng nào.",
+    "save": "Lưu",
+    "cancel": "Hủy"
+  },
+  "common": {
+    "error": "Đã có lỗi xảy ra",
+    "retry": "Thử lại"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "app": { "name": "Lab & Equipment Booking" },
+  "nav": { "users": "Users", "login": "Log in", "logout": "Log out" },
+  "home": {
+    "title": "Welcome",
+    "subtitle": "Manage lab room and equipment bookings."
+  },
+  "auth": {
+    "loginTitle": "Log in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Log in",
+    "error": "Invalid email or password."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Back to home"
+  },
+  "users": {
+    "title": "Users",
+    "add": "Add user",
+    "name": "Full name",
+    "email": "Email",
+    "role": "Role",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "empty": "No users yet.",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "common": {
+    "error": "Something went wrong",
+    "retry": "Retry"
+  }
+}
