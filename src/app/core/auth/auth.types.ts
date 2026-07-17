@@ -1,16 +1,18 @@
 export interface AuthUser {
-    id : number
-    name : string
-    email : string
+  id: string
+  fullName: string
+  email: string
+  roles: string[]
 }
 
 export interface LoginPayload {
-    email : string
-    password : string
+  email: string
+  password: string
 }
 
 export interface LoginResponse {
-    accessToken : string
-    refreshToken? : string
-    user : AuthUser
+  accessToken: string
+  refreshToken: string
+  expiresIn: number
+  user: AuthUser
 }
