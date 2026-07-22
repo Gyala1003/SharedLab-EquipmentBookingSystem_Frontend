@@ -5,7 +5,7 @@
 export const environment = {
   production: true,
   appName: 'Lab & Equipment Booking',
-  apiBaseUrl: 'https://api.example.com/api',
+  apiBaseUrl: 'https://localhost:7073/api',
   defaultLocale: 'vi',
   supportedLocales: ['vi', 'en'] as const,
 }
