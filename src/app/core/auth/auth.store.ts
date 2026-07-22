@@ -38,7 +38,9 @@ export class AuthStore {
       const res = await firstValueFrom(this.auth.login(payload))
       this.tokens.set(res.accessToken, res.refreshToken)
       this._user.set(res.user)
-      localStorage.setItem(USER_KEY, JSON.stringify(res.user))
+      if (res.user) {
+        localStorage.setItem(USER_KEY, JSON.stringify(res.user))
+      }
       this._status.set('idle')
     } catch (e) {
       this._status.set('error')
@@ -64,6 +66,19 @@ export class AuthStore {
 
   private restore(): AuthUser | null {
     const raw = localStorage.getItem(USER_KEY)
-    return raw ? (JSON.parse(raw) as AuthUser) : null
+
+    // Kiểm tra nếu không có dữ liệu hoặc dữ liệu là chuỗi 'undefined' / 'null'
+    if (!raw || raw === 'undefined' || raw === 'null') {
+      return null
+    }
+  
+    try {
+      return JSON.parse(raw) as AuthUser
+    } catch (e) {
+      console.error('Lỗi parse AuthUser từ localStorage:', e)
+      // Nếu dữ liệu bị hỏng, dọn dẹp sạch luôn
+      localStorage.removeItem(USER_KEY)
+      return null
+    }
   }
 }

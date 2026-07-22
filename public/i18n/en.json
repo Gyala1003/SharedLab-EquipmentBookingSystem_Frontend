@@ -49,6 +49,69 @@
           "spectrophotometer": "Spectrophotometer"
         }
       }
+    },
+    "about": {
+      "eyebrow": "ABOUT THE SYSTEM",
+      "title": "One platform for every shared lab and piece of equipment",
+      "description": "Built to serve every audience across an educational and research organization, from students running experiments to administrators overseeing operations, unifying the booking process and resource oversight on a single platform.",
+      "audience": {
+        "student": "Student",
+        "lecturer": "Lecturer",
+        "labManager": "Laboratory Manager",
+        "technician": "Technician",
+        "administrator": "Administrator"
+      },
+      "highlight": {
+        "availability": "Available anytime",
+        "platform": "Unified platform",
+        "roleTitle": "Role-based access",
+        "roleDescription": "Each role is granted the right level of access, keeping data and actions tightly controlled."
+      }
+    },
+    "feature": {
+      "eyebrow": "FEATURES",
+      "title": "Every tool needed to run a lab",
+      "subtitle": "From booking to reporting, all in one unified system.",
+      "room": { "title": "Room booking", "description": "Book lab room usage by time slot, avoiding overlaps and conflicts." },
+      "equipment": { "title": "Equipment booking", "description": "Reserve shared equipment with real-time status updates." },
+      "schedule": { "title": "Schedule management", "description": "Track every room and equipment booking on one central view." },
+      "notification": { "title": "Notifications", "description": "Get confirmations, reminders, and booking status updates." },
+      "users": { "title": "User management", "description": "Role-based access for Students, Lecturers, Lab Managers, and Technicians." },
+      "report": { "title": "Reports", "description": "Usage frequency and performance statistics for labs and equipment over time." }
+    },
+    "workflow": {
+      "eyebrow": "HOW IT WORKS",
+      "title": "Book in 5 simple steps",
+      "subtitle": "A clear, transparent process from login to confirmation.",
+      "login": { "title": "Log in", "description": "Sign in with the account issued in the system." },
+      "selectRoom": { "title": "Select room", "description": "Choose the lab room that fits your needs." },
+      "selectEquipment": { "title": "Select equipment", "description": "Choose the shared equipment you need for the session." },
+      "booking": { "title": "Book", "description": "Pick a time slot and confirm the booking details." },
+      "confirmation": { "title": "Get confirmation", "description": "Receive a booking confirmation through the system." }
+    },
+    "statistics": {
+      "labs": "Laboratories",
+      "equipment": "Equipment",
+      "bookings": "Bookings",
+      "users": "Users"
+    },
+    "preview": {
+      "eyebrow": "EQUIPMENT",
+      "title": "Featured shared equipment",
+      "subtitle": "A quick look at the usage status of some equipment in the system.",
+      "status": { "available": "Available", "booked": "Booked", "maintenance": "Maintenance" },
+      "items": {
+        "microscope": { "name": "Electron Microscope", "type": "Optical Equipment" },
+        "centrifuge": { "name": "Centrifuge", "type": "Sample Processing" },
+        "incubator": { "name": "CO2 Incubator", "type": "Culture Equipment" },
+        "spectrophotometer": { "name": "Spectrophotometer", "type": "Analysis Equipment" }
+      }
+    },
+    "cta": {
+      "title": "Ready to streamline your lab operations?",
+      "subtitle": "Log in now to start managing shared lab room and equipment bookings.",
+      "login": "Log in now",
+      "learnMore": "Learn more"
     }
   },
   "auth": {

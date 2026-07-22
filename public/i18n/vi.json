@@ -49,6 +49,69 @@
           "spectrophotometer": "Máy quang phổ"
         }
       }
+    },
+    "about": {
+      "eyebrow": "VỀ HỆ THỐNG",
+      "title": "Một nền tảng duy nhất cho mọi phòng thí nghiệm và thiết bị dùng chung",
+      "description": "Hệ thống được xây dựng để phục vụ toàn bộ các đối tượng trong tổ chức giáo dục và nghiên cứu, từ sinh viên thực hành đến quản trị viên vận hành, giúp thống nhất quy trình đặt lịch và giám sát tài nguyên trên một nền tảng duy nhất.",
+      "audience": {
+        "student": "Sinh viên",
+        "lecturer": "Giảng viên",
+        "labManager": "Quản lý phòng Lab",
+        "technician": "Kỹ thuật viên",
+        "administrator": "Quản trị viên"
+      },
+      "highlight": {
+        "availability": "Truy cập mọi lúc",
+        "platform": "Nền tảng hợp nhất",
+        "roleTitle": "Phân quyền theo vai trò",
+        "roleDescription": "Mỗi vai trò được cấp quyền phù hợp, đảm bảo dữ liệu và thao tác được kiểm soát chặt chẽ."
+      }
+    },
+    "feature": {
+      "eyebrow": "TÍNH NĂNG",
+      "title": "Mọi công cụ cần thiết để vận hành phòng Lab",
+      "subtitle": "Từ đặt lịch đến báo cáo, tất cả trong một hệ thống thống nhất.",
+      "room": { "title": "Đặt phòng", "description": "Đặt lịch sử dụng phòng thí nghiệm theo khung giờ, tránh trùng lặp và xung đột." },
+      "equipment": { "title": "Đặt thiết bị", "description": "Đăng ký sử dụng thiết bị dùng chung với trạng thái cập nhật theo thời gian thực." },
+      "schedule": { "title": "Quản lý lịch", "description": "Theo dõi toàn bộ lịch đặt phòng và thiết bị trên một giao diện tập trung." },
+      "notification": { "title": "Thông báo", "description": "Nhận thông báo xác nhận, nhắc lịch và thay đổi trạng thái đặt chỗ." },
+      "users": { "title": "Quản lý người dùng", "description": "Phân quyền theo vai trò: Sinh viên, Giảng viên, Quản lý Lab, Kỹ thuật viên." },
+      "report": { "title": "Báo cáo", "description": "Thống kê tần suất sử dụng, hiệu suất phòng Lab và thiết bị theo thời gian." }
+    },
+    "workflow": {
+      "eyebrow": "QUY TRÌNH",
+      "title": "Đặt lịch chỉ trong 5 bước đơn giản",
+      "subtitle": "Quy trình rõ ràng, minh bạch từ lúc đăng nhập đến khi nhận xác nhận.",
+      "login": { "title": "Đăng nhập", "description": "Đăng nhập bằng tài khoản được cấp trong hệ thống." },
+      "selectRoom": { "title": "Chọn phòng", "description": "Chọn phòng thí nghiệm phù hợp với nhu cầu sử dụng." },
+      "selectEquipment": { "title": "Chọn thiết bị", "description": "Chọn thiết bị dùng chung cần sử dụng cho buổi làm việc." },
+      "booking": { "title": "Đặt lịch", "description": "Chọn khung giờ và xác nhận thông tin đặt lịch." },
+      "confirmation": { "title": "Nhận xác nhận", "description": "Nhận thông báo xác nhận lịch đặt qua hệ thống." }
+    },
+    "statistics": {
+      "labs": "Phòng thí nghiệm",
+      "equipment": "Thiết bị",
+      "bookings": "Lượt đặt lịch",
+      "users": "Người dùng"
+    },
+    "preview": {
+      "eyebrow": "THIẾT BỊ",
+      "title": "Thiết bị dùng chung nổi bật",
+      "subtitle": "Xem nhanh trạng thái sử dụng của một số thiết bị trong hệ thống.",
+      "status": { "available": "Còn trống", "booked": "Đã đặt", "maintenance": "Bảo trì" },
+      "items": {
+        "microscope": { "name": "Kính hiển vi điện tử", "type": "Thiết bị quang học" },
+        "centrifuge": { "name": "Máy ly tâm", "type": "Thiết bị xử lý mẫu" },
+        "incubator": { "name": "Tủ ấm CO2", "type": "Thiết bị nuôi cấy" },
+        "spectrophotometer": { "name": "Máy quang phổ", "type": "Thiết bị phân tích" }
+      }
+    },
+    "cta": {
+      "title": "Sẵn sàng tối ưu vận hành phòng Lab của bạn?",
+      "subtitle": "Đăng nhập ngay để bắt đầu quản lý đặt lịch phòng thí nghiệm và thiết bị dùng chung.",
+      "login": "Đăng nhập ngay",
+      "learnMore": "Tìm hiểu thêm"
     }
   },
   "auth": {
