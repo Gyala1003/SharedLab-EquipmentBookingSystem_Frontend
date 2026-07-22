@@ -1,6 +1,27 @@
 {
   "app": { "name": "Hệ thống đặt lịch Lab & Thiết bị" },
   "nav": { "users": "Người dùng", "login": "Đăng nhập", "logout": "Đăng xuất" },
+  "header": {
+    "nav": {
+      "home": "Trang chủ",
+      "about": "Giới thiệu",
+      "feature": "Tính năng",
+      "workflow": "Quy trình",
+      "statistics": "Thống kê",
+      "contact": "Liên hệ"
+    },
+    "login": "Đăng nhập",
+    "getStarted": "Bắt đầu ngay"
+  },
+  "footer": {
+    "description": "Hệ thống đặt lịch Phòng thí nghiệm và Thiết bị dùng chung, giúp tối ưu vận hành và nâng cao hiệu quả sử dụng tài nguyên cho tổ chức của bạn.",
+    "quickLinks": "Liên kết nhanh",
+    "contact": "Thông tin liên hệ",
+    "address": "Tòa nhà Khoa học Công nghệ, 268 Lý Thường Kiệt, Quận 10, TP. Hồ Chí Minh",
+    "phone": "(028) 3865 1234",
+    "email": "support@labbooking.edu.vn",
+    "copyright": "Tất cả các quyền được bảo lưu."
+  },
   "home": {
     "title": "Chào mừng",
     "subtitle": "Quản lý đặt lịch phòng thí nghiệm và thiết bị."

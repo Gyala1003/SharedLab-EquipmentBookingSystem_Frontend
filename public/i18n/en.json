@@ -1,6 +1,27 @@
 {
   "app": { "name": "Lab & Equipment Booking" },
   "nav": { "users": "Users", "login": "Log in", "logout": "Log out" },
+  "header": {
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "feature": "Features",
+      "workflow": "How it works",
+      "statistics": "Statistics",
+      "contact": "Contact"
+    },
+    "login": "Log in",
+    "getStarted": "Get Started"
+  },
+  "footer": {
+    "description": "A Shared Lab and Equipment Booking System that helps optimize operations and improve resource utilization efficiency across your organization.",
+    "quickLinks": "Quick Links",
+    "contact": "Contact Information",
+    "address": "Science and Technology Building, 268 Ly Thuong Kiet, District 10, Ho Chi Minh City",
+    "phone": "(028) 3865 1234",
+    "email": "support@labbooking.edu.vn",
+    "copyright": "All rights reserved."
+  },
   "home": {
     "title": "Welcome",
     "subtitle": "Manage lab room and equipment bookings."

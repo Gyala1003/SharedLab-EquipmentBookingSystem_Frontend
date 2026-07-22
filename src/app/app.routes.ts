@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router'
 import { authGuard, guestGuard } from './core/auth/auth.guard'
 import { AppLayoutComponent } from './shared/layout/app-layout'
+import { PublicLayoutComponent } from './shared/layout/public-layout/public-layout.component'
 
 export const routes: Routes = [
   {
@@ -10,12 +11,18 @@ export const routes: Routes = [
   },
   {
     path: '',
-    component: AppLayoutComponent,
+    component: PublicLayoutComponent,
     children: [
       {
         path: '',
         loadComponent: () => import('./features/home/home.page').then((m) => m.HomePage),
       },
+    ],
+  },
+  {
+    path: '',
+    component: AppLayoutComponent,
+    children: [
       {
         // Lazy-loaded feature chunk.
         path: 'users',

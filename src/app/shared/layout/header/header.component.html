@@ -1,43 +1,167 @@
-<header class="border-b border-slate-200 bg-white">
-    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6" >
+<header
+  class="fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300"
+  [class.bg-white]="isScrolled()"
+  [class.shadow-sm]="isScrolled()"
+  [class.border-gray-200]="isScrolled()"
+  [class.bg-white_80]="!isScrolled()"
+  [class.border-transparent]="!isScrolled()"
+>
+  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
-        <app-logo />
+    <!-- THÊM DẤU < a ... > VÀO ĐÂY -->
+    <a
+      routerLink="/"
+      fragment="hero"
+      class="flex items-center gap-2"
+      (click)="closeMobileMenu()"
+    >
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
+        <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 3H15M12 3V8M12 8L6.5 17.5C5.8 18.7 6.6 20 8 20H16C17.4 20 18.2 18.7 17.5 17.5L12 8Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7.5 15H16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="text-lg font-bold tracking-tight text-gray-900">LabBooking</span>
+    </a>
 
-        <nav class="flex items-center gap-8">
+    <nav class="hidden lg:flex lg:items-center lg:gap-8">
+      @for (item of navItems; track item.fragment) {
+        <!-- THÊM DẤU < a ... > VÀO ĐÂY -->
+        <a
+          routerLink="/"
+          [fragment]="item.fragment"
+          routerLinkActive="text-blue-600"
+          class="text-sm font-medium text-gray-600 transition-colors hover:text-blue-600"
+        >
+          {{ item.label | translate }}
+        </a>
+      }
+    </nav>
 
-            <a routerLink="/"
-                class="text-slate-700 hover:text-sky-600">
-                Trang chủ
-            </a>
+    <div class="hidden lg:flex lg:items-center lg:gap-3">
+      <div class="relative">
+        <button
+          type="button"
+          class="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900"
+          (click)="toggleLangMenu()"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M3 12H21M12 3C14.5 5.7 15.8 9 15.8 12C15.8 15 14.5 18.3 12 21C9.5 18.3 8.2 15 8.2 12C8.2 9 9.5 5.7 12 3Z" stroke="currentColor" stroke-width="1.6"/>
+          </svg>
+          {{ currentLanguageLabel() }}
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
 
-            <a routerLink="/"
-                class="text-slate-700 hover:text-sky-600">
-                Phòng thí nghiệm
-            </a>
+        @if (isLangMenuOpen()) {
+          <div
+            class="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          >
+            @for (lang of languages; track lang.code) {
+              <button
+                type="button"
+                class="flex w-full items-center px-4 py-2 text-sm hover:bg-gray-50"
+                [class.text-blue-600]="lang.code === currentLang()"
+                [class.font-semibold]="lang.code === currentLang()"
+                [class.text-gray-700]="lang.code !== currentLang()"
+                (click)="changeLanguage(lang.code)"
+              >
+                {{ lang.label }}
+              </button>
+            }
+          </div>
+        }
+      </div>
 
-            <a routerLink="/"
-                class="text-slate-700 hover:text-sky-600">
-                Thiết bị
-            </a>
+      <!-- THÊM DẤU < a ... > VÀO ĐÂY -->
+      <a
+        routerLink="/auth/login"
+        class="text-sm font-medium text-gray-600 hover:text-gray-900"
+      >
+        {{ 'header.login' | translate }}
+      </a>
 
-            <a routerLink="/"
-                class="text-slate-700 hover:text-sky-600">
-                Giới thiệu
-            </a>
-
-            <a routerLink="/"
-                class="text-slate-700 hover:text-sky-600">
-                Liên hệ
-            </a>
-
-        </nav>
-
-        <div class="flex gap-3">
-
-            <app-button>
-                Đăng nhập
-            </app-button>
-
-        </div>
+      <!-- THÊM DẤU < a ... > VÀO ĐÂY -->
+      <a
+        routerLink="/auth/login"
+        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+      >
+        {{ 'header.getStarted' | translate }}
+      </a>
     </div>
+
+    <button
+      type="button"
+      class="flex h-10 w-10 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 lg:hidden"
+      (click)="toggleMobileMenu()"
+    >
+      @if (!isMobileMenuOpen()) {
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      } @else {
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      }
+    </button>
+  </div>
+
+  @if (isMobileMenuOpen()) {
+    <div class="border-t border-gray-200 bg-white px-4 pb-6 pt-4 lg:hidden">
+      <nav class="flex flex-col gap-1">
+        @for (item of navItems; track item.fragment) {
+          <!-- THÊM DẤU < a ... > VÀO ĐÂY -->
+          <a
+            routerLink="/"
+            [fragment]="item.fragment"
+            class="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            (click)="closeMobileMenu()"
+          >
+            {{ item.label | translate }}
+          </a>
+        }
+      </nav>
+
+      <div class="mt-4 flex flex-col gap-2 border-t border-gray-200 pt-4">
+        <div class="flex items-center gap-2">
+          @for (lang of languages; track lang.code) {
+            <button
+              type="button"
+              class="rounded-md border px-3 py-1.5 text-sm font-medium"
+              [class.border-blue-600]="lang.code === currentLang()"
+              [class.text-blue-600]="lang.code === currentLang()"
+              [class.border-gray-200]="lang.code !== currentLang()"
+              [class.text-gray-600]="lang.code !== currentLang()"
+              (click)="changeLanguage(lang.code)"
+            >
+              {{ lang.label }}
+            </button>
+          }
+        </div>
+
+        <!-- THÊM DẤU < a ... > VÀO ĐÂY -->
+        <a
+          routerLink="/auth/login"
+          class="mt-2 rounded-md border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-700"
+          (click)="closeMobileMenu()"
+        >
+          {{ 'header.login' | translate }}
+        </a>
+
+        <!-- THÊM DẤU < a ... > VÀO ĐÂY -->
+        <a
+          routerLink="/auth/login"
+          class="rounded-md bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white"
+          (click)="closeMobileMenu()"
+        >
+          {{ 'header.getStarted' | translate }}
+        </a>
+      </div>
+    </div>
+  }
 </header>
+
+<div class="h-16"></div>
