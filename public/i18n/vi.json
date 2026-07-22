@@ -11,7 +11,7 @@
       "contact": "Liên hệ"
     },
     "login": "Đăng nhập",
-    "getStarted": "Bắt đầu ngay"
+    "access": "Truy cập hệ thống"
   },
   "footer": {
     "description": "Hệ thống đặt lịch Phòng thí nghiệm và Thiết bị dùng chung, giúp tối ưu vận hành và nâng cao hiệu quả sử dụng tài nguyên cho tổ chức của bạn.",
@@ -24,7 +24,32 @@
   },
   "home": {
     "title": "Chào mừng",
-    "subtitle": "Quản lý đặt lịch phòng thí nghiệm và thiết bị."
+    "subtitle": "Quản lý đặt lịch phòng thí nghiệm và thiết bị.",
+    "hero": {
+      "badge": "HỆ THỐNG ĐẶT LỊCH PHÒNG THÍ NGHIỆM & THIẾT BỊ",
+      "title": "Đặt lịch phòng thí nghiệm và thiết bị dùng chung, không còn xung đột",
+      "description": "Quản lý lịch sử dụng phòng thí nghiệm và thiết bị dùng chung cho toàn bộ tổ chức. Giảm xung đột đặt lịch, theo dõi tình trạng thiết bị theo thời gian thực và giữ mọi hoạt động vận hành luôn minh bạch.",
+      "ctaPrimary": "Đăng nhập ngay",
+      "ctaSecondary": "Tìm hiểu thêm",
+      "mockup": {
+        "title": "Lịch đặt hôm nay",
+        "today": "Thứ Tư, hôm nay",
+        "selected": "6 thiết bị đã chọn",
+        "book": "Đặt lịch",
+        "availableTitle": "Còn trống",
+        "availableRoom": "Phòng Lab 3 · Tầng 2",
+        "maintenanceTime": "Bảo trì 09:00 - 11:00",
+        "maintenanceEquipment": "Kính hiển vi điện tử",
+        "utilization": "Công suất sử dụng",
+        "equipment": {
+          "centrifuge": "Máy ly tâm",
+          "incubator": "Tủ ấm CO2",
+          "autoclave": "Nồi hấp tiệt trùng",
+          "microscope": "Kính hiển vi điện tử",
+          "spectrophotometer": "Máy quang phổ"
+        }
+      }
+    }
   },
   "auth": {
     "loginTitle": "Đăng nhập",

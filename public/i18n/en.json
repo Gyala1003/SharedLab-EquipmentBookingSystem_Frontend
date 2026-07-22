@@ -11,7 +11,7 @@
       "contact": "Contact"
     },
     "login": "Log in",
-    "getStarted": "Get Started"
+    "access": "Access System"
   },
   "footer": {
     "description": "A Shared Lab and Equipment Booking System that helps optimize operations and improve resource utilization efficiency across your organization.",
@@ -24,7 +24,32 @@
   },
   "home": {
     "title": "Welcome",
-    "subtitle": "Manage lab room and equipment bookings."
+    "subtitle": "Manage lab room and equipment bookings.",
+    "hero": {
+      "badge": "SHARED LAB & EQUIPMENT BOOKING SYSTEM",
+      "title": "Book shared labs and equipment without the scheduling conflicts",
+      "description": "Manage lab room and equipment bookings across your entire organization. Reduce scheduling conflicts, track equipment status in real time, and keep every operation transparent.",
+      "ctaPrimary": "Log in now",
+      "ctaSecondary": "Learn more",
+      "mockup": {
+        "title": "Today's schedule",
+        "today": "Wednesday, today",
+        "selected": "6 items selected",
+        "book": "Book",
+        "availableTitle": "Available",
+        "availableRoom": "Lab Room 3 · Floor 2",
+        "maintenanceTime": "Maintenance 09:00 - 11:00",
+        "maintenanceEquipment": "Electron Microscope",
+        "utilization": "Utilization",
+        "equipment": {
+          "centrifuge": "Centrifuge",
+          "incubator": "CO2 Incubator",
+          "autoclave": "Autoclave",
+          "microscope": "Electron Microscope",
+          "spectrophotometer": "Spectrophotometer"
+        }
+      }
+    }
   },
   "auth": {
     "loginTitle": "Log in",
