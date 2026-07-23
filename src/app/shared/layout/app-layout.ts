@@ -131,14 +131,6 @@ import { IconComponent } from '../ui/icon'
               {{ 'nav.policies' | translate }}
             </a>
             <a
-              routerLink="/lab-rooms/new"
-              routerLinkActive="bg-brand-500 text-white"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              <app-icon name="plus" [size]="18" />
-              {{ 'nav.newLabRoom' | translate }}
-            </a>
-            <a
               routerLink="/users"
               routerLinkActive="bg-brand-500 text-white"
               class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"

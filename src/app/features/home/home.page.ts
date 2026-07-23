@@ -1,13 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core'
-import { DatePipe } from '@angular/common'
-import { RouterLink } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { TranslatePipe } from '@ngx-translate/core'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LabRoomsStore } from '../lab-rooms/lab-rooms.store'
 import { EquipmentsStore } from '../equipments/equipments.store'
 import { BookingsStore } from '../bookings/bookings.store'
-import { BadgeComponent, BadgeTone } from '../../shared/ui/badge'
+import { BadgeTone } from '../../shared/ui/badge'
 import { IconComponent } from '../../shared/ui/icon'
+import { BookingCalendarComponent } from '../bookings/booking-calendar.component'
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   Approved: 'green',
@@ -21,7 +21,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink, DatePipe, TranslatePipe, BadgeComponent, IconComponent],
+  imports: [RouterLink, TranslatePipe, IconComponent, BookingCalendarComponent],
   template: `
     <section class="flex flex-col gap-5">
       <div>
@@ -51,38 +51,16 @@ const STATUS_TONE: Record<string, BadgeTone> = {
       </div>
 
       <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <!-- Recent bookings (not for Admin) -->
+        <!-- Bookings Calendar (not for Admin) -->
         @if (!authStore.isAdmin()) {
-          <div class="rounded-xl border border-slate-200 bg-white p-5 lg:col-span-2">
-            <div class="mb-3 flex items-center justify-between">
+          <div class="flex flex-col gap-3 lg:col-span-2">
+            <div class="flex items-center justify-between px-1">
               <h3 class="text-sm font-semibold text-slate-900">{{ 'home.recentBookings' | translate }}</h3>
               <a routerLink="/bookings/history" class="text-sm text-brand-600 hover:underline">
                 {{ 'home.viewAll' | translate }}
               </a>
             </div>
-
-            @if (recentBookings().length === 0) {
-              <p class="py-8 text-center text-sm text-slate-500">{{ 'home.noBookings' | translate }}</p>
-            } @else {
-              <div class="flex flex-col divide-y divide-slate-100">
-                @for (b of recentBookings(); track b.bookingId) {
-                  <a
-                    [routerLink]="['/bookings', b.bookingId]"
-                    class="flex items-center justify-between gap-3 py-3 hover:bg-slate-50"
-                  >
-                    <div class="min-w-0">
-                      <p class="truncate text-sm font-medium text-slate-900">#{{ b.bookingId }} · {{ b.purposeType }}</p>
-                      <p class="truncate text-xs text-slate-500">
-                        {{ b.startTime | date: 'dd/MM HH:mm' }} – {{ b.endTime | date: 'HH:mm' }}
-                      </p>
-                    </div>
-                    <app-badge [tone]="STATUS_TONE[b.status] ?? 'slate'">
-                      {{ 'bookingStatus.' + b.status | translate }}
-                    </app-badge>
-                  </a>
-                }
-              </div>
-            }
+            <app-booking-calendar (bookingClick)="router.navigate(['/bookings', $event])" />
           </div>
         }
 
@@ -199,17 +177,12 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   `,
 })
 export class HomePage implements OnInit {
+  protected readonly router = inject(Router)
   protected readonly authStore = inject(AuthStore)
   protected readonly labRoomsStore = inject(LabRoomsStore)
   protected readonly equipmentsStore = inject(EquipmentsStore)
   protected readonly bookingsStore = inject(BookingsStore)
   protected readonly STATUS_TONE = STATUS_TONE
-
-  protected recentBookings() {
-    return [...this.bookingsStore.items()]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 6)
-  }
 
   async ngOnInit(): Promise<void> {
     const user = this.authStore.user()
