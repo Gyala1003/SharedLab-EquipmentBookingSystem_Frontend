@@ -128,7 +128,7 @@
       "emailRequired": "Please enter your email",
       "emailInvalid": "Invalid email format",
       "passwordRequired": "Please enter your password",
-      "passwordMinLength": "Password must be more than 6 characters"
+      "passwordMinLength": "Password must be more than 5 characters"
     },
     "error": {
       "invalidCredentials": "Invalid email or password.",

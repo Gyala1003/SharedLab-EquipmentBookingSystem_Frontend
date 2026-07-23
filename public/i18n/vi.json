@@ -128,7 +128,7 @@
       "emailRequired": "Vui lòng nhập email",
       "emailInvalid": "Email không đúng định dạng",
       "passwordRequired": "Vui lòng nhập mật khẩu",
-      "passwordMinLength": "Mật khẩu phải nhiều hơn 6 ký tự"
+      "passwordMinLength": "Mật khẩu phải nhiều hơn 5 ký tự"
     },
     "error": {
       "invalidCredentials": "Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!",

@@ -26,7 +26,7 @@ export class LoginPage {
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email, Validators.maxLength(100)]],
-    password: ['', [Validators.required, Validators.minLength(7)]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
   })
 
   togglePasswordVisibility(): void {
