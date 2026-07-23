@@ -5,11 +5,6 @@ import { PublicLayoutComponent } from './shared/layout/public-layout/public-layo
 
 export const routes: Routes = [
   {
-    path: 'auth/login',
-    canActivate: [guestGuard],
-    loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
-  },
-  {
     path: '',
     component: PublicLayoutComponent,
     children: [
@@ -17,12 +12,22 @@ export const routes: Routes = [
         path: '',
         loadComponent: () => import('./features/home/home.page').then((m) => m.HomePage),
       },
+      {
+        path: 'auth/login',
+        canActivate: [guestGuard],
+        loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
+      },
     ],
   },
   {
     path: '',
     component: AppLayoutComponent,
     children: [
+      {
+        path: 'dashboard',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage),
+      },
       {
         // Lazy-loaded feature chunk.
         path: 'users',

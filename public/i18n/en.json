@@ -115,11 +115,32 @@
     }
   },
   "auth": {
-    "loginTitle": "Log in",
-    "email": "Email",
+    "loginTitle": "Sign In",
+    "loginSubtitle": "Please log in to use the system",
+    "email": "Email Address",
     "password": "Password",
     "submit": "Log in",
-    "error": "Invalid email or password."
+    "loginBtn": "Login",
+    "forgotPassword": "Forgot password?",
+    "rememberMe": "Remember me",
+    "cancel": "Cancel",
+    "validation": {
+      "emailRequired": "Please enter your email",
+      "emailInvalid": "Invalid email format",
+      "passwordRequired": "Please enter your password",
+      "passwordMinLength": "Password must be more than 6 characters"
+    },
+    "error": {
+      "invalidCredentials": "Invalid email or password.",
+      "serverError": "System error. Please try again later."
+    },
+    "success": {
+      "login": "Login successful! Redirecting..."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome,"
   },
   "notFound": {
     "title": "Page not found",
