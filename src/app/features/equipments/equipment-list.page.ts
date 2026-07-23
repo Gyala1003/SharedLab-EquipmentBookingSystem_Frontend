@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core'
+import { Component, OnInit, inject, signal } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { TranslatePipe } from '@ngx-translate/core'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -7,6 +7,8 @@ import { ButtonComponent } from '../../shared/ui/button'
 import { IconComponent } from '../../shared/ui/icon'
 import { SpinnerComponent } from '../../shared/ui/spinner'
 import { EquipmentsStore } from './equipments.store'
+import { EquipmentFormDialog } from './equipment-form.dialog'
+import type { CreateEquipmentInput } from './equipments.types'
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   Available: 'green',
@@ -18,7 +20,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 @Component({
   selector: 'app-equipment-list-page',
-  imports: [RouterLink, TranslatePipe, BadgeComponent, ButtonComponent, SpinnerComponent],
+  imports: [RouterLink, TranslatePipe, BadgeComponent, ButtonComponent, SpinnerComponent, IconComponent, EquipmentFormDialog],
   template: `
     <section class="flex flex-col gap-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -26,6 +28,12 @@ const STATUS_TONE: Record<string, BadgeTone> = {
           <h1 class="text-xl font-semibold text-slate-900">{{ 'equipments.title' | translate }}</h1>
           <p class="text-sm text-slate-500">{{ 'equipments.subtitle' | translate }}</p>
         </div>
+        @if (authStore.isAdmin()) {
+          <app-button (click)="openAddDialog()">
+            <app-icon name="plus" [size]="16" />
+            {{ 'equipments.add' | translate }}
+          </app-button>
+        }
       </div>
 
       @switch (store.status()) {
@@ -89,15 +97,32 @@ const STATUS_TONE: Record<string, BadgeTone> = {
         }
       }
     </section>
+
+    <app-equipment-form-dialog
+      [open]="dialogOpen()"
+      [submitting]="store.mutating()"
+      (close)="dialogOpen.set(false)"
+      (save)="onSave($event)"
+    />
   `,
 })
 export class EquipmentListPage implements OnInit {
   protected readonly store = inject(EquipmentsStore)
   protected readonly authStore = inject(AuthStore)
   protected readonly STATUS_TONE = STATUS_TONE
+  protected readonly dialogOpen = signal(false)
 
   async ngOnInit(): Promise<void> {
     await this.store.load()
+  }
+
+  openAddDialog(): void {
+    this.dialogOpen.set(true)
+  }
+
+  async onSave(input: CreateEquipmentInput): Promise<void> {
+    await this.store.create(input)
+    this.dialogOpen.set(false)
   }
 
   async confirmDelete(id: number): Promise<void> {

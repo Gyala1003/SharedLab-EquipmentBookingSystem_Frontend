@@ -5,6 +5,8 @@ import { TranslatePipe } from '@ngx-translate/core'
 import { BadgeComponent, BadgeTone } from '../../shared/ui/badge'
 import { SpinnerComponent } from '../../shared/ui/spinner'
 import { BookingsStore } from './bookings.store'
+import { ViolationsStore } from '../violations/violations.store'
+import type { Violation } from '../violations/violations.types'
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   Approved: 'green',
@@ -74,10 +76,16 @@ const STATUS_TONE: Record<string, BadgeTone> = {
                         {{ 'waitingList.approve' | translate }}
                       </button>
                       <button
-                        class="font-medium text-red-600 hover:underline"
+                        class="mr-3 font-medium text-red-600 hover:underline"
                         (click)="rejectBooking(b.bookingId)"
                       >
                         {{ 'waitingList.reject' | translate }}
+                      </button>
+                      <button
+                        class="font-medium text-amber-600 hover:underline text-xs"
+                        (click)="lockUserBooking(b.userId)"
+                      >
+                        Khoá đặt lịch 1 tuần
                       </button>
                     } @else {
                       <a [routerLink]="['/bookings', b.bookingId]" class="text-slate-400 hover:text-brand-600">
@@ -96,6 +104,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 })
 export class BookingWaitingListPage implements OnInit {
   protected readonly store = inject(BookingsStore)
+  protected readonly violationsStore = inject(ViolationsStore)
   protected readonly STATUS_TONE = STATUS_TONE
 
   protected sorted() {
@@ -108,12 +117,29 @@ export class BookingWaitingListPage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     await this.store.loadAll()
+    await this.violationsStore.load()
   }
 
   async rejectBooking(id: number): Promise<void> {
     const reason = prompt('Lý do từ chối:')
     if (reason) {
       await this.store.reject(id, { reason })
+    }
+  }
+
+  async lockUserBooking(userId: number): Promise<void> {
+    if (confirm(`Áp dụng lệnh khoá đặt lịch 1 tuần cho người dùng (ID: ${userId})?`)) {
+      const userViolation = this.violationsStore.items().find((v: Violation) => v.userId === userId)
+      if (userViolation) {
+        this.violationsStore.updateActionTaken(userViolation.violationId, 'Khoá đặt lịch (1 tuần)')
+      } else {
+        await this.violationsStore.create({
+          userId,
+          policyId: 1,
+          description: 'Bị Lab Manager khoá quyền đặt lịch do vi phạm quy định',
+        })
+      }
+      alert('Đã khoá quyền đặt lịch của người dùng 1 tuần thành công!')
     }
   }
 }

@@ -10,6 +10,7 @@ import type {
   LoginResponse,
   RefreshTokenRequest,
   ResetPasswordRequest,
+  UpdateProfilePayload,
 } from './auth.types'
 
 /**
@@ -53,5 +54,9 @@ export class AuthService {
 
   resetPassword(request: ResetPasswordRequest): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.base}/reset-password`, request)
+  }
+
+  updateProfile(payload: UpdateProfilePayload): Observable<AuthUser> {
+    return this.http.put<AuthUser>(`${this.base}/profile`, payload)
   }
 }

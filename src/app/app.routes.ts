@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router'
-import { authGuard, guestGuard, adminGuard, managerGuard } from './core/auth/auth.guard'
+import { authGuard, guestGuard, adminGuard, labManagerGuard } from './core/auth/auth.guard'
 import { AppLayoutComponent } from './shared/layout/app-layout'
 
 export const routes: Routes = [
@@ -51,7 +51,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/equipments/equipment-detail.page').then((m) => m.EquipmentDetailPage),
       },
-      // Bookings
+      // Bookings (Requester)
       {
         path: 'bookings/history',
         loadComponent: () =>
@@ -62,13 +62,45 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/bookings/booking-detail.page').then((m) => m.BookingDetailPage),
       },
+      // Policies (User view)
       {
-        path: 'admin/bookings',
-        canActivate: [managerGuard],
+        path: 'policies',
+        loadComponent: () =>
+          import('./features/policies/user-policy-list.page').then((m) => m.UserPolicyListPage),
+      },
+      // Lab Manager routes
+      {
+        path: 'manager/approvals',
+        canActivate: [labManagerGuard],
         loadComponent: () =>
           import('./features/bookings/booking-waiting-list.page').then(
             (m) => m.BookingWaitingListPage,
           ),
+      },
+      {
+        path: 'manager/incidents',
+        canActivate: [labManagerGuard],
+        loadComponent: () =>
+          import('./features/incidents/incident-list.page').then((m) => m.IncidentListPage),
+      },
+      {
+        path: 'manager/violations',
+        canActivate: [labManagerGuard],
+        loadComponent: () =>
+          import('./features/violations/violation-list.page').then((m) => m.ViolationListPage),
+      },
+      {
+        path: 'manager/maintenance',
+        canActivate: [labManagerGuard],
+        loadComponent: () =>
+          import('./features/maintenance/maintenance-list.page').then((m) => m.MaintenanceListPage),
+      },
+      // Admin routes
+      {
+        path: 'admin/policies',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/policies/policy-list.page').then((m) => m.PolicyListPage),
       },
       // Users (Admin only)
       {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { Component, OnInit, inject, signal, computed } from '@angular/core'
 import { DatePipe } from '@angular/common'
 import { ActivatedRoute, RouterLink } from '@angular/router'
 import { TranslatePipe } from '@ngx-translate/core'
@@ -8,6 +8,9 @@ import { ButtonComponent } from '../../shared/ui/button'
 import { IconComponent } from '../../shared/ui/icon'
 import { SpinnerComponent } from '../../shared/ui/spinner'
 import { BookingsStore } from './bookings.store'
+import { IncidentFormDialog } from '../incidents/incident-form.dialog'
+import { IncidentsStore } from '../incidents/incidents.store'
+import type { CreateIncidentInput } from '../incidents/incidents.types'
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   Approved: 'green',
@@ -15,12 +18,13 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   Rejected: 'red',
   Cancelled: 'slate',
   Completed: 'green',
+  CheckedIn: 'green',
   NoShow: 'red',
 }
 
 @Component({
   selector: 'app-booking-detail-page',
-  imports: [RouterLink, DatePipe, TranslatePipe, BadgeComponent, ButtonComponent, IconComponent, SpinnerComponent],
+  imports: [RouterLink, DatePipe, TranslatePipe, BadgeComponent, ButtonComponent, IconComponent, SpinnerComponent, IncidentFormDialog],
   template: `
     @if (store.status() === 'loading') {
       <div class="flex justify-center py-16"><app-spinner /></div>
@@ -82,10 +86,30 @@ const STATUS_TONE: Record<string, BadgeTone> = {
             </div>
           }
 
-          @if (b.rejectionReason) {
-            <div class="rounded-lg bg-red-50 p-3">
-              <p class="mb-1 text-xs font-medium text-red-500">{{ 'bookingDetail.rejectionReason' | translate }}</p>
-              <p class="text-red-700">{{ b.rejectionReason }}</p>
+          <!-- Check-in / Check-out info -->
+          @if (b.checkedInAt) {
+            <div class="border-t border-slate-100 pt-3">
+              <div class="flex items-center justify-between">
+                <span class="flex items-center gap-2 text-slate-500">
+                  <app-icon name="checkin" [size]="15" />{{ 'bookingDetail.checkedInAt' | translate }}
+                </span>
+                <span class="font-medium text-emerald-600">{{ b.checkedInAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
+          }
+          @if (b.checkedOutAt) {
+            <div class="flex items-center justify-between">
+              <span class="flex items-center gap-2 text-slate-500">
+                <app-icon name="checkout" [size]="15" />{{ 'bookingDetail.checkedOutAt' | translate }}
+              </span>
+              <span class="font-medium text-blue-600">{{ b.checkedOutAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+          }
+
+          @if (b.status === 'Rejected' || b.rejectionReason) {
+            <div class="rounded-lg bg-red-50 p-3 border border-red-200">
+              <p class="mb-1 text-xs font-semibold text-red-600">❌ {{ 'bookingDetail.rejectionReason' | translate }}</p>
+              <p class="text-sm text-red-700">{{ b.rejectionReason || 'Yêu cầu không được Lab Manager chấp thuận' }}</p>
             </div>
           }
 
@@ -97,27 +121,76 @@ const STATUS_TONE: Record<string, BadgeTone> = {
           }
         </div>
 
-        @if (authStore.isAdminOrManager() && b.status === 'Pending') {
-          <div class="flex justify-end gap-2">
+        <!-- Action buttons -->
+        <div class="flex justify-end gap-2">
+          <!-- Lab Manager: Approve/Reject -->
+          @if (authStore.isLabManager() && b.status === 'Pending') {
             <app-button variant="danger" (click)="rejectBooking(b.bookingId)">
               {{ 'waitingList.reject' | translate }}
             </app-button>
             <app-button (click)="store.approve(b.bookingId)">
               {{ 'waitingList.approve' | translate }}
             </app-button>
-          </div>
-        }
+          }
+
+          <!-- Requester: Check-in -->
+          @if (canCheckIn()) {
+            <app-button (click)="store.checkIn(b.bookingId)" [loading]="store.mutating()">
+              <app-icon name="checkin" [size]="16" />
+              {{ 'bookingDetail.checkIn' | translate }}
+            </app-button>
+          }
+
+          <!-- Requester: Check-out -->
+          @if (canCheckOut()) {
+            <app-button variant="secondary" (click)="store.checkOut(b.bookingId)" [loading]="store.mutating()">
+              <app-icon name="checkout" [size]="16" />
+              {{ 'bookingDetail.checkOut' | translate }}
+            </app-button>
+          }
+
+          <!-- Lab Manager: Report Incident (after completed) -->
+          @if (authStore.isLabManager() && b.status === 'Completed') {
+            <app-button variant="danger" (click)="openIncidentDialog(b.bookingId)">
+              <app-icon name="alert" [size]="16" />
+              {{ 'incidents.add' | translate }}
+            </app-button>
+          }
+        </div>
       </section>
+
+      <app-incident-form-dialog
+        [open]="incidentDialogOpen()"
+        [initialBookingId]="selectedBookingId()"
+        [submitting]="incidentsStore.mutating()"
+        (close)="incidentDialogOpen.set(false)"
+        (save)="onSaveIncident($event)"
+      />
     }
   `,
 })
 export class BookingDetailPage implements OnInit {
   protected readonly store = inject(BookingsStore)
   protected readonly authStore = inject(AuthStore)
+  protected readonly incidentsStore = inject(IncidentsStore)
   private readonly route = inject(ActivatedRoute)
   protected readonly STATUS_TONE = STATUS_TONE
 
   private readonly id = signal(Number(this.route.snapshot.paramMap.get('id') ?? '0'))
+  protected readonly incidentDialogOpen = signal(false)
+  protected readonly selectedBookingId = signal<number | null>(null)
+
+  /** Can check in: User is Requester AND booking status is Approved */
+  protected readonly canCheckIn = computed(() => {
+    const b = this.store.detail()
+    return this.authStore.isRequester() && b?.status === 'Approved'
+  })
+
+  /** Can check out: User is Requester AND booking status is CheckedIn */
+  protected readonly canCheckOut = computed(() => {
+    const b = this.store.detail()
+    return this.authStore.isRequester() && b?.status === 'CheckedIn'
+  })
 
   async ngOnInit(): Promise<void> {
     await this.store.loadById(this.id())
@@ -128,5 +201,16 @@ export class BookingDetailPage implements OnInit {
     if (reason) {
       await this.store.reject(id, { reason })
     }
+  }
+
+  openIncidentDialog(bookingId: number): void {
+    this.selectedBookingId.set(bookingId)
+    this.incidentDialogOpen.set(true)
+  }
+
+  async onSaveIncident(input: CreateIncidentInput): Promise<void> {
+    await this.incidentsStore.create(input)
+    this.incidentDialogOpen.set(false)
+    alert('Đã ghi nhận sự cố thành công!')
   }
 }

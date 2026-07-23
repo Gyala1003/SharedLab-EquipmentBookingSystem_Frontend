@@ -20,6 +20,13 @@ export type IconName =
   | 'mapPin'
   | 'wrench'
   | 'box'
+  | 'shield'
+  | 'checkin'
+  | 'checkout'
+  | 'alert'
+  | 'maintenance'
+  | 'violation'
+  | 'equipment'
 
 /** Minimal outline icon set (24x24, stroke-based) so we don't pull in an icon package. */
 const PATHS: Record<IconName, string> = {
@@ -41,12 +48,19 @@ const PATHS: Record<IconName, string> = {
   chevronRight: 'm9 6 6 6-6 6',
   back: 'm15 18-6-6 6-6',
   check: 'M20 6 9 17l-5-5',
-  close: 'M18 6 6 18M6 6l18 18',
+  close: 'M18 6 6 18M6 6l12 12',
   clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-14v6l4 2',
   mapPin: 'M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Zm0-8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
   wrench:
     'M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 1 5.4-5.4L14.7 6.3Z',
   box: 'm21 8-9-5-9 5 9 5 9-5Zm0 0v8l-9 5-9-5V8m9 5v8',
+  shield: 'M12 2 4 6v6c0 5 3.6 8.5 8 10 4.4-1.5 8-5 8-10V6l-8-4Z',
+  checkin: 'M9 12l2 2 4-4M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z',
+  checkout: 'M9 12l2 2 4-4M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM22 12h-6',
+  alert: 'M12 9v4M12 17h.01M10.29 3.86 1.82 18a1 1 0 0 0 .86 1.5h18.64a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0Z',
+  maintenance: 'M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 1 5.4-5.4L14.7 6.3ZM12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z',
+  violation: 'M18 6 6 18M6 6l12 12M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z',
+  equipment: 'M12 2 4 6v6c0 5 3.6 8.5 8 10 4.4-1.5 8-5 8-10V6l-8-4Z M9 12l2 2 4-4',
 }
 
 @Component({

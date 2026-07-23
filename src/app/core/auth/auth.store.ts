@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import { AuthService } from './auth.service'
 import { TokenStorage } from './token-storage'
-import type { AuthUser, LoginPayload } from './auth.types'
+import type { AuthUser, LoginPayload, UpdateProfilePayload } from './auth.types'
 
 const USER_KEY = 'auth.user'
 
@@ -28,6 +28,7 @@ export class AuthStore {
   readonly roleName = computed(() => this._user()?.roleName ?? '')
   readonly isAdmin = computed(() => this._user()?.roleName === 'Admin')
   readonly isLabManager = computed(() => this._user()?.roleName === 'LabManager')
+  readonly isRequester = computed(() => !this.isAdmin() && !this.isLabManager())
   readonly isAdminOrManager = computed(
     () => this.isAdmin() || this.isLabManager(),
   )
@@ -67,6 +68,20 @@ export class AuthStore {
     this._user.set(null)
     this._status.set('idle')
     this._error.set(null)
+  }
+
+  async updateProfile(payload: UpdateProfilePayload): Promise<void> {
+    this._status.set('loading')
+    try {
+      const updatedUser = await firstValueFrom(this.auth.updateProfile(payload))
+      this._user.set(updatedUser)
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
+      this._status.set('idle')
+    } catch (e) {
+      this._status.set('error')
+      this._error.set(e instanceof Error ? e.message : 'Lỗi cập nhật profile')
+      throw e
+    }
   }
 
   /** Used by the error interceptor on 401 — clears state without an API round-trip. */

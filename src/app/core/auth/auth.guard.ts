@@ -41,3 +41,14 @@ export const managerGuard: CanActivateFn = () => {
   }
   return store.isAdminOrManager() ? true : router.createUrlTree(['/'])
 }
+
+/** Restricts screens to 'LabManager' role only (excludes Admin). */
+export const labManagerGuard: CanActivateFn = () => {
+  const store = inject(AuthStore)
+  const router = inject(Router)
+
+  if (!store.isAuthenticated()) {
+    return router.createUrlTree(['/auth/login'])
+  }
+  return store.isLabManager() ? true : router.createUrlTree(['/'])
+}

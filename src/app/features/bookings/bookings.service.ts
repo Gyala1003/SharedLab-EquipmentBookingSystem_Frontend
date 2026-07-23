@@ -79,4 +79,14 @@ export class BookingsService {
   markNoShow(id: number): Observable<void> {
     return this.http.post<void>(`${this.base}/${id}/no-show`, {})
   }
+
+  /** POST /api/bookings/{id}/check-in */
+  checkIn(id: number): Observable<void> {
+    return this.http.post<void>(`${this.base}/${id}/check-in`, {})
+  }
+
+  /** POST /api/bookings/{id}/check-out */
+  checkOut(id: number): Observable<void> {
+    return this.http.post<void>(`${this.base}/${id}/check-out`, {})
+  }
 }

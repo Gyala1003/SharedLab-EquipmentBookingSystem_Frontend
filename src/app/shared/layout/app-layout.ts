@@ -1,13 +1,14 @@
-import { Component, inject } from '@angular/core'
+import { Component, inject, signal } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { TranslatePipe, TranslateService } from '@ngx-translate/core'
 import { AuthStore } from '../../core/auth/auth.store'
+import { ProfileEditDialog } from '../../core/auth/profile-edit.dialog'
 import { env } from '../../core/config/env'
 import { IconComponent } from '../ui/icon'
 
 @Component({
   selector: 'app-layout',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, IconComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, IconComponent, ProfileEditDialog],
   template: `
     <div class="flex min-h-screen bg-surface-light">
       <!-- Sidebar -->
@@ -24,6 +25,7 @@ import { IconComponent } from '../ui/icon'
         </div>
 
         <nav class="flex flex-1 flex-col gap-1 px-3">
+          <!-- Common: Dashboard -->
           <a
             routerLink="/"
             routerLinkActive="bg-brand-500 text-white"
@@ -33,6 +35,8 @@ import { IconComponent } from '../ui/icon'
             <app-icon name="dashboard" [size]="18" />
             {{ 'nav.dashboard' | translate }}
           </a>
+
+          <!-- Common: Lab Rooms -->
           <a
             routerLink="/lab-rooms"
             routerLinkActive="bg-brand-500 text-white"
@@ -41,38 +45,91 @@ import { IconComponent } from '../ui/icon'
             <app-icon name="catalog" [size]="18" />
             {{ 'nav.labRooms' | translate }}
           </a>
+
+          <!-- Common: Equipments -->
           <a
             routerLink="/equipments"
             routerLinkActive="bg-brand-500 text-white"
             class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
           >
-            <app-icon name="admin" [size]="18" />
+            <app-icon name="equipment" [size]="18" />
             {{ 'nav.equipments' | translate }}
           </a>
+
+          <!-- Common: Policies -->
           <a
-            routerLink="/bookings/history"
+            routerLink="/policies"
             routerLinkActive="bg-brand-500 text-white"
             class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
           >
-            <app-icon name="bookings" [size]="18" />
-            {{ 'nav.myBookings' | translate }}
+            <app-icon name="shield" [size]="18" />
+            {{ 'nav.policies' | translate }}
           </a>
 
-          @if (store.isAdminOrManager()) {
+          <!-- Requester only: My Bookings -->
+          @if (store.isRequester()) {
+            <a
+              routerLink="/bookings/history"
+              routerLinkActive="bg-brand-500 text-white"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <app-icon name="bookings" [size]="18" />
+              {{ 'nav.myBookings' | translate }}
+            </a>
+          }
+
+          <!-- Lab Manager Section -->
+          @if (store.isLabManager()) {
             <p class="mt-5 mb-1 px-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              {{ 'nav.adminSection' | translate }}
+              {{ 'nav.managerSection' | translate }}
             </p>
             <a
-              routerLink="/admin/bookings"
+              routerLink="/manager/approvals"
               routerLinkActive="bg-brand-500 text-white"
               class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
             >
               <app-icon name="clock" [size]="18" />
               {{ 'nav.waitingList' | translate }}
             </a>
+            <a
+              routerLink="/manager/incidents"
+              routerLinkActive="bg-brand-500 text-white"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <app-icon name="alert" [size]="18" />
+              {{ 'nav.incidents' | translate }}
+            </a>
+            <a
+              routerLink="/manager/violations"
+              routerLinkActive="bg-brand-500 text-white"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <app-icon name="violation" [size]="18" />
+              {{ 'nav.violations' | translate }}
+            </a>
+            <a
+              routerLink="/manager/maintenance"
+              routerLinkActive="bg-brand-500 text-white"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <app-icon name="maintenance" [size]="18" />
+              {{ 'nav.maintenance' | translate }}
+            </a>
           }
 
+          <!-- Admin Section -->
           @if (store.isAdmin()) {
+            <p class="mt-5 mb-1 px-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              {{ 'nav.adminSection' | translate }}
+            </p>
+            <a
+              routerLink="/admin/policies"
+              routerLinkActive="bg-brand-500 text-white"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <app-icon name="shield" [size]="18" />
+              {{ 'nav.policies' | translate }}
+            </a>
             <a
               routerLink="/lab-rooms/new"
               routerLinkActive="bg-brand-500 text-white"
@@ -101,13 +158,22 @@ import { IconComponent } from '../ui/icon'
                 </p>
                 <p class="truncate text-xs text-slate-500">{{ store.user()?.roleName }}</p>
               </div>
-              <button
-                class="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
-                [attr.aria-label]="'nav.logout' | translate"
-                (click)="logout()"
-              >
-                <app-icon name="logout" [size]="16" />
-              </button>
+              <div class="flex items-center gap-1">
+                <button
+                  class="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
+                  title="Edit My Profile"
+                  (click)="editProfileOpen.set(true)"
+                >
+                  <app-icon name="users" [size]="16" />
+                </button>
+                <button
+                  class="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
+                  [attr.aria-label]="'nav.logout' | translate"
+                  (click)="logout()"
+                >
+                  <app-icon name="logout" [size]="16" />
+                </button>
+              </div>
             </div>
           } @else {
             <a
@@ -153,6 +219,11 @@ import { IconComponent } from '../ui/icon'
         </main>
       </div>
     </div>
+
+    <app-profile-edit-dialog
+      [open]="editProfileOpen()"
+      (close)="editProfileOpen.set(false)"
+    />
   `,
 })
 export class AppLayoutComponent {
@@ -160,6 +231,7 @@ export class AppLayoutComponent {
   protected readonly translate = inject(TranslateService)
   private readonly router = inject(Router)
   protected readonly locales = env.supportedLocales
+  protected readonly editProfileOpen = signal(false)
 
   onLocaleChange(event: Event): void {
     const lang = (event.target as HTMLSelectElement).value

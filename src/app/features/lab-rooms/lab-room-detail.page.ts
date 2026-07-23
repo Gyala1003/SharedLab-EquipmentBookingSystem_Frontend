@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core'
-import { ActivatedRoute, RouterLink } from '@angular/router'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslatePipe } from '@ngx-translate/core'
 import { AuthStore } from '../../core/auth/auth.store'
 import { BadgeComponent, BadgeTone } from '../../shared/ui/badge'
@@ -7,6 +7,9 @@ import { ButtonComponent } from '../../shared/ui/button'
 import { IconComponent } from '../../shared/ui/icon'
 import { SpinnerComponent } from '../../shared/ui/spinner'
 import { LabRoomsStore } from './lab-rooms.store'
+import { BookingRequestDialog } from '../bookings/booking-request.dialog'
+import { BookingsStore } from '../bookings/bookings.store'
+import type { CreateBookingRequest } from '../bookings/bookings.types'
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   Available: 'green',
@@ -17,7 +20,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 @Component({
   selector: 'app-lab-room-detail-page',
-  imports: [RouterLink, TranslatePipe, BadgeComponent, ButtonComponent, IconComponent, SpinnerComponent],
+  imports: [RouterLink, TranslatePipe, BadgeComponent, ButtonComponent, IconComponent, SpinnerComponent, BookingRequestDialog],
   template: `
     @if (store.status() === 'loading') {
       <div class="flex justify-center py-16"><app-spinner /></div>
@@ -33,7 +36,15 @@ const STATUS_TONE: Record<string, BadgeTone> = {
             <h1 class="text-xl font-semibold text-slate-900">{{ room.labName }}</h1>
             <p class="text-sm text-slate-500">{{ room.roomCode }}</p>
           </div>
-          <app-badge [tone]="STATUS_TONE[room.status] ?? 'slate'">{{ room.status }}</app-badge>
+          <div class="flex items-center gap-2">
+            <app-badge [tone]="STATUS_TONE[room.status] ?? 'slate'">{{ room.status }}</app-badge>
+            @if (authStore.isRequester() && room.status === 'Available') {
+              <app-button (click)="dialogOpen.set(true)">
+                <app-icon name="plus" [size]="16" />
+                {{ 'booking.requestTitle' | translate }}
+              </app-button>
+            }
+          </div>
         </div>
 
         <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 text-sm">
@@ -82,19 +93,35 @@ const STATUS_TONE: Record<string, BadgeTone> = {
           </div>
         }
       </section>
+
+      <app-booking-request-dialog
+        [open]="dialogOpen()"
+        [submitting]="bookingsStore.mutating()"
+        (close)="dialogOpen.set(false)"
+        (save)="onCreateBooking($event)"
+      />
     }
   `,
 })
 export class LabRoomDetailPage implements OnInit {
   protected readonly store = inject(LabRoomsStore)
   protected readonly authStore = inject(AuthStore)
+  protected readonly bookingsStore = inject(BookingsStore)
   private readonly route = inject(ActivatedRoute)
+  private readonly router = inject(Router)
   protected readonly STATUS_TONE = STATUS_TONE
 
+  protected readonly dialogOpen = signal(false)
   private readonly id = signal(Number(this.route.snapshot.paramMap.get('id') ?? '0'))
 
   async ngOnInit(): Promise<void> {
     await this.store.loadById(this.id())
+  }
+
+  async onCreateBooking(request: CreateBookingRequest): Promise<void> {
+    await this.bookingsStore.create(request)
+    this.dialogOpen.set(false)
+    void this.router.navigate(['/bookings/history'])
   }
 
   async confirmDelete(id: number): Promise<void> {

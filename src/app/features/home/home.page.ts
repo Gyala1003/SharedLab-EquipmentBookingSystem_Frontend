@@ -15,6 +15,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   Rejected: 'red',
   Cancelled: 'slate',
   Completed: 'green',
+  CheckedIn: 'green',
   NoShow: 'red',
 }
 
@@ -50,41 +51,52 @@ const STATUS_TONE: Record<string, BadgeTone> = {
       </div>
 
       <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div class="rounded-xl border border-slate-200 bg-white p-5 lg:col-span-2">
-          <div class="mb-3 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-900">{{ 'home.recentBookings' | translate }}</h3>
-            @if (authStore.isAdminOrManager()) {
-              <a routerLink="/admin/bookings" class="text-sm text-brand-600 hover:underline">
+        <!-- Recent bookings (not for Admin) -->
+        @if (!authStore.isAdmin()) {
+          <div class="rounded-xl border border-slate-200 bg-white p-5 lg:col-span-2">
+            <div class="mb-3 flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-900">{{ 'home.recentBookings' | translate }}</h3>
+              <a routerLink="/bookings/history" class="text-sm text-brand-600 hover:underline">
                 {{ 'home.viewAll' | translate }}
               </a>
+            </div>
+
+            @if (recentBookings().length === 0) {
+              <p class="py-8 text-center text-sm text-slate-500">{{ 'home.noBookings' | translate }}</p>
+            } @else {
+              <div class="flex flex-col divide-y divide-slate-100">
+                @for (b of recentBookings(); track b.bookingId) {
+                  <a
+                    [routerLink]="['/bookings', b.bookingId]"
+                    class="flex items-center justify-between gap-3 py-3 hover:bg-slate-50"
+                  >
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium text-slate-900">#{{ b.bookingId }} · {{ b.purposeType }}</p>
+                      <p class="truncate text-xs text-slate-500">
+                        {{ b.startTime | date: 'dd/MM HH:mm' }} – {{ b.endTime | date: 'HH:mm' }}
+                      </p>
+                    </div>
+                    <app-badge [tone]="STATUS_TONE[b.status] ?? 'slate'">
+                      {{ 'bookingStatus.' + b.status | translate }}
+                    </app-badge>
+                  </a>
+                }
+              </div>
             }
           </div>
+        }
 
-          @if (recentBookings().length === 0) {
-            <p class="py-8 text-center text-sm text-slate-500">{{ 'home.noBookings' | translate }}</p>
-          } @else {
-            <div class="flex flex-col divide-y divide-slate-100">
-              @for (b of recentBookings(); track b.bookingId) {
-                <a
-                  [routerLink]="['/bookings', b.bookingId]"
-                  class="flex items-center justify-between gap-3 py-3 hover:bg-slate-50"
-                >
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-medium text-slate-900">#{{ b.bookingId }} · {{ b.purposeType }}</p>
-                    <p class="truncate text-xs text-slate-500">
-                      {{ b.startTime | date: 'dd/MM HH:mm' }} – {{ b.endTime | date: 'HH:mm' }}
-                    </p>
-                  </div>
-                  <app-badge [tone]="STATUS_TONE[b.status] ?? 'slate'">
-                    {{ 'bookingStatus.' + b.status | translate }}
-                  </app-badge>
-                </a>
-              }
-            </div>
-          }
-        </div>
+        <!-- Admin: stats panel instead of bookings -->
+        @if (authStore.isAdmin()) {
+          <div class="rounded-xl border border-slate-200 bg-white p-5 lg:col-span-2">
+            <h3 class="mb-3 text-sm font-semibold text-slate-900">{{ 'nav.adminSection' | translate }}</h3>
+            <p class="py-8 text-center text-sm text-slate-500">{{ 'home.subtitle' | translate }}</p>
+          </div>
+        }
 
+        <!-- Quick actions sidebar -->
         <div class="flex flex-col gap-3">
+          <!-- Common actions -->
           <a
             routerLink="/lab-rooms"
             class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
@@ -102,28 +114,34 @@ const STATUS_TONE: Record<string, BadgeTone> = {
             class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
           >
             <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-              <app-icon name="admin" [size]="18" />
+              <app-icon name="equipment" [size]="18" />
             </div>
             <div>
               <p class="text-sm font-medium text-slate-900">{{ 'home.browseEquipments' | translate }}</p>
               <p class="text-xs text-slate-500">{{ 'home.browseEquipmentsHint' | translate }}</p>
             </div>
           </a>
-          <a
-            routerLink="/bookings/history"
-            class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
-          >
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-              <app-icon name="bookings" [size]="18" />
-            </div>
-            <div>
-              <p class="text-sm font-medium text-slate-900">{{ 'home.myBookings' | translate }}</p>
-              <p class="text-xs text-slate-500">{{ 'home.myBookingsHint' | translate }}</p>
-            </div>
-          </a>
-          @if (authStore.isAdminOrManager()) {
+
+          <!-- Requester: My Bookings -->
+          @if (!authStore.isAdmin()) {
             <a
-              routerLink="/admin/bookings"
+              routerLink="/bookings/history"
+              class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+            >
+              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <app-icon name="bookings" [size]="18" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-900">{{ 'home.myBookings' | translate }}</p>
+                <p class="text-xs text-slate-500">{{ 'home.myBookingsHint' | translate }}</p>
+              </div>
+            </a>
+          }
+
+          <!-- Lab Manager quick actions -->
+          @if (authStore.isLabManager()) {
+            <a
+              routerLink="/manager/approvals"
               class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
             >
               <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
@@ -132,6 +150,46 @@ const STATUS_TONE: Record<string, BadgeTone> = {
               <div>
                 <p class="text-sm font-medium text-slate-900">{{ 'home.reviewRequests' | translate }}</p>
                 <p class="text-xs text-slate-500">{{ 'home.reviewRequestsHint' | translate }}</p>
+              </div>
+            </a>
+            <a
+              routerLink="/manager/incidents"
+              class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+            >
+              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600">
+                <app-icon name="alert" [size]="18" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-900">{{ 'home.manageIncidents' | translate }}</p>
+                <p class="text-xs text-slate-500">{{ 'home.manageIncidentsHint' | translate }}</p>
+              </div>
+            </a>
+            <a
+              routerLink="/manager/maintenance"
+              class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+            >
+              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                <app-icon name="maintenance" [size]="18" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-900">{{ 'home.manageMaintenance' | translate }}</p>
+                <p class="text-xs text-slate-500">{{ 'home.manageMaintenanceHint' | translate }}</p>
+              </div>
+            </a>
+          }
+
+          <!-- Admin quick actions -->
+          @if (authStore.isAdmin()) {
+            <a
+              routerLink="/admin/policies"
+              class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+            >
+              <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <app-icon name="shield" [size]="18" />
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-900">{{ 'home.managePolicies' | translate }}</p>
+                <p class="text-xs text-slate-500">{{ 'home.managePoliciesHint' | translate }}</p>
               </div>
             </a>
           }
@@ -158,7 +216,7 @@ export class HomePage implements OnInit {
     await Promise.all([
       this.labRoomsStore.ensureLoaded(),
       this.equipmentsStore.ensureLoaded(),
-      user ? this.bookingsStore.loadByUserId(user.userId) : Promise.resolve(),
+      user && !this.authStore.isAdmin() ? this.bookingsStore.loadByUserId(user.userId) : Promise.resolve(),
     ])
   }
 }

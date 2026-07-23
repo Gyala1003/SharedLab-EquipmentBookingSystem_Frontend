@@ -9,6 +9,14 @@ export interface AuthUser {
   penaltyPoints: number
   restrictionUntil: string | null
   status: UserStatus
+  address?: string
+}
+
+export interface UpdateProfilePayload {
+  fullName: string
+  email: string
+  password?: string
+  address?: string
 }
 
 export type UserStatus = 'Active' | 'Inactive' | 'Restricted' | 'Locked'

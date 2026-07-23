@@ -1,6 +1,6 @@
 /** Matches backend enums and DTOs for Bookings */
 
-export type BookingStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled' | 'Completed' | 'NoShow'
+export type BookingStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled' | 'Completed' | 'NoShow' | 'CheckedIn'
 
 export type BookingPurposeType = 'ResearchProject' | 'CoursePractice' | 'SelfStudy' | 'Other'
 
@@ -15,6 +15,7 @@ export interface BookingResponse {
   startTime: string
   endTime: string
   status: string
+  rejectionReason?: string
   createdAt: string
 }
 
@@ -43,6 +44,8 @@ export interface BookingDetailResponse {
   status: string
   rejectionReason?: string
   approvedAt?: string
+  checkedInAt?: string
+  checkedOutAt?: string
   createdAt: string
   items: BookingItemResponse[]
 }
