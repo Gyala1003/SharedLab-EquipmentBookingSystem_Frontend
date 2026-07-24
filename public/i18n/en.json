@@ -119,11 +119,27 @@
     "loginSubtitle": "Please log in to use the system",
     "email": "Email Address",
     "password": "Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
     "submit": "Log in",
     "loginBtn": "Login",
     "forgotPassword": "Forgot password?",
     "rememberMe": "Remember me",
     "cancel": "Cancel",
+    "forgotPasswordTitle": "Forgot Password",
+    "resetPasswordTitle": "Reset Password",
+    "sendResetLinkBtn": "Send Password Reset Link",
+    "changePasswordBtn": "Change Password",
+    "backToLogin": "Back to Login",
+    "invalidLink": "Invalid or missing verification link parameters",
+    "passwordPolicyHint": "Password must be more than 8 characters, with uppercase, lowercase, number, and special character",
+    "passwordRules": {
+      "minLength": "More than 8 characters (min. 9)",
+      "uppercase": "At least 1 uppercase letter",
+      "lowercase": "At least 1 lowercase letter",
+      "digit": "At least 1 number",
+      "special": "At least 1 special character (@$!%*?&...)"
+    },
     "validation": {
       "emailRequired": "Please enter your email",
       "emailInvalid": "Invalid email format",
@@ -132,10 +148,18 @@
     },
     "error": {
       "invalidCredentials": "Invalid email or password.",
-      "serverError": "System error. Please try again later."
+      "serverError": "System error. Please try again later.",
+      "required": "This field is required",
+      "invalidEmail": "Invalid email address format",
+      "passwordMismatch": "Confirm password does not match",
+      "weakPassword": "Password does not meet security requirements",
+      "invalidToken": "Password reset link is invalid or has expired. Please request a new one",
+      "tooManyRequests": "Too many requests. Please try again later"
     },
     "success": {
-      "login": "Login successful! Redirecting..."
+      "login": "Login successful! Redirecting...",
+      "resetEmailSent": "Password reset link sent! Please check your email inbox.",
+      "resetPassword": "Password changed successfully! Redirecting to login page..."
     }
   },
   "dashboard": {

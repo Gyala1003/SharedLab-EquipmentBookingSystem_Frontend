@@ -16,3 +16,9 @@ export interface LoginResponse {
   expiresIn: number
   user: AuthUser
 }
+
+export interface ResetPasswordPayload {
+  email: string
+  token: string
+  newPassword: string
+}
