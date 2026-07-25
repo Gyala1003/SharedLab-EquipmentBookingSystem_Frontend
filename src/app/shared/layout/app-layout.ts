@@ -1,239 +1,349 @@
-import { Component, inject, signal } from '@angular/core'
+import { DatePipe, NgClass } from '@angular/common'
+import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { TranslatePipe, TranslateService } from '@ngx-translate/core'
+import { catchError, forkJoin, of } from 'rxjs'
+import { NotificationBadgeService } from '../../core/api/notification-badge.service'
+import { SystemService } from '../../core/api/system.service'
+import type { BookingResponse, UsageLogResponse } from '../../core/api/system.models'
+import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
-import { ProfileEditDialog } from '../../core/auth/profile-edit.dialog'
-import { env } from '../../core/config/env'
+import { LanguageSwitcherComponent } from '../ui/language-switcher'
 import { IconComponent } from '../ui/icon'
+import { ModalComponent } from '../ui/modal'
+import { ToastService } from '../ui/toast.service'
+
+interface NavItem {
+  labelKey: string
+  icon: string
+  route: string
+  roles?: readonly string[]
+  badge?: 'notifications'
+}
+
+interface NavGroup {
+  labelKey: string
+  items: readonly NavItem[]
+  roles?: readonly string[]
+}
 
 @Component({
   selector: 'app-layout',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, IconComponent, ProfileEditDialog],
+  imports: [
+    DatePipe,
+    NgClass,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    IconComponent,
+    ModalComponent,
+    LanguageSwitcherComponent,
+    TranslatePipe,
+  ],
   template: `
-    <div class="flex min-h-screen bg-surface-light">
-      <!-- Sidebar -->
-      <aside class="flex w-60 shrink-0 flex-col bg-surface text-slate-300">
-        <div class="flex items-center gap-2 px-5 py-5">
-          <div
-            class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white"
-          >
-            L
+    <div class="min-h-screen bg-[#f5f7fb] text-slate-900">
+      @if (mobileOpen()) {
+        <button
+          type="button"
+          class="fixed inset-0 z-30 bg-slate-950/45 backdrop-blur-sm lg:hidden"
+          aria-label="Đóng menu"
+          (click)="mobileOpen.set(false)"
+        ></button>
+      }
+
+      <aside
+        class="fixed inset-y-0 left-0 z-40 flex w-[292px] flex-col border-r border-white/10 bg-[#101936] text-white shadow-2xl shadow-slate-900/20 transition-transform duration-300 lg:translate-x-0"
+        [ngClass]="mobileOpen() ? 'translate-x-0' : '-translate-x-full'"
+      >
+        <div class="flex h-20 shrink-0 items-center gap-3 border-b border-white/10 px-5">
+          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-400 to-cyan-300 text-[#111a3a] shadow-lg shadow-violet-500/20">
+            <app-icon name="flask" [size]="24" />
           </div>
-          <span class="truncate text-sm font-semibold text-white">{{
-            'app.name' | translate
-          }}</span>
+          <div class="min-w-0">
+            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-300">{{ 'app.name' | translate }}</p>
+            <p class="mt-1 truncate text-sm font-black">{{ 'app.tagline' | translate }}</p>
+          </div>
+          <button type="button" class="ml-auto rounded-xl p-2 text-white/55 hover:bg-white/10 hover:text-white lg:hidden" (click)="mobileOpen.set(false)">
+            <app-icon name="x" [size]="20" />
+          </button>
         </div>
 
-        <nav class="flex flex-1 flex-col gap-1 px-3">
-          <!-- Common: Dashboard -->
-          <a
-            routerLink="/"
-            routerLinkActive="bg-brand-500 text-white"
-            [routerLinkActiveOptions]="{ exact: true }"
-            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <app-icon name="dashboard" [size]="18" />
-            {{ 'nav.dashboard' | translate }}
-          </a>
-
-          <!-- Common: Lab Rooms -->
-          <a
-            routerLink="/lab-rooms"
-            routerLinkActive="bg-brand-500 text-white"
-            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <app-icon name="catalog" [size]="18" />
-            {{ 'nav.labRooms' | translate }}
-          </a>
-
-          <!-- Common: Equipments -->
-          <a
-            routerLink="/equipments"
-            routerLinkActive="bg-brand-500 text-white"
-            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <app-icon name="equipment" [size]="18" />
-            {{ 'nav.equipments' | translate }}
-          </a>
-
-          <!-- Common: Policies -->
-          <a
-            routerLink="/policies"
-            routerLinkActive="bg-brand-500 text-white"
-            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-          >
-            <app-icon name="shield" [size]="18" />
-            {{ 'nav.policies' | translate }}
-          </a>
-
-          <!-- Requester only: My Bookings -->
-          @if (store.isRequester()) {
+        @if (store.isRequester()) {
+          <div class="border-b border-white/10 px-4 py-4">
             <a
-              routerLink="/bookings/history"
-              routerLinkActive="bg-brand-500 text-white"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+              routerLink="/app/bookings/new"
+              class="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-indigo-950/25 transition hover:-translate-y-0.5"
+              (click)="mobileOpen.set(false)"
             >
-              <app-icon name="bookings" [size]="18" />
-              {{ 'nav.myBookings' | translate }}
+              <app-icon name="calendar-plus" [size]="18" /> {{ 'nav.items.quickBooking' | translate }}
             </a>
+          </div>
+        }
+
+        <div class="min-h-0 flex-1 overflow-y-auto px-3 py-4 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,.15)_transparent]">
+          @for (group of visibleGroups(); track group.labelKey) {
+            <div class="mb-5">
+              <p class="px-3 text-[9px] font-black uppercase tracking-[0.22em] text-white/30">{{ group.labelKey | translate }}</p>
+              <nav class="mt-2 space-y-1">
+                @for (item of group.items; track item.route) {
+                  <a
+                    [routerLink]="item.route"
+                    routerLinkActive="bg-white text-[#182144] shadow-lg shadow-black/10"
+                    class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-white/64 transition hover:bg-white/10 hover:text-white"
+                    (click)="mobileOpen.set(false)"
+                  >
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[.06] transition group-hover:bg-white/10">
+                      <app-icon [name]="item.icon" [size]="17" />
+                    </span>
+                    <span class="min-w-0 flex-1 truncate">{{ item.labelKey | translate }}</span>
+                    @if (item.badge === 'notifications' && badge.count() > 0) {
+                      <span class="min-w-6 rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-[9px] font-black text-white">
+                        {{ badge.count() > 99 ? '99+' : badge.count() }}
+                      </span>
+                    }
+                  </a>
+                }
+              </nav>
+            </div>
           }
+        </div>
 
-          <!-- Lab Manager Section -->
-          @if (store.isLabManager()) {
-            <p class="mt-5 mb-1 px-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              {{ 'nav.managerSection' | translate }}
-            </p>
-            <a
-              routerLink="/manager/approvals"
-              routerLinkActive="bg-brand-500 text-white"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              <app-icon name="clock" [size]="18" />
-              {{ 'nav.waitingList' | translate }}
-            </a>
-            <a
-              routerLink="/manager/incidents"
-              routerLinkActive="bg-brand-500 text-white"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              <app-icon name="alert" [size]="18" />
-              {{ 'nav.incidents' | translate }}
-            </a>
-            <a
-              routerLink="/manager/violations"
-              routerLinkActive="bg-brand-500 text-white"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              <app-icon name="violation" [size]="18" />
-              {{ 'nav.violations' | translate }}
-            </a>
-            <a
-              routerLink="/manager/maintenance"
-              routerLinkActive="bg-brand-500 text-white"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              <app-icon name="maintenance" [size]="18" />
-              {{ 'nav.maintenance' | translate }}
-            </a>
-          }
-
-          <!-- Admin Section -->
-          @if (store.isAdmin()) {
-            <p class="mt-5 mb-1 px-3 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              {{ 'nav.adminSection' | translate }}
-            </p>
-            <a
-              routerLink="/admin/policies"
-              routerLinkActive="bg-brand-500 text-white"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              <app-icon name="shield" [size]="18" />
-              {{ 'nav.policies' | translate }}
-            </a>
-            <a
-              routerLink="/users"
-              routerLinkActive="bg-brand-500 text-white"
-              class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              <app-icon name="users" [size]="18" />
-              {{ 'nav.users' | translate }}
-            </a>
-          }
-        </nav>
-
-        <div class="border-t border-white/10 px-3 py-3">
-          @if (store.isAuthenticated()) {
-            <div class="flex items-center justify-between gap-2 px-2">
-              <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-white">
-                  {{ store.user()?.fullName }}
-                </p>
-                <p class="truncate text-xs text-slate-500">{{ store.user()?.roleName }}</p>
-              </div>
-              <div class="flex items-center gap-1">
-                <button
-                  class="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
-                  title="Edit My Profile"
-                  (click)="editProfileOpen.set(true)"
-                >
-                  <app-icon name="users" [size]="16" />
-                </button>
-                <button
-                  class="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
-                  [attr.aria-label]="'nav.logout' | translate"
-                  (click)="logout()"
-                >
-                  <app-icon name="logout" [size]="16" />
+        <div class="shrink-0 border-t border-white/10 p-3">
+          @if (store.user(); as user) {
+            <div class="rounded-[22px] border border-white/10 bg-white/[0.06] p-3.5 backdrop-blur">
+              <a routerLink="/app/profile" class="flex items-center gap-3 rounded-xl transition hover:bg-white/[.04]" (click)="mobileOpen.set(false)">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-400 to-cyan-300 text-xs font-black text-[#111a3a]">
+                  {{ initials(user.fullName) }}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-black">{{ user.fullName }}</p>
+                  <p class="mt-0.5 truncate text-[10px] font-semibold text-white/40">{{ 'roles.' + user.roleName | translate }}</p>
+                </div>
+                <app-icon name="chevron-right" [size]="15" />
+              </a>
+              <div class="mt-3 flex items-center justify-between border-t border-white/10 pt-3">
+                <span class="inline-flex items-center gap-2 text-[10px] font-bold text-emerald-300">
+                  <span class="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,.12)]"></span>
+                  {{ 'header.connected' | translate }}
+                </span>
+                <button type="button" class="rounded-xl p-2 text-white/45 hover:bg-white/10 hover:text-white" [attr.title]="'header.logout' | translate" (click)="logout()">
+                  <app-icon name="logout" [size]="17" />
                 </button>
               </div>
             </div>
-          } @else {
-            <a
-              routerLink="/auth/login"
-              class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
-            >
-              {{ 'nav.login' | translate }}
-            </a>
           }
         </div>
       </aside>
 
-      <!-- Main column -->
-      <div class="flex min-w-0 flex-1 flex-col">
-        <header class="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-3">
-          <div class="relative w-full max-w-sm">
-            <span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400">
-              <app-icon name="search" [size]="16" />
-            </span>
-            <input
-              type="search"
-              [placeholder]="'nav.search' | translate"
-              class="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pr-3 pl-9 text-sm focus:border-brand-500 focus:bg-white focus:outline-none"
-            />
+      <div class="min-h-screen lg:pl-[292px]">
+        <header class="sticky top-0 z-20 flex h-20 items-center gap-3 border-b border-slate-200/80 bg-white/88 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+          <button type="button" class="rounded-xl border border-slate-200 p-2.5 text-slate-600 shadow-sm hover:bg-slate-50 lg:hidden" (click)="mobileOpen.set(true)">
+            <app-icon name="menu" [size]="20" />
+          </button>
+          <div class="min-w-0 flex-1">
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">{{ 'app.workspace' | translate }}</p>
+            <p class="mt-1 truncate text-sm font-bold text-slate-600">{{ 'header.workspaceSub' | translate }}</p>
           </div>
+          
+          <a
+            routerLink="/app/calendar"
+            class="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600 sm:flex"
+          >
+            <app-icon name="calendar" [size]="18" /> {{ 'header.viewCalendar' | translate }}
+          </a>
 
-          <div class="flex items-center gap-3">
-            <select
-              aria-label="Language"
-              [value]="translate.getCurrentLang()"
-              (change)="onLocaleChange($event)"
-              class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-600"
-            >
-              @for (l of locales; track l) {
-                <option [value]="l">{{ l.toUpperCase() }}</option>
-              }
-            </select>
-          </div>
+          <app-language-switcher variant="header" />
+
+          <a
+            routerLink="/app/notifications"
+            class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600 hover:shadow-md"
+            [attr.aria-label]="'header.notifications' | translate"
+          >
+            <app-icon name="bell" [size]="20" />
+            @if (badge.count() > 0) {
+              <span class="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500"></span>
+            }
+          </a>
+          
+          <a routerLink="/app/profile" class="hidden items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-slate-50 md:flex">
+            @if (store.user(); as user) {
+              <div class="text-right">
+                <p class="text-sm font-black text-slate-800">{{ user.fullName }}</p>
+                <p class="mt-0.5 text-[10px] font-bold text-slate-400">{{ 'roles.' + user.roleName | translate }}</p>
+              </div>
+              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#e9e8ff] text-sm font-black text-indigo-700">
+                {{ initials(user.fullName) }}
+              </div>
+            }
+          </a>
         </header>
 
-        <main class="flex-1 overflow-y-auto px-6 py-6">
-          <router-outlet />
-        </main>
+        <main class="mx-auto w-full max-w-[1580px] p-4 sm:p-6 lg:p-8"><router-outlet /></main>
       </div>
-    </div>
 
-    <app-profile-edit-dialog
-      [open]="editProfileOpen()"
-      (close)="editProfileOpen.set(false)"
-    />
+      <app-modal
+        [open]="pendingCheckoutOpen()"
+        [title]="'pendingCheckout.title' | translate"
+        [subtitle]="'pendingCheckout.subtitle' | translate"
+        (close)="pendingCheckoutOpen.set(false)"
+      >
+        @if (pendingBooking; as booking) {
+          <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Booking</span>
+              <span class="font-black text-slate-800">#BK-{{ booking.bookingId.toString().padStart(5, '0') }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">{{ 'pendingCheckout.endTime' | translate }}</span>
+              <span class="font-bold text-slate-700">{{ booking.endTime | date: 'HH:mm dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+          <div class="mt-5 flex flex-wrap justify-end gap-2">
+            <button class="btn-secondary" (click)="snoozePendingCheckout()">{{ 'pendingCheckout.continueUsing' | translate }}</button>
+            <button class="btn-primary" (click)="confirmPendingCheckout()">
+              <app-icon name="logout" [size]="16" /> {{ 'pendingCheckout.confirmCheckout' | translate }}
+            </button>
+          </div>
+        }
+      </app-modal>
+    </div>
   `,
 })
-export class AppLayoutComponent {
+export class AppLayoutComponent implements OnInit {
   protected readonly store = inject(AuthStore)
-  protected readonly translate = inject(TranslateService)
+  private readonly workspace = inject(WorkspaceService)
+  protected readonly badge = inject(NotificationBadgeService)
   private readonly router = inject(Router)
-  protected readonly locales = env.supportedLocales
-  protected readonly editProfileOpen = signal(false)
+  private readonly api = inject(SystemService)
+  private readonly toast = inject(ToastService)
+  protected readonly translate = inject(TranslateService)
+  protected readonly mobileOpen = signal(false)
+  protected readonly pendingCheckoutOpen = signal(false)
+  protected pendingBooking: BookingResponse | null = null
+  protected pendingLog: UsageLogResponse | null = null
 
-  onLocaleChange(event: Event): void {
-    const lang = (event.target as HTMLSelectElement).value
-    this.translate.use(lang)
-    localStorage.setItem('app.locale', lang)
-    document.documentElement.lang = lang
+  private readonly groups: readonly NavGroup[] = [
+    {
+      labelKey: 'nav.groups.overview',
+      items: [
+        { labelKey: 'nav.items.home', icon: 'home', route: '/app/home', roles: ['Requester'] },
+        { labelKey: 'nav.items.dashboard', icon: 'dashboard', route: '/app/dashboard', roles: ['Admin', 'LabManager'] },
+        { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar' },
+      ],
+    },
+    {
+      labelKey: 'nav.groups.resources',
+      items: [
+        { labelKey: 'nav.items.labs', icon: 'building', route: '/app/labs' },
+        { labelKey: 'nav.items.equipments', icon: 'microscope', route: '/app/equipments' },
+        { labelKey: 'nav.items.maintenances', icon: 'wrench', route: '/app/management/maintenances' },
+      ],
+    },
+    {
+      labelKey: 'nav.groups.personal',
+      items: [
+        { labelKey: 'nav.items.violations', icon: 'alert', route: '/app/violations/my' },
+        { labelKey: 'nav.items.notifications', icon: 'bell', route: '/app/notifications', badge: 'notifications' },
+        { labelKey: 'nav.items.profile', icon: 'user', route: '/app/profile' },
+      ],
+    },
+    {
+      labelKey: 'nav.groups.systemAdmin',
+      roles: ['Admin'],
+      items: [
+        { labelKey: 'nav.items.users', icon: 'users', route: '/app/admin/users' },
+        { labelKey: 'nav.items.departments', icon: 'building', route: '/app/admin/departments' },
+        { labelKey: 'nav.items.sendNotification', icon: 'send', route: '/app/admin/notifications/send' },
+      ],
+    },
+  ]
+
+  protected readonly visibleGroups = computed(() => {
+    const role = this.store.role()
+    return this.groups
+      .filter((group) => !group.roles || group.roles.includes(role))
+      .map((group) => ({ ...group, items: group.items.filter((item) => !item.roles || item.roles.includes(role)) }))
+      .filter((group) => group.items.length > 0)
+  })
+
+  ngOnInit(): void {
+    const user = this.store.user()
+    if (!user) return
+    this.workspace
+      .unreadCount(user.userId)
+      .pipe(catchError(() => of({ userId: user.userId, unreadCount: 0 })))
+      .subscribe((response) => this.badge.set(response.unreadCount))
+    if (this.store.isRequester()) this.detectPendingCheckout(user.userId)
   }
 
-  async logout(): Promise<void> {
+  protected initials(name: string): string {
+    return name
+      .trim()
+      .split(/\s+/)
+      .slice(-2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('')
+  }
+
+  protected async logout(): Promise<void> {
     await this.store.logout()
-    void this.router.navigate(['/auth/login'])
+    void this.router.navigate(['/login'])
+  }
+
+  private detectPendingCheckout(userId: number): void {
+    const now = Date.now()
+    this.api.bookingsByUser(userId).subscribe((bookings) => {
+      const candidates = bookings
+        .filter((b) => b.status === 'Approved' && +new Date(b.endTime) < now)
+        .sort((a, b) => +new Date(b.endTime) - +new Date(a.endTime))
+        .slice(0, 3)
+      if (!candidates.length) return
+      forkJoin(candidates.map((b) => this.api.usageLogsByBooking(b.bookingId))).subscribe((logsList) => {
+        for (let i = 0; i < candidates.length; i++) {
+          const booking = candidates[i]
+          const pendingLog = logsList[i].find((log) => log.actualCheckin && !log.actualCheckout)
+          if (!pendingLog) continue
+          const deadline = +new Date(booking.endTime) + 15 * 60_000
+          if (now <= deadline) continue
+          const snoozeKey = `pending-checkout-snooze-${pendingLog.logId}`
+          const snoozedAt = sessionStorage.getItem(snoozeKey)
+          if (snoozedAt && now - Number(snoozedAt) <= 10 * 60_000) continue
+          this.pendingBooking = booking
+          this.pendingLog = pendingLog
+          this.pendingCheckoutOpen.set(true)
+          break
+        }
+      })
+    })
+  }
+
+  protected snoozePendingCheckout(): void {
+    const log = this.pendingLog
+    if (log) sessionStorage.setItem(`pending-checkout-snooze-${log.logId}`, String(Date.now()))
+    this.pendingCheckoutOpen.set(false)
+  }
+
+  protected confirmPendingCheckout(): void {
+    const booking = this.pendingBooking
+    const log = this.pendingLog
+    if (!booking || !log) return
+    const actualCheckoutIso = new Date().toISOString()
+    this.pendingCheckoutOpen.set(false)
+    this.api.checkOut(log.logId, actualCheckoutIso).subscribe({
+      next: () => {
+        this.toast.success(this.translate.instant('pendingCheckout.checkoutSuccess') || 'Check-out thành công')
+        this.checkLateAndReportViolation(booking, actualCheckoutIso)
+      },
+      error: () => this.toast.error(this.translate.instant('common.error') || 'Không thể check-out'),
+    })
+  }
+
+  private checkLateAndReportViolation(booking: BookingResponse, actualCheckoutIso: string): void {
+    const deadline = +new Date(booking.endTime) + 15 * 60_000
+    if (+new Date(actualCheckoutIso) <= deadline) return
+    this.api.createViolation({ userId: booking.userId, bookingId: booking.bookingId, violationType: 2 }).subscribe({
+      next: () => {},
+      error: () => {},
+    })
   }
 }
