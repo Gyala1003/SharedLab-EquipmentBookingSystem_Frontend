@@ -88,11 +88,11 @@ interface NavGroup {
                 @for (item of group.items; track item.route) {
                   <a
                     [routerLink]="item.route"
-                    routerLinkActive="bg-white text-[#182144] shadow-lg shadow-black/10"
+                    routerLinkActive="bg-white !text-[#182144] shadow-lg shadow-black/10 [&_.icon-box]:bg-[#182144]/10 [&_.icon-box]:!text-[#182144]"
                     class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-white/64 transition hover:bg-white/10 hover:text-white"
                     (click)="mobileOpen.set(false)"
                   >
-                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[.06] transition group-hover:bg-white/10">
+                    <span class="icon-box flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[.06] transition group-hover:bg-white/10">
                       <app-icon [name]="item.icon" [size]="17" />
                     </span>
                     <span class="min-w-0 flex-1 truncate">{{ item.labelKey | translate }}</span>
