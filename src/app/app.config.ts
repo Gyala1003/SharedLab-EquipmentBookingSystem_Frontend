@@ -9,6 +9,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http'
 import { provideTranslateService, TranslateService } from '@ngx-translate/core'
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
 import { firstValueFrom } from 'rxjs'
+import { AuthStore } from './core/auth/auth.store'
 
 import { routes } from './app.routes'
 import { env } from './core/config/env'
@@ -36,9 +37,10 @@ export const appConfig: ApplicationConfig = {
     // Load the initial language before the app renders to avoid flashes.
     provideAppInitializer(() => {
       const translate = inject(TranslateService)
+      const authStore = inject(AuthStore)
       const locale = resolveInitialLocale()
       document.documentElement.lang = locale
-      return firstValueFrom(translate.use(locale))
+      return Promise.all([firstValueFrom(translate.use(locale)), authStore.hydrate()])
     }),
   ],
 }
