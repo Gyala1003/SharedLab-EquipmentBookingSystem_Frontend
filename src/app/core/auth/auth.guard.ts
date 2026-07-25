@@ -1,54 +1,34 @@
 import { inject } from '@angular/core'
 import { CanActivateFn, Router } from '@angular/router'
 import { AuthStore } from './auth.store'
+import type { UserRole } from './auth.types'
 
-/** Blocks protected routes; redirects to /auth/login preserving the target URL. */
 export const authGuard: CanActivateFn = (_route, state) => {
   const store = inject(AuthStore)
   const router = inject(Router)
 
   if (store.isAuthenticated()) return true
-  return router.createUrlTree(['/auth/login'], {
-    queryParams: { redirect: state.url },
-  })
+  return router.createUrlTree(['/login'], { queryParams: { redirect: state.url } })
 }
 
-/** Keeps authenticated users away from /auth/login. */
 export const guestGuard: CanActivateFn = () => {
   const store = inject(AuthStore)
   const router = inject(Router)
-  return store.isAuthenticated() ? router.createUrlTree(['/']) : true
+  return store.isAuthenticated() ? router.createUrlTree([landingPath(store.role())]) : true
 }
 
-/** Restricts admin-only screens to the 'Admin' role. */
-export const adminGuard: CanActivateFn = () => {
+export const roleGuard = (roles: readonly UserRole[]): CanActivateFn => () => {
   const store = inject(AuthStore)
   const router = inject(Router)
-
-  if (!store.isAuthenticated()) {
-    return router.createUrlTree(['/auth/login'])
-  }
-  return store.isAdmin() ? true : router.createUrlTree(['/'])
+  return store.hasRole(roles) ? true : router.createUrlTree(['/403'])
 }
 
-/** Restricts management screens to 'Admin' or 'LabManager' roles. */
-export const managerGuard: CanActivateFn = () => {
+export const landingGuard: CanActivateFn = () => {
   const store = inject(AuthStore)
   const router = inject(Router)
-
-  if (!store.isAuthenticated()) {
-    return router.createUrlTree(['/auth/login'])
-  }
-  return store.isAdminOrManager() ? true : router.createUrlTree(['/'])
+  return router.createUrlTree([landingPath(store.role())])
 }
 
-/** Restricts screens to 'LabManager' role only (excludes Admin). */
-export const labManagerGuard: CanActivateFn = () => {
-  const store = inject(AuthStore)
-  const router = inject(Router)
-
-  if (!store.isAuthenticated()) {
-    return router.createUrlTree(['/auth/login'])
-  }
-  return store.isLabManager() ? true : router.createUrlTree(['/'])
+export function landingPath(role: string): string {
+  return role === 'Admin' || role === 'LabManager' ? '/app/dashboard' : '/app/home'
 }

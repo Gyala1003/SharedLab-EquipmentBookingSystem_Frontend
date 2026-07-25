@@ -1,62 +1,57 @@
-import { Injectable, inject } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
-import { Observable } from 'rxjs'
+import { Injectable, inject } from '@angular/core'
+import { Observable, map } from 'rxjs'
 import { env } from '../config/env'
 import type {
+  AuthTokens,
   AuthUser,
-  CreateUserPayload,
-  ForgotPasswordRequest,
+  ForgotPasswordPayload,
   LoginPayload,
-  LoginResponse,
-  RefreshTokenRequest,
-  ResetPasswordRequest,
-  UpdateProfilePayload,
+  ResetPasswordPayload,
+  UserStatus,
 } from './auth.types'
 
-/**
- * Talks to the backend's /auth endpoints. Pure API calls only — session
- * side effects (token storage, current-user signal) live in AuthStore.
- */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient)
-  private readonly base = `${env.apiBaseUrl}/auth`
+  private readonly baseUrl = `${env.apiBaseUrl}/Auth`
 
-  login(payload: LoginPayload): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.base}/login`, payload)
+  login(payload: LoginPayload): Observable<AuthTokens> {
+    return this.http.post<AuthTokens>(`${this.baseUrl}/login`, payload)
   }
 
-  /** Fetch the currently authenticated user's profile. */
-  getMe(): Observable<AuthUser> {
-    return this.http.get<AuthUser>(`${this.base}/me`)
-  }
-
-  refreshToken(request: RefreshTokenRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.base}/refresh`, request)
-  }
-
-  logout(refreshToken: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.base}/logout`, {
-      refreshToken,
-    })
-  }
-
-  createUser(payload: CreateUserPayload): Observable<AuthUser> {
-    return this.http.post<AuthUser>(`${this.base}/create-user`, payload)
-  }
-
-  forgotPassword(request: ForgotPasswordRequest): Observable<{ success: boolean; message: string }> {
-    return this.http.post<{ success: boolean; message: string }>(
-      `${this.base}/forgot-password`,
-      request,
+  me(): Observable<AuthUser> {
+    return this.http.get<AuthUser>(`${this.baseUrl}/me`).pipe(
+      map((user) => ({ ...user, status: normalizeUserStatus(user.status) })),
     )
   }
 
-  resetPassword(request: ResetPasswordRequest): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.base}/reset-password`, request)
+  refresh(refreshToken: string): Observable<AuthTokens> {
+    return this.http.post<AuthTokens>(`${this.baseUrl}/refresh`, { refreshToken })
   }
 
-  updateProfile(payload: UpdateProfilePayload): Observable<AuthUser> {
-    return this.http.put<AuthUser>(`${this.base}/profile`, payload)
+  logout(refreshToken: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/logout`, { refreshToken })
   }
+
+  forgotPassword(payload: ForgotPasswordPayload): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.baseUrl}/forgot-password`,
+      payload,
+    )
+  }
+
+  resetPassword(payload: ResetPasswordPayload): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/reset-password`, payload)
+  }
+}
+
+function normalizeUserStatus(value: UserStatus): Exclude<UserStatus, number> {
+  if (typeof value === 'string') return value
+  return ({
+    1: 'Active',
+    2: 'Inactive',
+    3: 'Restricted',
+    4: 'Locked',
+  } as Record<number, Exclude<UserStatus, number>>)[value] ?? 'Inactive'
 }
