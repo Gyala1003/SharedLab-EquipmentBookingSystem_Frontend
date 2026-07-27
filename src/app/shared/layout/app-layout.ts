@@ -1,14 +1,14 @@
 import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
-import { TranslatePipe, TranslateService } from '@ngx-translate/core'
 import { catchError, forkJoin, of } from 'rxjs'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse, UsageLogResponse } from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
-import { LanguageSwitcherComponent } from '../ui/language-switcher'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { IconComponent } from '../ui/icon'
 import { ModalComponent } from '../ui/modal'
 import { ToastService } from '../ui/toast.service'
@@ -37,16 +37,15 @@ interface NavGroup {
     RouterOutlet,
     IconComponent,
     ModalComponent,
-    LanguageSwitcherComponent,
     TranslatePipe,
   ],
   template: `
-    <div class="min-h-screen bg-[#f5f7fb] text-slate-900">
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-[#f0fdfa]/40 to-slate-50 text-slate-900">
       @if (mobileOpen()) {
         <button
           type="button"
-          class="fixed inset-0 z-30 bg-slate-950/45 backdrop-blur-sm lg:hidden"
-          aria-label="Đóng menu"
+          class="fixed inset-0 z-30 bg-slate-950/30 backdrop-blur-sm lg:hidden"
+          aria-label="{{ 'sidebar.closeMenu' | t }}"
           (click)="mobileOpen.set(false)"
         ></button>
       }
@@ -60,8 +59,8 @@ interface NavGroup {
             <app-icon name="flask" [size]="24" />
           </div>
           <div class="min-w-0">
-            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-700">{{ 'app.name' | translate }}</p>
-            <p class="mt-1 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | translate }}</p>
+            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-700">{{ 'app.name' | t }}</p>
+            <p class="mt-1 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
           </div>
           <button type="button" class="ml-auto rounded-xl p-2 text-slate-400 hover:bg-cyan-50 hover:text-cyan-700 lg:hidden" (click)="mobileOpen.set(false)">
             <app-icon name="x" [size]="20" />
@@ -75,7 +74,7 @@ interface NavGroup {
               class="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/25 transition hover:-translate-y-0.5 hover:shadow-cyan-500/35"
               (click)="mobileOpen.set(false)"
             >
-              <app-icon name="calendar-plus" [size]="18" /> {{ 'nav.items.quickBooking' | translate }}
+              <app-icon name="calendar-plus" [size]="18" /> {{ 'sidebar.quickBooking' | t }}
             </a>
           </div>
         }
@@ -83,7 +82,7 @@ interface NavGroup {
         <div class="min-h-0 flex-1 overflow-y-auto px-3 py-4 [scrollbar-width:thin] [scrollbar-color:rgba(6,182,212,.2)_transparent]">
           @for (group of visibleGroups(); track group.labelKey) {
             <div class="mb-5">
-              <p class="px-3 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-800/60">{{ group.labelKey | translate }}</p>
+              <p class="px-3 text-[9px] font-black uppercase tracking-[0.22em] text-cyan-800/60">{{ group.labelKey | t }}</p>
               <nav class="mt-2 space-y-1">
                 @for (item of group.items; track item.route) {
                   <a
@@ -95,7 +94,7 @@ interface NavGroup {
                     <span class="icon-box flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100/80 text-slate-500 transition group-hover:bg-cyan-100/80 group-hover:text-cyan-700">
                       <app-icon [name]="item.icon" [size]="17" />
                     </span>
-                    <span class="min-w-0 flex-1 truncate">{{ item.labelKey | translate }}</span>
+                    <span class="min-w-0 flex-1 truncate">{{ item.labelKey | t }}</span>
                     @if (item.badge === 'notifications' && badge.count() > 0) {
                       <span class="min-w-6 rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-[9px] font-black text-white shadow-sm">
                         {{ badge.count() > 99 ? '99+' : badge.count() }}
@@ -117,16 +116,16 @@ interface NavGroup {
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
-                  <p class="mt-0.5 truncate text-[10px] font-semibold text-slate-500">{{ 'roles.' + user.roleName | translate }}</p>
+                  <p class="mt-0.5 truncate text-[10px] font-semibold text-slate-500">{{ 'roles.' + user.roleName | t }}</p>
                 </div>
                 <app-icon name="chevron-right" [size]="15" class="text-slate-400" />
               </a>
               <div class="mt-3 flex items-center justify-between border-t border-cyan-100/80 pt-3">
                 <span class="inline-flex items-center gap-2 text-[10px] font-bold text-teal-700">
                   <span class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,.18)]"></span>
-                  {{ 'header.connected' | translate }}
+                  {{ 'sidebar.connected' | t }}
                 </span>
-                <button type="button" class="rounded-xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition" [attr.title]="'header.logout' | translate" (click)="logout()">
+                <button type="button" class="rounded-xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition" title="{{ 'sidebar.logout' | t }}" (click)="logout()">
                   <app-icon name="logout" [size]="17" />
                 </button>
               </div>
@@ -136,28 +135,31 @@ interface NavGroup {
       </aside>
 
       <div class="min-h-screen lg:pl-[292px]">
-        <header class="sticky top-0 z-20 flex h-20 items-center gap-3 border-b border-slate-200/80 bg-white/88 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
-          <button type="button" class="rounded-xl border border-slate-200 p-2.5 text-slate-600 shadow-sm hover:bg-slate-50 lg:hidden" (click)="mobileOpen.set(true)">
+        <header class="sticky top-0 z-20 flex h-20 items-center gap-3 border-b border-cyan-100/80 bg-white/85 px-4 backdrop-blur-xl sm:px-6 lg:px-8 shadow-sm shadow-cyan-950/[0.02]">
+          <button type="button" class="rounded-xl border border-cyan-100 p-2.5 text-slate-600 shadow-sm hover:bg-cyan-50 hover:text-cyan-700 lg:hidden" (click)="mobileOpen.set(true)">
             <app-icon name="menu" [size]="20" />
           </button>
           <div class="min-w-0 flex-1">
-            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500">{{ 'app.workspace' | translate }}</p>
-            <p class="mt-1 truncate text-sm font-bold text-slate-600">{{ 'header.workspaceSub' | translate }}</p>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-700">{{ 'header.workspace' | t }}</p>
+            <p class="mt-1 truncate text-sm font-bold text-slate-600">{{ 'header.subtitle' | t }}</p>
           </div>
           
+          <div class="hidden items-center gap-1 rounded-full border border-cyan-100 bg-cyan-50/50 p-1 sm:flex">
+            <button type="button" class="rounded-full px-2.5 py-1 text-xs font-black transition" [ngClass]="languageStore.lang() === 'vi' ? 'bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-sm' : 'text-slate-500 hover:text-cyan-700'" (click)="languageStore.setLang('vi')">🇻🇳 VN</button>
+            <button type="button" class="rounded-full px-2.5 py-1 text-xs font-black transition" [ngClass]="languageStore.lang() === 'en' ? 'bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-sm' : 'text-slate-500 hover:text-cyan-700'" (click)="languageStore.setLang('en')">🇬🇧 EN</button>
+          </div>
+
           <a
             routerLink="/app/calendar"
-            class="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600 sm:flex"
+            class="hidden h-11 items-center gap-2 rounded-2xl border border-cyan-100 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-700 hover:bg-cyan-50/40 sm:flex"
           >
-            <app-icon name="calendar" [size]="18" /> {{ 'header.viewCalendar' | translate }}
+            <app-icon name="calendar" [size]="18" /> {{ 'header.viewCalendar' | t }}
           </a>
-
-          <app-language-switcher variant="header" />
 
           <a
             routerLink="/app/notifications"
-            class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600 hover:shadow-md"
-            [attr.aria-label]="'header.notifications' | translate"
+            class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-100 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-700 hover:shadow-md"
+            aria-label="{{ 'header.notifications' | t }}"
           >
             <app-icon name="bell" [size]="20" />
             @if (badge.count() > 0) {
@@ -165,13 +167,13 @@ interface NavGroup {
             }
           </a>
           
-          <a routerLink="/app/profile" class="hidden items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-slate-50 md:flex">
+          <a routerLink="/app/profile" class="hidden items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-cyan-50/50 md:flex">
             @if (store.user(); as user) {
               <div class="text-right">
                 <p class="text-sm font-black text-slate-800">{{ user.fullName }}</p>
-                <p class="mt-0.5 text-[10px] font-bold text-slate-400">{{ 'roles.' + user.roleName | translate }}</p>
+                <p class="mt-0.5 text-[10px] font-bold text-slate-500">{{ 'roles.' + user.roleName | t }}</p>
               </div>
-              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#e9e8ff] text-sm font-black text-indigo-700">
+              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-400 to-sky-400 text-sm font-black text-white shadow-sm shadow-cyan-500/20">
                 {{ initials(user.fullName) }}
               </div>
             }
@@ -183,8 +185,8 @@ interface NavGroup {
 
       <app-modal
         [open]="pendingCheckoutOpen()"
-        [title]="'pendingCheckout.title' | translate"
-        [subtitle]="'pendingCheckout.subtitle' | translate"
+        title="{{ 'checkout.modalTitle' | t }}"
+        subtitle="{{ 'checkout.modalSubtitle' | t }}"
         (close)="pendingCheckoutOpen.set(false)"
       >
         @if (pendingBooking; as booking) {
@@ -194,14 +196,14 @@ interface NavGroup {
               <span class="font-black text-slate-800">#BK-{{ booking.bookingId.toString().padStart(5, '0') }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-slate-400">{{ 'pendingCheckout.endTime' | translate }}</span>
+              <span class="text-slate-400">{{ 'checkout.endTime' | t }}</span>
               <span class="font-bold text-slate-700">{{ booking.endTime | date: 'HH:mm dd/MM/yyyy' }}</span>
             </div>
           </div>
           <div class="mt-5 flex flex-wrap justify-end gap-2">
-            <button class="btn-secondary" (click)="snoozePendingCheckout()">{{ 'pendingCheckout.continueUsing' | translate }}</button>
+            <button class="btn-secondary" (click)="snoozePendingCheckout()">{{ 'checkout.continue' | t }}</button>
             <button class="btn-primary" (click)="confirmPendingCheckout()">
-              <app-icon name="logout" [size]="16" /> {{ 'pendingCheckout.confirmCheckout' | translate }}
+              <app-icon name="logout" [size]="16" /> {{ 'checkout.confirm' | t }}
             </button>
           </div>
         }
@@ -211,12 +213,12 @@ interface NavGroup {
 })
 export class AppLayoutComponent implements OnInit {
   protected readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
   private readonly workspace = inject(WorkspaceService)
   protected readonly badge = inject(NotificationBadgeService)
   private readonly router = inject(Router)
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
-  protected readonly translate = inject(TranslateService)
   protected readonly mobileOpen = signal(false)
   protected readonly pendingCheckoutOpen = signal(false)
   protected pendingBooking: BookingResponse | null = null
@@ -331,10 +333,10 @@ export class AppLayoutComponent implements OnInit {
     this.pendingCheckoutOpen.set(false)
     this.api.checkOut(log.logId, actualCheckoutIso).subscribe({
       next: () => {
-        this.toast.success(this.translate.instant('pendingCheckout.checkoutSuccess') || 'Check-out thành công')
+        this.toast.success(this.languageStore.t('pendingCheckout.checkoutSuccess') || 'Check-out thành công')
         this.checkLateAndReportViolation(booking, actualCheckoutIso)
       },
-      error: () => this.toast.error(this.translate.instant('common.error') || 'Không thể check-out'),
+      error: () => this.toast.error(this.languageStore.t('common.error') || 'Không thể check-out'),
     })
   }
 
