@@ -50,6 +50,10 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'error',
+    loadComponent: () => import('./features/error/error.page').then((m) => m.ErrorPage),
+  },
+  {
     path: '**',
     loadComponent: () => import('./features/not-found/not-found.page').then((m) => m.NotFoundPage),
   },

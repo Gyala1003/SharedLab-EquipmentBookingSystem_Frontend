@@ -22,11 +22,13 @@ export class AuthStore {
   private readonly _user = signal<AuthUser | null>(this.restore())
   private readonly _status = signal<'idle' | 'loading' | 'error'>('idle')
   private readonly _error = signal<string | null>(null)
+  private readonly _logoutStatus = signal<'idle' | 'loading'>('idle')
 
   // --- selectors ---
   readonly user = this._user.asReadonly()
   readonly status = this._status.asReadonly()
   readonly error = this._error.asReadonly()
+  readonly logoutStatus = this._logoutStatus.asReadonly()
   readonly isAuthenticated = computed(() => this._user() !== null)
   readonly roles = computed(() => this._user()?.roles ?? [])
 
@@ -49,12 +51,23 @@ export class AuthStore {
     }
   }
 
-  logout(): void {
-    this.tokens.clear()
-    localStorage.removeItem(USER_KEY)
-    this._user.set(null)
-    this._status.set('idle')
-    this._error.set(null)
+  /**
+   * Calls the backend logout endpoint, then always clears local session state
+   * regardless of the API outcome (a failed round-trip shouldn't leave the
+   * user stuck "logged in" locally). Re-throws on failure so the caller can
+   * distinguish success vs. failure for navigation purposes.
+   */
+  async logout(): Promise<void> {
+    const refreshToken = this.tokens.refresh
+    this._logoutStatus.set('loading')
+    try {
+      if (refreshToken) {
+        await firstValueFrom(this.auth.logout(refreshToken))
+      }
+    } finally {
+      this.clear()
+      this._logoutStatus.set('idle')
+    }
   }
 
   /** Used by the error interceptor on 401 — clears state without an API round-trip. */
@@ -71,7 +84,7 @@ export class AuthStore {
     if (!raw || raw === 'undefined' || raw === 'null') {
       return null
     }
-  
+
     try {
       return JSON.parse(raw) as AuthUser
     } catch (e) {

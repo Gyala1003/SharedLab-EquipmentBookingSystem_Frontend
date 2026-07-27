@@ -170,6 +170,13 @@
     "title": "Không tìm thấy trang",
     "back": "Về trang chủ"
   },
+  "errorPage": {
+    "title": "Đã xảy ra sự cố",
+    "message": "Có lỗi kỹ thuật xảy ra. Vui lòng thử lại hoặc quay về trang chủ.",
+    "retry": "Thử lại",
+    "backHome": "Quay về trang chủ",
+    "loginAgain": "Đăng nhập lại"
+  },
   "users": {
     "title": "Danh sách người dùng",
     "add": "Thêm người dùng",

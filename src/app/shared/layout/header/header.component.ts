@@ -1,7 +1,9 @@
 import { Component, HostListener, inject, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { TranslatePipe, TranslateService } from '@ngx-translate/core'
-import {RouterLink, RouterLinkActive} from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router'
+import { AuthStore } from '../../../core/auth/auth.store'
+import { UserMenuComponent } from '../../ui/user-menu/user-menu.component'
 
 interface NavItem {
   label: string
@@ -16,11 +18,12 @@ interface LanguageOption {
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, RouterLink, RouterLinkActive],
+  imports: [CommonModule, TranslatePipe, RouterLink, RouterLinkActive, UserMenuComponent],
   templateUrl: './header.component.html',
 })
 export class HeaderComponent {
   private readonly translate = inject(TranslateService)
+  protected readonly store = inject(AuthStore)
 
   isMobileMenuOpen = signal(false)
   isLangMenuOpen = signal(false)

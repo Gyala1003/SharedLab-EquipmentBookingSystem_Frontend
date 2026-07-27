@@ -16,6 +16,10 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${env.apiBaseUrl}/auth/login`, payload)
   }
 
+  logout(refreshToken: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${env.apiBaseUrl}/auth/logout`, { refreshToken })
+  }
+
   forgotPassword(email: string, resetLink: string): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(
       `${env.apiBaseUrl}/auth/forgot-password`,
