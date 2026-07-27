@@ -1,6 +1,7 @@
 import { NgClass } from '@angular/common'
-import { Component, computed, input } from '@angular/core'
+import { Component, computed, inject, input } from '@angular/core'
 import type { ApiEnum } from '../../core/api/system.models'
+import { LanguageStore } from '../../core/i18n/language.store'
 import { labelOf, toneOf } from '../utils/presentation'
 
 @Component({
@@ -13,9 +14,10 @@ import { labelOf, toneOf } from '../utils/presentation'
   `,
 })
 export class StatusBadgeComponent {
+  private readonly languageStore = inject(LanguageStore)
   readonly value = input<ApiEnum | null | undefined>()
   readonly domain = input('')
-  readonly text = computed(() => labelOf(this.domain(), this.value()))
+  readonly text = computed(() => labelOf(this.domain(), this.value(), this.languageStore.lang()))
   readonly classes = computed(() => {
     const tone = toneOf(this.domain(), this.value())
     if (tone === 'emerald') return 'border-emerald-200 bg-emerald-50 text-emerald-700'

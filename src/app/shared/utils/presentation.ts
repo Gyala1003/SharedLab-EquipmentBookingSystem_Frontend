@@ -1,27 +1,114 @@
 import type { ApiEnum } from '../../core/api/system.models'
 
-const maps: Record<string, Record<string, string>> = {
-  user: { '1': 'Đang hoạt động', '2': 'Ngừng hoạt động', '3': 'Bị hạn chế', '4': 'Bị khóa', Active: 'Đang hoạt động', Inactive: 'Ngừng hoạt động', Restricted: 'Bị hạn chế', Locked: 'Bị khóa' },
-  department: { '1': 'Đang hoạt động', '2': 'Ngừng hoạt động', Active: 'Đang hoạt động', Inactive: 'Ngừng hoạt động' },
-  booking: { Pending: 'Chờ duyệt', Approved: 'Đã duyệt', Rejected: 'Bị từ chối', Cancelled: 'Đã hủy', Completed: 'Hoàn thành', NoShow: 'Không đến' },
-  lab: { Available: 'Có thể sử dụng', Unavailable: 'Tạm không khả dụng', Maintenance: 'Đang bảo trì', Inactive: 'Ngừng hoạt động' },
-  equipment: { Available: 'Sẵn sàng', InUse: 'Đang sử dụng', Maintenance: 'Đang bảo trì', Broken: 'Bị hỏng', Retired: 'Ngừng sử dụng' },
-  maintenance: { Scheduled: 'Đã lên lịch', InProgress: 'Đang thực hiện', Completed: 'Hoàn thành', Cancelled: 'Đã hủy' },
-  waitlist: { Waiting: 'Đang chờ', Notified: 'Đã thông báo', Booked: 'Đã tạo booking', Cancelled: 'Đã hủy', Expired: 'Hết hạn' },
-  violation: { Active: 'Đang hiệu lực', Resolved: 'Đã xử lý', Cancelled: 'Đã hủy' },
-  incident: { NotRequired: 'Không cần duyệt', Pending: 'Chờ duyệt', Confirmed: 'Đã xác nhận', Rejected: 'Đã từ chối' },
-  purpose: { ResearchProject: 'Dự án nghiên cứu', CoursePractice: 'Thực hành môn học', SelfStudy: 'Tự học', Other: 'Khác' },
-  resource: { LabRoom: 'Phòng lab', Equipment: 'Thiết bị' },
-  recurrence: { None: 'Không lặp', Daily: 'Hằng ngày', Weekly: 'Hằng tuần', Monthly: 'Hằng tháng' },
-  violationType: { NoShow: 'Không đến', LateCheckout: 'Trả muộn', DamageEquipment: 'Làm hỏng thiết bị', MisuseEquipment: 'Sử dụng sai', UnauthorizedUse: 'Sử dụng trái phép' },
-  incidentType: { None: 'Không có', DamageReported: 'Báo hư hỏng', LateCheckout: 'Trả muộn', MissingEquipment: 'Thiếu thiết bị', Other: 'Khác' },
-  notification: { BookingApproved: 'Booking được duyệt', BookingRejected: 'Booking bị từ chối', BookingReminder: 'Nhắc lịch booking', WaitlistAvailable: 'Có chỗ từ hàng chờ', Maintenance: 'Bảo trì', Violation: 'Vi phạm', System: 'Hệ thống' },
+const maps: Record<string, Record<string, { vi: string; en: string }>> = {
+  user: {
+    '1': { vi: 'Đang hoạt động', en: 'Active' },
+    '2': { vi: 'Ngừng hoạt động', en: 'Inactive' },
+    '3': { vi: 'Bị hạn chế', en: 'Restricted' },
+    '4': { vi: 'Bị khóa', en: 'Locked' },
+    Active: { vi: 'Đang hoạt động', en: 'Active' },
+    Inactive: { vi: 'Ngừng hoạt động', en: 'Inactive' },
+    Restricted: { vi: 'Bị hạn chế', en: 'Restricted' },
+    Locked: { vi: 'Bị khóa', en: 'Locked' },
+  },
+  department: {
+    '1': { vi: 'Đang hoạt động', en: 'Active' },
+    '2': { vi: 'Ngừng hoạt động', en: 'Inactive' },
+    Active: { vi: 'Đang hoạt động', en: 'Active' },
+    Inactive: { vi: 'Ngừng hoạt động', en: 'Inactive' },
+  },
+  booking: {
+    Pending: { vi: 'Chờ duyệt', en: 'Pending' },
+    Approved: { vi: 'Đã duyệt', en: 'Approved' },
+    Rejected: { vi: 'Bị từ chối', en: 'Rejected' },
+    Cancelled: { vi: 'Đã hủy', en: 'Cancelled' },
+    Completed: { vi: 'Hoàn thành', en: 'Completed' },
+    NoShow: { vi: 'Không đến', en: 'No-show' },
+  },
+  lab: {
+    Available: { vi: 'Có thể sử dụng', en: 'Available' },
+    Unavailable: { vi: 'Tạm không khả dụng', en: 'Unavailable' },
+    Maintenance: { vi: 'Đang bảo trì', en: 'Under Maintenance' },
+    Inactive: { vi: 'Ngừng hoạt động', en: 'Inactive' },
+  },
+  equipment: {
+    Available: { vi: 'Sẵn sàng', en: 'Available' },
+    InUse: { vi: 'Đang sử dụng', en: 'In Use' },
+    Maintenance: { vi: 'Đang bảo trì', en: 'Under Maintenance' },
+    Broken: { vi: 'Bị hỏng', en: 'Broken' },
+    Retired: { vi: 'Ngừng sử dụng', en: 'Retired' },
+  },
+  maintenance: {
+    Scheduled: { vi: 'Đã lên lịch', en: 'Scheduled' },
+    InProgress: { vi: 'Đang thực hiện', en: 'In Progress' },
+    Completed: { vi: 'Hoàn thành', en: 'Completed' },
+    Cancelled: { vi: 'Đã hủy', en: 'Cancelled' },
+  },
+  waitlist: {
+    Waiting: { vi: 'Đang chờ', en: 'Waiting' },
+    Notified: { vi: 'Đã thông báo', en: 'Notified' },
+    Booked: { vi: 'Đã tạo booking', en: 'Booked' },
+    Cancelled: { vi: 'Đã hủy', en: 'Cancelled' },
+    Expired: { vi: 'Hết hạn', en: 'Expired' },
+  },
+  violation: {
+    Active: { vi: 'Đang hiệu lực', en: 'Active' },
+    Resolved: { vi: 'Đã xử lý', en: 'Resolved' },
+    Cancelled: { vi: 'Đã hủy', en: 'Cancelled' },
+  },
+  incident: {
+    NotRequired: { vi: 'Không cần duyệt', en: 'Not Required' },
+    Pending: { vi: 'Chờ duyệt', en: 'Pending' },
+    Confirmed: { vi: 'Đã xác nhận', en: 'Confirmed' },
+    Rejected: { vi: 'Đã từ chối', en: 'Rejected' },
+  },
+  purpose: {
+    ResearchProject: { vi: 'Dự án nghiên cứu', en: 'Research Project' },
+    CoursePractice: { vi: 'Thực hành môn học', en: 'Course Practice' },
+    SelfStudy: { vi: 'Tự học', en: 'Self-study' },
+    Other: { vi: 'Khác', en: 'Other' },
+  },
+  resource: {
+    LabRoom: { vi: 'Phòng lab', en: 'Lab Room' },
+    Equipment: { vi: 'Thiết bị', en: 'Equipment' },
+  },
+  recurrence: {
+    None: { vi: 'Không lặp', en: 'None' },
+    Daily: { vi: 'Hằng ngày', en: 'Daily' },
+    Weekly: { vi: 'Hằng tuần', en: 'Weekly' },
+    Monthly: { vi: 'Hằng tháng', en: 'Monthly' },
+  },
+  violationType: {
+    NoShow: { vi: 'Không đến', en: 'No-show' },
+    LateCheckout: { vi: 'Trả muộn', en: 'Late Check-out' },
+    DamageEquipment: { vi: 'Làm hỏng thiết bị', en: 'Damaged Equipment' },
+    MisuseEquipment: { vi: 'Sử dụng sai', en: 'Equipment Misuse' },
+    UnauthorizedUse: { vi: 'Sử dụng trái phép', en: 'Unauthorized Use' },
+  },
+  incidentType: {
+    None: { vi: 'Không có', en: 'None' },
+    DamageReported: { vi: 'Báo hư hỏng', en: 'Damage Reported' },
+    LateCheckout: { vi: 'Trả muộn', en: 'Late Check-out' },
+    MissingEquipment: { vi: 'Thiếu thiết bị', en: 'Missing Equipment' },
+    Other: { vi: 'Khác', en: 'Other' },
+  },
+  notification: {
+    BookingApproved: { vi: 'Booking được duyệt', en: 'Booking Approved' },
+    BookingRejected: { vi: 'Booking bị từ chối', en: 'Booking Rejected' },
+    BookingReminder: { vi: 'Nhắc lịch booking', en: 'Booking Reminder' },
+    WaitlistAvailable: { vi: 'Có chỗ từ hàng chờ', en: 'Waitlist Spot Available' },
+    Maintenance: { vi: 'Bảo trì', en: 'Maintenance' },
+    Violation: { vi: 'Vi phạm', en: 'Violation' },
+    System: { vi: 'Hệ thống', en: 'System' },
+  },
 }
 
-export function labelOf(domain: string, value: ApiEnum | null | undefined): string {
+export function labelOf(domain: string, value: ApiEnum | null | undefined, lang: 'vi' | 'en' = 'vi'): string {
   if (value === null || value === undefined || value === '') return '—'
   const key = String(value)
-  return maps[domain]?.[key] ?? key
+  const entry = maps[domain]?.[key]
+  if (!entry) return key
+  return entry[lang] ?? entry.vi ?? key
 }
 
 export function toneOf(domain: string, value: ApiEnum | null | undefined): string {
