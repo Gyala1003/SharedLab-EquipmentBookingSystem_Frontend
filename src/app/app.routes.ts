@@ -43,7 +43,7 @@ export const routes: Routes = [
       },
       {
         path: 'dashboard',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['Admin'])],
         title: 'Dashboard · Shared Lab',
         loadComponent: () => import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage),
       },

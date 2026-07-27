@@ -307,6 +307,80 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'nav.myBooking': { vi: 'Booking của tôi', en: 'My Bookings' },
   'nav.equipment': { vi: 'Thiết bị thí nghiệm', en: 'Lab Equipment' },
   'nav.labs': { vi: 'Phòng thí nghiệm', en: 'Lab Rooms' },
+  'nav.manageBookings': { vi: 'Quản lý booking', en: 'Manage Bookings' },
+  'nav.pendingBookings': { vi: 'Booking cần duyệt', en: 'Bookings to Approve' },
+  'nav.users': { vi: 'Quản lý người dùng', en: 'User Management' },
+
+  // Policy Page
+  'policy.title': { vi: 'Chính sách phòng Lab', en: 'Lab Policy & Rules' },
+  'policy.subtitle': { vi: 'Quy định chung và hình thức xử lý vi phạm áp dụng cho toàn bộ người dùng.', en: 'General rules and penalty guidelines applicable to all lab users.' },
+  'policy.generalRules': { vi: 'Quy định chung', en: 'General Rules' },
+  'policy.generalRulesSub': { vi: 'Áp dụng cho toàn bộ người dùng phòng Lab', en: 'Applies to all lab room users' },
+  'policy.addRule': { vi: 'Thêm quy định', en: 'Add Rule' },
+  'policy.addCategory': { vi: 'Thêm hạng mục', en: 'Add Category' },
+  'policy.addItem': { vi: 'Thêm hành vi', en: 'Add Action' },
+
+  // Pending Bookings Page
+  'pendingBookings.title': { vi: 'Hàng đợi booking cần duyệt', en: 'Pending Bookings Queue' },
+  'pendingBookings.subtitle': { vi: 'Danh sách được sắp xếp theo PriorityLevel tăng dần, sau đó theo thời điểm tạo sớm nhất.', en: 'List sorted by ascending PriorityLevel, then by earliest creation time.' },
+  'pendingBookings.priorityPrincipleTitle': { vi: 'Nguyên tắc xử lý ưu tiên', en: 'Priority Handling Principle' },
+  'pendingBookings.priorityPrincipleDesc': { vi: 'Số ưu tiên càng nhỏ càng được xét trước. Khi duyệt, backend kiểm tra lại xung đột trong transaction; lỗi 409 nghĩa là slot vừa bị booking khác khóa.', en: 'Lower priority number is considered first. Backend verifies conflicts during transaction approval; error 409 means slot was just locked by another booking.' },
+  'pendingBookings.noPendingTitle': { vi: 'Không còn booking chờ duyệt', en: 'No Pending Bookings' },
+  'pendingBookings.noPendingSub': { vi: 'Tất cả yêu cầu hiện đã được xử lý.', en: 'All requests have been processed.' },
+  'pendingBookings.approve': { vi: 'Duyệt', en: 'Approve' },
+  'pendingBookings.reject': { vi: 'Từ chối', en: 'Reject' },
+
+  // Bookings Management Page
+  'manageBookings.title': { vi: 'Quản lý booking', en: 'Manage Bookings' },
+  'manageBookings.subtitle': { vi: 'Tra cứu, theo dõi và xử lý vòng đời booking trong phạm vi quyền quản lý.', en: 'Lookup, track, and manage booking lifecycle within management scope.' },
+  'manageBookings.searchPlaceholder': { vi: 'Mã booking, user ID, mục đích...', en: 'Booking ID, user ID, purpose...' },
+
+  // Incidents Page
+  'incidents.title': { vi: 'Duyệt sự cố sử dụng', en: 'Review Incident Reports' },
+  'incidents.subtitle': { vi: 'Xác nhận hoặc từ chối các sự cố được báo từ UsageLog. Xác nhận có thể phát sinh vi phạm và điểm phạt.', en: 'Confirm or reject incidents reported from UsageLog. Confirmation may generate violations and penalty points.' },
+  'incidents.noIncidentsTitle': { vi: 'Không có sự cố', en: 'No Incidents' },
+  'incidents.noIncidentsSub': { vi: 'Không có bản ghi sự cố phù hợp với khoảng thời gian và trạng thái đã chọn.', en: 'No incident records match the selected date range and status.' },
+
+  // Waitlists Management Page
+  'manageWaitlists.title': { vi: 'Quản lý hàng chờ', en: 'Manage Waitlists' },
+  'manageWaitlists.subtitle': { vi: 'Theo dõi thứ tự, thông báo người tiếp theo, hết hạn hoặc hủy lượt trong phạm vi quản lý.', en: 'Track order, notify next requester, expire or cancel slots in scope.' },
+  'manageWaitlists.emptyTitle': { vi: 'Hàng chờ đang trống', en: 'Waitlist is Empty' },
+  'manageWaitlists.emptySub': { vi: 'Không có bản ghi phù hợp với trạng thái hoặc bộ lọc queue.', en: 'No records match the queue filter or status.' },
+  'manageWaitlists.notifyNext': { vi: 'Thông báo người tiếp theo', en: 'Notify Next User' },
+  'manageWaitlists.filterQueue': { vi: 'Lọc queue', en: 'Filter Queue' },
+
+  // Users Page
+  'users.title': { vi: 'Quản lý người dùng', en: 'User Management' },
+  'users.subtitle': { vi: 'Tìm kiếm, phân quyền và theo dõi trạng thái toàn bộ tài khoản trong hệ thống.', en: 'Search, manage roles, and track status of all user accounts.' },
+  'users.createUser': { vi: 'Tạo người dùng', en: 'Create User' },
+  'users.totalAccounts': { vi: 'Tổng tài khoản', en: 'Total Accounts' },
+  'users.displaying': { vi: 'Đang hiển thị', en: 'Displaying' },
+  'users.totalPenalties': { vi: 'Tổng điểm phạt', en: 'Total Penalties' },
+  'users.searchPlaceholder': { vi: 'Họ tên, username hoặc email...', en: 'Name, username, or email...' },
+  'users.role': { vi: 'Vai trò', en: 'Role' },
+  'users.penaltyPoints': { vi: 'Điểm phạt', en: 'Penalty Points' },
+  'users.restrictionUntil': { vi: 'Hạn chế đến', en: 'Restriction Until' },
+
+  // Departments Page
+  'departments.title': { vi: 'Khoa và phòng ban', en: 'Departments & Units' },
+  'departments.subtitle': { vi: 'Quản lý đơn vị công tác của người dùng mà không xóa dữ liệu lịch sử.', en: 'Manage organizational units without deleting historical data.' },
+  'departments.addDepartment': { vi: 'Thêm đơn vị', en: 'Add Department' },
+  'departments.totalUnits': { vi: 'Tổng đơn vị', en: 'Total Units' },
+  'departments.active': { vi: 'Đang hoạt động', en: 'Active' },
+  'departments.inactive': { vi: 'Ngừng hoạt động', en: 'Inactive' },
+  'departments.searchPlaceholder': { vi: 'Tên hoặc mô tả đơn vị...', en: 'Unit name or description...' },
+
+  // Manage Violations Page
+  'manageViolations.title': { vi: 'Quản lý vi phạm', en: 'Violation Management' },
+  'manageViolations.subtitle': { vi: 'Tạo, xử lý hoặc hủy vi phạm; theo dõi điểm phạt phát sinh từ booking và sự cố.', en: 'Create, resolve, or cancel violations; track penalty points from bookings and incidents.' },
+  'manageViolations.createViolation': { vi: 'Tạo vi phạm', en: 'Create Violation' },
+  'manageViolations.active': { vi: 'Đang hiệu lực', en: 'Active' },
+  'manageViolations.resolved': { vi: 'Đã xử lý', en: 'Resolved' },
+  'manageViolations.cancelled': { vi: 'Đã hủy', en: 'Cancelled' },
+  'manageViolations.violationType': { vi: 'Loại vi phạm', en: 'Violation Type' },
+  'manageViolations.searchPlaceholder': { vi: 'Violation ID, User ID, Booking ID...', en: 'Violation ID, User ID, Booking ID...' },
+  'manageViolations.points': { vi: 'Điểm', en: 'Points' },
+  'manageViolations.loggedAt': { vi: 'Ngày ghi nhận', en: 'Logged At' },
 }
 
 export function getDictionary(lang: 'vi' | 'en'): Record<string, any> {

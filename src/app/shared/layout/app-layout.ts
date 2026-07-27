@@ -88,6 +88,7 @@ interface NavGroup {
                   <a
                     [routerLink]="item.route"
                     routerLinkActive="bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 !text-white shadow-md shadow-cyan-500/25 font-black [&_.icon-box]:bg-white/20 [&_.icon-box]:!text-white"
+                    [routerLinkActiveOptions]="{ exact: true }"
                     class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-slate-600 transition hover:bg-cyan-50/90 hover:text-cyan-700"
                     (click)="mobileOpen.set(false)"
                   >
@@ -229,7 +230,7 @@ export class AppLayoutComponent implements OnInit {
       labelKey: 'nav.groups.overview',
       items: [
         { labelKey: 'nav.items.home', icon: 'home', route: '/app/home', roles: ['Requester'] },
-        { labelKey: 'nav.items.dashboard', icon: 'dashboard', route: '/app/dashboard', roles: ['Admin', 'LabManager'] },
+        { labelKey: 'nav.items.dashboard', icon: 'dashboard', route: '/app/dashboard', roles: ['Admin'] },
         { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar' },
       ],
     },
@@ -239,12 +240,26 @@ export class AppLayoutComponent implements OnInit {
         { labelKey: 'nav.items.labs', icon: 'building', route: '/app/labs' },
         { labelKey: 'nav.items.equipments', icon: 'microscope', route: '/app/equipments' },
         { labelKey: 'nav.items.maintenances', icon: 'wrench', route: '/app/management/maintenances' },
+        { labelKey: 'nav.items.policy', icon: 'file-text', route: '/app/policy' },
+      ],
+    },
+    {
+      labelKey: 'nav.groups.management',
+      roles: ['LabManager'],
+      items: [
+        { labelKey: 'nav.items.pendingBookings', icon: 'check-circle', route: '/app/management/bookings/pending' },
+        { labelKey: 'nav.items.manageBookings', icon: 'calendar', route: '/app/management/bookings' },
+        { labelKey: 'nav.items.incidents', icon: 'alert', route: '/app/management/incidents' },
+        { labelKey: 'nav.items.manageWaitlists', icon: 'users', route: '/app/management/waitlists' },
+        { labelKey: 'nav.items.manageViolations', icon: 'shield', route: '/app/management/violations' },
       ],
     },
     {
       labelKey: 'nav.groups.personal',
       items: [
-        { labelKey: 'nav.items.violations', icon: 'alert', route: '/app/violations/my' },
+        { labelKey: 'nav.items.myBookings', icon: 'calendar', route: '/app/bookings/my', roles: ['Requester'] },
+        { labelKey: 'nav.items.myWaitlist', icon: 'clock', route: '/app/waitlists/my', roles: ['Requester'] },
+        { labelKey: 'nav.items.violations', icon: 'alert', route: '/app/violations/my', roles: ['Requester'] },
         { labelKey: 'nav.items.notifications', icon: 'bell', route: '/app/notifications', badge: 'notifications' },
         { labelKey: 'nav.items.profile', icon: 'user', route: '/app/profile' },
       ],
@@ -255,7 +270,6 @@ export class AppLayoutComponent implements OnInit {
       items: [
         { labelKey: 'nav.items.users', icon: 'users', route: '/app/admin/users' },
         { labelKey: 'nav.items.departments', icon: 'building', route: '/app/admin/departments' },
-        { labelKey: 'nav.items.sendNotification', icon: 'send', route: '/app/admin/notifications/send' },
       ],
     },
   ]

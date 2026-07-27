@@ -101,49 +101,89 @@ const EMPTY_DASHBOARD: DashboardResponse = {
           }
         </div>
 
-        <div class="grid gap-6 xl:grid-cols-[1.22fr_.78fr]">
-          <article class="card-surface overflow-hidden">
-            <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <!-- Quy định & Chính sách vận hành phòng Lab -->
+        <article class="card-surface overflow-hidden border border-cyan-100/90 bg-gradient-to-r from-cyan-50/40 via-white to-teal-50/20 p-6 shadow-sm">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white shadow-md shadow-cyan-500/20">
+                <app-icon name="file-text" [size]="22" />
+              </div>
               <div>
-                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.usageTrend' | t }}</h2>
-                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.usageTrendSub' | t }}</p>
-              </div>
-              <div class="flex items-center gap-4 text-xs text-slate-500">
-                <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-cyan-500"></i>{{ 'dashboard.usageLog' | t }}</span>
-                <span class="rounded-full bg-cyan-50 px-3 py-1.5 font-bold text-cyan-700">{{ totalUsageHours() | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</span>
+                <h2 class="text-lg font-black text-slate-900">{{ languageStore.lang() === 'en' ? 'General Rules & Lab Policy' : 'Nội quy & Quy định chung phòng Lab' }}</h2>
+                <p class="text-xs font-medium text-slate-500">{{ languageStore.lang() === 'en' ? 'General rules and violation handling guidelines applicable to all lab users.' : 'Khung pháp lý và quy định xử lý vi phạm áp dụng đối với toàn bộ người dùng.' }}</p>
               </div>
             </div>
-            <div class="p-5 sm:p-6">
-              @if (dashboard().usageTrend.length === 0) {
-                <div class="flex h-72 flex-col items-center justify-center text-center">
-                  <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-500"><app-icon name="chart" [size]="26" /></div>
-                  <p class="mt-4 text-sm font-semibold text-slate-700">{{ 'common.noData' | t }}</p>
-                </div>
-              } @else {
-                <div class="relative h-72 overflow-hidden rounded-2xl bg-gradient-to-b from-cyan-50/60 to-white p-4">
-                  <div class="absolute inset-x-4 bottom-10 top-4 flex flex-col justify-between">
-                    @for (line of [1, 2, 3, 4, 5]; track line) { <div class="border-t border-dashed border-slate-200"></div> }
-                  </div>
-                  <svg class="relative h-[225px] w-full overflow-visible" viewBox="0 0 600 190" preserveAspectRatio="none" role="img" aria-label="Usage trend chart">
-                    <defs>
-                      <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.26" />
-                        <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <polygon [attr.points]="usageAreaPoints()" fill="url(#trendFill)" />
-                    <polyline [attr.points]="usageTrendPoints()" fill="none" stroke="#06b6d4" stroke-width="4" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" />
-                    @for (point of usagePointObjects(); track point.x) {
-                      <circle [attr.cx]="point.x" [attr.cy]="point.y" r="5" fill="white" stroke="#06b6d4" stroke-width="3" vector-effect="non-scaling-stroke" />
-                    }
-                  </svg>
-                  <div class="mt-1 flex justify-between text-[10px] font-medium text-slate-400">
-                    @for (label of trendLabels(); track label) { <span>{{ label }}</span> }
-                  </div>
-                </div>
-              }
+            <a routerLink="/app/policy" class="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white transition hover:bg-slate-800 shadow-md">
+              <span>{{ languageStore.lang() === 'en' ? 'View Full Policy' : 'Xem chi tiết quy định' }}</span>
+              <app-icon name="arrow-right" [size]="16" />
+            </a>
+          </div>
+
+          <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+              <p class="text-xs font-bold text-cyan-800">1. {{ languageStore.lang() === 'en' ? '2-Step Verification' : 'Xác thực 2 bước (Check-in/out)' }}</p>
+              <p class="mt-1 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Check-in/out is completed only upon direct approval by Management.' : 'Lượt Check-in/out chỉ được tính hoàn thành khi có phê duyệt trực tiếp từ Bộ phận Quản lý.' }}</p>
             </div>
-          </article>
+            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+              <p class="text-xs font-bold text-amber-800">2. {{ languageStore.lang() === 'en' ? 'Initial Inspection (5-10m)' : 'Kiểm tra đầu giờ (5–10 phút)' }}</p>
+              <p class="mt-1 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Inspect and report pre-existing damage within 5-10 mins after Check-in.' : 'Báo ngay sự cố/hỏng hóc có sẵn trong 5–10 phút đầu sau khi Check-in.' }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+              <p class="text-xs font-bold text-indigo-800">3. {{ languageStore.lang() === 'en' ? 'Late >2 Weeks (Account Lock)' : 'Muộn >2 tuần (Khóa tài khoản)' }}</p>
+              <p class="mt-1 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Check-out overdue >2 weeks auto-marks LOST ASSET and FREEZES/LOCKS account.' : 'Check-out muộn >2 tuần bị tự động tính LÀM MẤT TÀI SẢN & ĐÓNG BĂNG/KHÓA TÀI KHOẢN.' }}</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+              <p class="text-xs font-bold text-emerald-800">4. {{ languageStore.lang() === 'en' ? 'Anti-Swapping & Account Security' : 'Cấm tráo đổi & Dùng chung tài khoản' }}</p>
+              <p class="mt-1 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'No swapping components or lending accounts. Account owner bears full liability.' : 'Nghiêm cấm tháo lắp, tráo đổi thiết bị hoặc dùng chung tài khoản. Chủ tài khoản chịu trách nhiệm.' }}</p>
+            </div>
+          </div>
+        </article>
+
+        <div [class]="store.isAdmin() ? 'grid gap-6' : 'grid gap-6 xl:grid-cols-[1.22fr_.78fr]'">
+          @if (!store.isAdmin()) {
+            <article class="card-surface overflow-hidden">
+              <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div>
+                  <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.usageTrend' | t }}</h2>
+                  <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.usageTrendSub' | t }}</p>
+                </div>
+                <div class="flex items-center gap-4 text-xs text-slate-500">
+                  <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-cyan-500"></i>{{ 'dashboard.usageLog' | t }}</span>
+                  <span class="rounded-full bg-cyan-50 px-3 py-1.5 font-bold text-cyan-700">{{ totalUsageHours() | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</span>
+                </div>
+              </div>
+              <div class="p-5 sm:p-6">
+                @if (dashboard().usageTrend.length === 0) {
+                  <div class="flex h-72 flex-col items-center justify-center text-center">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-500"><app-icon name="chart" [size]="26" /></div>
+                    <p class="mt-4 text-sm font-semibold text-slate-700">{{ 'common.noData' | t }}</p>
+                  </div>
+                } @else {
+                  <div class="relative h-72 overflow-hidden rounded-2xl bg-gradient-to-b from-cyan-50/60 to-white p-4">
+                    <div class="absolute inset-x-4 bottom-10 top-4 flex flex-col justify-between">
+                      @for (line of [1, 2, 3, 4, 5]; track line) { <div class="border-t border-dashed border-slate-200"></div> }
+                    </div>
+                    <svg class="relative h-[225px] w-full overflow-visible" viewBox="0 0 600 190" preserveAspectRatio="none" role="img" aria-label="Usage trend chart">
+                      <defs>
+                        <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.26" />
+                          <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <polygon [attr.points]="usageAreaPoints()" fill="url(#trendFill)" />
+                      <polyline [attr.points]="usageTrendPoints()" fill="none" stroke="#06b6d4" stroke-width="4" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" />
+                      @for (point of usagePointObjects(); track point.x) {
+                        <circle [attr.cx]="point.x" [attr.cy]="point.y" r="5" fill="white" stroke="#06b6d4" stroke-width="3" vector-effect="non-scaling-stroke" />
+                      }
+                    </svg>
+                    <div class="mt-1 flex justify-between text-[10px] font-medium text-slate-400">
+                      @for (label of trendLabels(); track label) { <span>{{ label }}</span> }
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+          }
 
           <article class="card-surface overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
@@ -282,11 +322,9 @@ const EMPTY_DASHBOARD: DashboardResponse = {
               @for (equipment of dashboard().mostUsedEquipments.slice(0, 3); track equipment.resourceId; let index = $index) {
                 <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-cyan-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ equipment.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ equipment.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ equipment.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
               }
-              @if (dashboard().mostUsedEquipments.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
         </div>
-
       }
     </section>
   `,

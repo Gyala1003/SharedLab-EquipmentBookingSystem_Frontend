@@ -216,6 +216,59 @@ import { labelOf } from '../../shared/utils/presentation'
             }
           </article>
         </div>
+
+        <!-- Nội quy & Chính sách phòng Lab -->
+        <article class="card-surface overflow-hidden border border-cyan-100/90 bg-gradient-to-r from-cyan-50/50 via-white to-teal-50/30 p-6 shadow-sm">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-cyan-100/80 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white shadow-md shadow-cyan-500/20">
+                <app-icon name="file-text" [size]="22" />
+              </div>
+              <div>
+                <h2 class="text-lg font-black text-slate-900">Nội quy & Quy định sử dụng phòng Lab</h2>
+                <p class="text-xs font-medium text-slate-500">Các quy tắc cố định áp dụng cho tất cả người dùng và sinh viên khi đăng ký sử dụng tài nguyên.</p>
+              </div>
+            </div>
+            <a routerLink="/app/policy" class="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-cyan-600 px-4 text-xs font-bold text-white transition hover:bg-cyan-700 shadow-md shadow-cyan-500/15">
+              <span>Xem chi tiết chính sách</span>
+              <app-icon name="arrow-right" [size]="16" />
+            </a>
+          </div>
+
+          <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl border border-cyan-100/80 bg-white/90 p-4 shadow-sm">
+              <div class="flex items-center gap-2 text-xs font-bold text-cyan-800">
+                <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700">1</span>
+                {{ languageStore.lang() === 'en' ? '2-Step Verification' : 'Xác thực 2 bước (Check-in/out)' }}
+              </div>
+              <p class="mt-2 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Check-in/out completes only upon direct approval by Management.' : 'Check-in/out đúng giờ chỉ hoàn tất khi có phê duyệt trực tiếp từ Bộ phận Quản lý.' }}</p>
+            </div>
+
+            <div class="rounded-2xl border border-amber-100/80 bg-white/90 p-4 shadow-sm">
+              <div class="flex items-center gap-2 text-xs font-bold text-amber-800">
+                <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 text-amber-700">2</span>
+                {{ languageStore.lang() === 'en' ? 'Initial Inspection (5-10m)' : 'Kiểm tra đầu giờ (5–10 phút)' }}
+              </div>
+              <p class="mt-2 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Inspect and report pre-existing damage within 5-10 mins after Check-in.' : 'Báo ngay hỏng hóc/sự cố có sẵn trong 5–10 phút đầu sau Check-in để không bị tính trách nhiệm.' }}</p>
+            </div>
+
+            <div class="rounded-2xl border border-indigo-100/80 bg-white/90 p-4 shadow-sm">
+              <div class="flex items-center gap-2 text-xs font-bold text-indigo-800">
+                <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">3</span>
+                {{ languageStore.lang() === 'en' ? 'Late >2 Weeks (Account Lock)' : 'Muộn >2 tuần (Khóa tài khoản)' }}
+              </div>
+              <p class="mt-2 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Check-out overdue >2 weeks auto-marks LOST ASSET and FREEZES/LOCKS account.' : 'Check-out muộn >2 tuần bị tính LÀM MẤT TÀI SẢN & KHÓA TÀI KHOẢN cho đến khi đền bù.' }}</p>
+            </div>
+
+            <div class="rounded-2xl border border-emerald-100/80 bg-white/90 p-4 shadow-sm">
+              <div class="flex items-center gap-2 text-xs font-bold text-emerald-800">
+                <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">4</span>
+                {{ languageStore.lang() === 'en' ? 'Anti-Swapping & Account Security' : 'Cấm tráo đổi & Dùng chung tài khoản' }}
+              </div>
+              <p class="mt-2 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'No swapping components or lending accounts. Account owner bears full liability.' : 'Cấm tháo lắp, tráo đổi linh kiện hoặc cho mượn tài khoản. Chủ tài khoản chịu trách nhiệm.' }}</p>
+            </div>
+          </div>
+        </article>
       }
     </section>
   `,

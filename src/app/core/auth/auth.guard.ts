@@ -30,5 +30,7 @@ export const landingGuard: CanActivateFn = () => {
 }
 
 export function landingPath(role: string): string {
-  return role === 'Admin' || role === 'LabManager' ? '/app/dashboard' : '/app/home'
+  if (role === 'Admin') return '/app/dashboard'
+  if (role === 'LabManager') return '/app/management/bookings/pending'
+  return '/app/home'
 }
