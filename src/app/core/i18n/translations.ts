@@ -309,6 +309,26 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'nav.labs': { vi: 'Phòng thí nghiệm', en: 'Lab Rooms' },
 }
 
+export function getDictionary(lang: 'vi' | 'en'): Record<string, any> {
+  const dict: Record<string, any> = {}
+  for (const [key, val] of Object.entries(translations)) {
+    const text = val[lang] || val.vi || key
+    dict[key] = text
+    const parts = key.split('.')
+    let current = dict
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]
+      if (typeof current[part] !== 'object' || current[part] === null) {
+        current[part] = {}
+      }
+      current = current[part]
+    }
+    current[parts[parts.length - 1]] = text
+  }
+  return dict
+}
+
+
 
 
 
