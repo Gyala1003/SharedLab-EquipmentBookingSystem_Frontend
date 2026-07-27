@@ -2,7 +2,6 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { TranslatePipe } from '@ngx-translate/core'
 import { forkJoin } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { CalendarEventResponse, EquipmentResponse, LabRoomDetailResponse, MaintenanceResponse, UserManagementResponse } from '../../core/api/system.models'
@@ -16,21 +15,18 @@ import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-lab-detail-page',
-  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent],
   template: `
     <section class="space-y-6">
       @if (loading()) {
         <div class="card-surface p-7"><div class="skeleton h-7 w-2/5 rounded"></div><div class="skeleton mt-4 h-52 rounded-3xl"></div></div>
       } @else if (!lab()) {
-        <app-data-state [title]="'common.notFound' | translate" message="Phòng lab có thể đã bị xóa hoặc bạn không có quyền truy cập." icon="building"><a routerLink="/app/labs" class="btn-primary mt-5">{{ 'common.back' | translate }}</a></app-data-state>
+        <app-data-state title="Không tìm thấy phòng lab" message="Phòng lab có thể đã bị xóa hoặc bạn không có quyền truy cập." icon="building"><a routerLink="/app/labs" class="btn-primary mt-5">Về danh sách</a></app-data-state>
       } @else {
         <app-page-header [title]="lab()!.labName" [subtitle]="lab()!.roomCode + ' · ' + lab()!.location">
-          <!-- Phân quyền: Manager và Admin không có nút đặt cả phòng -->
-          @if (store.isRequester()) {
-            <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab()!.labId }" class="btn-primary"><app-icon name="calendar-plus" [size]="17" /> {{ 'labDetail.bookLab' | translate }}</a>
-          }
-          @if (store.isAdmin() || store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> {{ 'labDetail.scheduleMaintenance' | translate }}</a> }
-          @if (store.isAdmin()) { <button class="btn-secondary" (click)="openEdit()"><app-icon name="edit" [size]="17" /> {{ 'labDetail.editLab' | translate }}</button> }
+          <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab()!.labId }" class="btn-primary"><app-icon name="calendar-plus" [size]="17" /> Đặt cả phòng</a>
+          @if (store.isAdmin() || store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> Lên lịch bảo trì</a> }
+          @if (store.isAdmin()) { <button class="btn-secondary" (click)="openEdit()"><app-icon name="edit" [size]="17" /> Chỉnh sửa</button> }
         </app-page-header>
 
         <div class="grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
@@ -40,26 +36,18 @@ import { ToastService } from '../../shared/ui/toast.service'
               @else { <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 20% 25%, #a78bfa, transparent 32%), radial-gradient(circle at 80% 80%, #22d3ee, transparent 28%)"></div><div class="absolute inset-0 flex items-center justify-center text-white/25"><app-icon name="building" [size]="110" /></div> }
               <div class="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-4 p-6"><div><p class="text-xs font-black uppercase tracking-[.2em] text-cyan-300">{{ lab()!.roomCode }}</p><p class="mt-2 text-2xl font-black text-white">{{ lab()!.labName }}</p></div><app-status-badge [value]="lab()!.status" domain="lab" /></div>
             </div>
-            <div class="grid gap-px bg-slate-100 sm:grid-cols-3">
-              <div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'labDetail.location' | translate }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.location }}</p></div>
-              <div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'labDetail.capacity' | translate }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.capacity }} {{ 'labs.capacityUnit' | translate }}</p></div>
-              <div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'labDetail.manager' | translate }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.managerName || 'Chưa phân công' }}</p></div>
-            </div>
+            <div class="grid gap-px bg-slate-100 sm:grid-cols-3"><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">Vị trí</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.location }}</p></div><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">Sức chứa</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.capacity }} người</p></div><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">Quản lý</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.managerName || 'Chưa phân công' }}</p></div></div>
           </article>
 
-          <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">{{ 'labDetail.overview' | translate }}</p><h2 class="mt-2 text-xl font-black text-slate-950">Không gian nghiên cứu</h2><p class="mt-4 text-sm leading-7 text-slate-500">{{ lab()!.description || 'Chưa có mô tả cho phòng lab này.' }}</p><div class="mt-6 rounded-2xl bg-slate-50 p-4"><p class="text-xs font-black text-slate-700">{{ 'labDetail.guideline' | translate }}</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-500">{{ lab()!.usageGuideline || 'Liên hệ LabManager để được hướng dẫn trước khi sử dụng.' }}</p></div><a routerLink="/app/calendar" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary mt-5 w-full"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | translate }}</a></article>
+          <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">Tổng quan</p><h2 class="mt-2 text-xl font-black text-slate-950">Không gian nghiên cứu</h2><p class="mt-4 text-sm leading-7 text-slate-500">{{ lab()!.description || 'Chưa có mô tả cho phòng lab này.' }}</p><div class="mt-6 rounded-2xl bg-slate-50 p-4"><p class="text-xs font-black text-slate-700">Hướng dẫn sử dụng</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-500">{{ lab()!.usageGuideline || 'Liên hệ LabManager để được hướng dẫn trước khi sử dụng.' }}</p></div><a routerLink="/app/calendar" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary mt-5 w-full"><app-icon name="calendar" [size]="17" /> Xem lịch phòng</a></article>
         </div>
 
-        <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">{{ 'labDetail.qrTitle' | translate }}</p><h2 class="mt-2 text-xl font-black text-slate-950">{{ 'labDetail.qrSubtitle' | translate }}</h2>@if (qrImageUrl()) { <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start"><img [src]="qrImageUrl()" alt="QR điểm danh" class="h-[180px] w-[180px] shrink-0 rounded-2xl border border-slate-200 bg-white p-2" /><p class="text-sm leading-6 text-slate-500">In mã này dán tại cửa phòng lab, người dùng quét bằng camera điện thoại sẽ được đưa thẳng vào trang Chi tiết booking để điểm danh.</p></div> } @else { <p class="mt-4 text-sm leading-6 text-slate-500">Bạn chưa có booking đang trong khung giờ hoạt động tại phòng này nên chưa thể tạo mã QR điểm danh.</p> }</article>
+        <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">Điểm danh nhanh bằng QR</p><h2 class="mt-2 text-xl font-black text-slate-950">Quét mã để vào phòng</h2>@if (qrImageUrl()) { <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start"><img [src]="qrImageUrl()" alt="QR điểm danh" class="h-[180px] w-[180px] shrink-0 rounded-2xl border border-slate-200 bg-white p-2" /><p class="text-sm leading-6 text-slate-500">In mã này dán tại cửa phòng lab, người dùng quét bằng camera điện thoại sẽ được đưa thẳng vào trang Chi tiết booking để điểm danh.</p></div> } @else { <p class="mt-4 text-sm leading-6 text-slate-500">Bạn chưa có booking đang trong khung giờ hoạt động tại phòng này nên chưa thể tạo mã QR điểm danh.</p> }</article>
 
-        <div class="flex gap-2 overflow-x-auto rounded-2xl bg-white p-1.5 shadow-sm">
-          <button type="button" class="shrink-0 rounded-xl px-4 py-2.5 text-xs font-black" [ngClass]="tab() === 'equipment' ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500 hover:bg-slate-50'" (click)="tab.set('equipment')">{{ 'labDetail.tabEquipment' | translate }} <span class="ml-1 opacity-65">{{ tabs[0].count }}</span></button>
-          <button type="button" class="shrink-0 rounded-xl px-4 py-2.5 text-xs font-black" [ngClass]="tab() === 'schedule' ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500 hover:bg-slate-50'" (click)="tab.set('schedule')">{{ 'labDetail.tabSchedule' | translate }} <span class="ml-1 opacity-65">{{ tabs[1].count }}</span></button>
-          <button type="button" class="shrink-0 rounded-xl px-4 py-2.5 text-xs font-black" [ngClass]="tab() === 'maintenance' ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500 hover:bg-slate-50'" (click)="tab.set('maintenance')">{{ 'labDetail.tabMaintenance' | translate }} <span class="ml-1 opacity-65">{{ tabs[2].count }}</span></button>
-        </div>
+        <div class="flex gap-2 overflow-x-auto rounded-2xl bg-white p-1.5 shadow-sm">@for (item of tabs; track item.key) { <button type="button" class="shrink-0 rounded-xl px-4 py-2.5 text-xs font-black" [ngClass]="tab() === item.key ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500 hover:bg-slate-50'" (click)="tab.set(item.key)">{{ item.label }} <span class="ml-1 opacity-65">{{ item.count }}</span></button> }</div>
 
         @if (tab() === 'equipment') {
-          @if (equipments().length === 0) { <app-data-state [title]="'labDetail.noEquipment' | translate" message="Admin có thể bổ sung thiết bị từ màn hình quản lý thiết bị." icon="microscope" /> }
+          @if (equipments().length === 0) { <app-data-state title="Phòng chưa có thiết bị" message="Admin có thể bổ sung thiết bị từ màn hình quản lý thiết bị." icon="microscope" /> }
           @else { <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">@for (item of equipments(); track item.equipmentId) { <a [routerLink]="['/app/equipments', item.equipmentId]" class="card-surface group flex items-center gap-4 p-5 transition hover:-translate-y-1"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="microscope" [size]="22" /></div><div class="min-w-0 flex-1"><p class="truncate font-black text-slate-900">{{ item.equipmentName }}</p><div class="mt-2"><app-status-badge [value]="item.status" domain="equipment" /></div></div><app-icon name="arrow-right" [size]="18" /></a> }</div> }
         } @else if (tab() === 'schedule') {
           @if (events().length === 0) { <app-data-state title="Không có lịch trong 30 ngày tới" message="Phòng hiện chưa có booking hoặc bảo trì trong khoảng thời gian này." icon="calendar" /> }
@@ -99,7 +87,7 @@ export class LabDetailPage implements OnInit {
   protected editForm = { labName: '', location: '', capacity: 1, description: '', imageUrl: '', usageGuideline: '' }
   protected managerId: number | null = null
   private id = 0
-
+  // Deep-link QR: tận dụng lại events() (đã lọc theo labId) để tìm booking đang hoạt động của user hiện tại, không cần gọi thêm API hay thư viện quét QR.
   protected readonly qrBookingId = computed(() => {
     const user = this.store.user()
     if (!user) return null

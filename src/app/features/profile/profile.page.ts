@@ -2,7 +2,6 @@ import { DatePipe } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
-import { TranslatePipe } from '@ngx-translate/core'
 import { SystemService } from '../../core/api/system.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { IconComponent } from '../../shared/ui/icon'
@@ -11,7 +10,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-profile-page',
-  imports: [DatePipe, FormsModule, RouterLink, IconComponent, ModalComponent, TranslatePipe],
+  imports: [DatePipe, FormsModule, RouterLink, IconComponent, ModalComponent],
   template: `
     <section class="space-y-6">
       <header>
@@ -19,8 +18,8 @@ import { ToastService } from '../../shared/ui/toast.service'
           <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
           Hồ sơ cá nhân
         </div>
-        <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'profile.title' | translate }}</h1>
-        <p class="mt-2 text-sm text-slate-500">{{ 'profile.subtitle' | translate }}</p>
+        <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">Tài khoản của bạn</h1>
+        <p class="mt-2 text-sm text-slate-500">Thông tin được đồng bộ từ hệ thống và hiện chỉ hỗ trợ chế độ xem.</p>
       </header>
 
       @if (store.user(); as user) {
@@ -33,26 +32,29 @@ import { ToastService } from '../../shared/ui/toast.service'
               </div>
 
               <div class="mt-6 space-y-4">
-                <div><label class="field-label">{{ 'profile.fullName' | translate }}</label><input class="input-shell" type="text" [value]="user.fullName" readonly /></div>
-                <div><label class="field-label">{{ 'profile.email' | translate }}</label><input class="input-shell" type="text" [value]="user.email" readonly /></div>
+                <div><label class="field-label">Họ và Tên</label><input class="input-shell" type="text" [value]="user.fullName" readonly /></div>
+                <div><label class="field-label">Email</label><input class="input-shell" type="text" [value]="user.email" readonly /></div>
                 <div>
                   <label class="field-label">Legit Point</label>
+                  <!-- TODO: công thức Legit Point tạm tính = 100 - penaltyPoints, cần xác nhận công thức chính thức với Backend/Business -->
                   <div class="h-3 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-600" [style.width.%]="legitPoint(user)"></div></div>
                   <p class="mt-1.5 text-xs font-semibold text-slate-400">{{ legitPoint(user) }} / 100</p>
                 </div>
                 <div>
                   <label class="field-label">Ngày tạo tài khoản</label>
+                  <!-- TODO: cần Backend bổ sung trường createdAt vào response GET /Auth/me và thêm vào AuthUser (core/auth/auth.types.ts) khi có -->
                   <div class="input-shell flex items-center gap-2 text-slate-400"><app-icon name="calendar" [size]="16" /> Chưa cập nhật</div>
                 </div>
                 <div>
                   <label class="field-label">Địa chỉ</label>
+                  <!-- TODO: cần Backend bổ sung trường address vào response GET /Auth/me và thêm vào AuthUser (core/auth/auth.types.ts) khi có -->
                   <div class="input-shell flex items-center gap-2 text-slate-400"><app-icon name="map-pin" [size]="16" /> Chưa cập nhật</div>
                 </div>
-                <div><label class="field-label">{{ 'profile.department' | translate }}</label><input class="input-shell" type="text" [value]="user.departmentName || 'Chưa cập nhật'" readonly /></div>
+                <div><label class="field-label">Phòng Ban (Department)</label><input class="input-shell" type="text" [value]="user.departmentName || 'Chưa cập nhật'" readonly /></div>
               </div>
 
               <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-5">
-                <button type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-rose-700" (click)="logout()"><app-icon name="logout" [size]="16" /> {{ 'header.logout' | translate }}</button>
+                <button type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-rose-700" (click)="logout()"><app-icon name="logout" [size]="16" /> Đăng Xuất</button>
                 <div class="flex gap-2">
                   <a routerLink="/app/bookings/my" class="btn-secondary"><app-icon name="book-open" [size]="16" /> Booking History</a>
                   <button type="button" class="btn-secondary" (click)="openEdit(user)"><app-icon name="edit" [size]="16" /> Edit Profile</button>
@@ -65,7 +67,7 @@ import { ToastService } from '../../shared/ui/toast.service'
               <h3 class="mt-5 text-lg font-bold">Bảo mật tài khoản</h3>
               <p class="mt-2 text-sm leading-6 text-white/55">Backend hiện chưa có API đổi mật khẩu khi đang đăng nhập. Bạn có thể dùng luồng đặt lại qua email.</p>
               <a routerLink="/forgot-password" class="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-[#111a3a] hover:bg-cyan-50">
-                {{ 'auth.forgotPassword' | translate }}
+                Đặt lại mật khẩu
                 <app-icon name="arrow-right" [size]="16" />
               </a>
             </article>
@@ -145,7 +147,7 @@ import { ToastService } from '../../shared/ui/toast.service'
             <div><label class="field-label">Họ và tên *</label><input class="input-shell" [(ngModel)]="editForm.fullName" name="fullName" required /></div>
             <div><label class="field-label">Username *</label><input class="input-shell" [(ngModel)]="editForm.username" name="username" required /></div>
             <div><label class="field-label">Email *</label><input class="input-shell" type="email" [(ngModel)]="editForm.email" name="email" required /></div>
-            <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">{{ 'common.cancel' | translate }}</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? ('common.loading' | translate) : ('common.save' | translate) }}</button></div>
+            <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</button></div>
           </form>
         </app-modal>
       }
@@ -191,6 +193,15 @@ export class ProfilePage {
     void this.router.navigate(['/login'])
   }
 
+  protected initials(name: string): string {
+    return name
+      .trim()
+      .split(/\s+/)
+      .slice(-2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('')
+  }
+
   protected roleLabel(role: string): string {
     if (role === 'Admin') return 'Quản trị viên'
     if (role === 'LabManager') return 'Quản lý phòng lab'
@@ -203,7 +214,7 @@ export class ProfilePage {
 
   protected statusDescription(status: string): string {
     return ({
-      Active: 'Bạn có thể sử dụng đầy đủ các chức năng theo vai trò được cấp.',
+      Active: 'M có thể sử dụng đầy đủ các chức năng theo vai trò được cấp.',
       Restricted: 'Một số thao tác như tạo booking mới có thể bị hạn chế.',
       Inactive: 'Tài khoản không còn hoạt động trên hệ thống.',
       Locked: 'Tài khoản đã bị khóa và cần Admin mở lại.',

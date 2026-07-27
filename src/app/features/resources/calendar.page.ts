@@ -2,7 +2,6 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { TranslatePipe } from '@ngx-translate/core'
 import { forkJoin } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { CalendarEventResponse, EquipmentResponse, LabRoomResponse } from '../../core/api/system.models'
@@ -22,28 +21,25 @@ interface CalendarDay {
 
 @Component({
   selector: 'app-calendar-page',
-  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'calendar.title' | translate" [subtitle]="'calendar.subtitle' | translate">
-        <!-- Phân quyền: Manager và Admin không có nút tạo booking -->
-        @if (store.isRequester()) {
-          <a routerLink="/app/bookings/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-primary"><app-icon name="plus" [size]="17" /> {{ 'calendar.newBooking' | translate }}</a>
-        }
-        @if (store.isAdmin() || store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> {{ 'labDetail.scheduleMaintenance' | translate }}</a> }
+      <app-page-header title="Lịch tài nguyên dùng chung" subtitle="Theo dõi booking và bảo trì trên toàn bộ phòng lab, thiết bị theo tháng hoặc dạng danh sách.">
+        <a routerLink="/app/bookings/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-primary"><app-icon name="plus" [size]="17" /> Tạo booking</a>
+        @if (store.isAdmin() || store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> Lên lịch bảo trì</a> }
       </app-page-header>
 
       <div class="filter-bar lg:grid-cols-[1fr_1fr_1fr_auto]">
-        <div><label class="field-label">{{ 'equipments.lab' | translate }}</label><select class="input-shell" [(ngModel)]="labId" (ngModelChange)="onLabChange()"><option [ngValue]="null">{{ 'calendar.allLabs' | translate }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option> }</select></div>
-        <div><label class="field-label">{{ 'nav.items.equipments' | translate }}</label><select class="input-shell" [(ngModel)]="equipmentId" (ngModelChange)="load()"><option [ngValue]="null">{{ 'calendar.allEquipments' | translate }}</option>@for (item of filteredEquipments(); track item.equipmentId) { <option [ngValue]="item.equipmentId">{{ item.equipmentName }}</option> }</select></div>
-        <div><label class="field-label">Loại sự kiện</label><select class="input-shell" [(ngModel)]="eventType"><option value="">{{ 'calendar.allEvents' | translate }}</option><option value="Booking">Booking</option><option value="Maintenance">Bảo trì</option></select></div>
-        <div class="flex items-end gap-2"><button class="btn-secondary" type="button" (click)="shiftMonth(-1)"><app-icon name="chevron-left" [size]="17" /></button><button class="btn-secondary" type="button" (click)="today()">{{ 'calendar.today' | translate }}</button><button class="btn-secondary" type="button" (click)="shiftMonth(1)"><app-icon name="chevron-right" [size]="17" /></button></div>
+        <div><label class="field-label">Phòng lab</label><select class="input-shell" [(ngModel)]="labId" (ngModelChange)="onLabChange()"><option [ngValue]="null">Tất cả phòng</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option> }</select></div>
+        <div><label class="field-label">Thiết bị</label><select class="input-shell" [(ngModel)]="equipmentId" (ngModelChange)="load()"><option [ngValue]="null">Tất cả thiết bị</option>@for (item of filteredEquipments(); track item.equipmentId) { <option [ngValue]="item.equipmentId">{{ item.equipmentName }}</option> }</select></div>
+        <div><label class="field-label">Loại sự kiện</label><select class="input-shell" [(ngModel)]="eventType"><option value="">Booking & bảo trì</option><option value="Booking">Booking</option><option value="Maintenance">Bảo trì</option></select></div>
+        <div class="flex items-end gap-2"><button class="btn-secondary" type="button" (click)="shiftMonth(-1)"><app-icon name="chevron-left" [size]="17" /></button><button class="btn-secondary" type="button" (click)="today()">Hôm nay</button><button class="btn-secondary" type="button" (click)="shiftMonth(1)"><app-icon name="chevron-right" [size]="17" /></button></div>
       </div>
 
       <article class="card-surface overflow-hidden">
         <header class="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div><p class="text-xs font-bold uppercase tracking-[.18em] text-violet-500">{{ monthTitle() }}</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ filteredEvents().length }} sự kiện trong kỳ</h2></div>
-          <div class="inline-flex rounded-2xl bg-slate-100 p-1"><button class="rounded-xl px-4 py-2 text-xs font-extrabold" [ngClass]="view() === 'month' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'" (click)="view.set('month')">{{ 'calendar.month' | translate }}</button><button class="rounded-xl px-4 py-2 text-xs font-extrabold" [ngClass]="view() === 'list' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'" (click)="view.set('list')">{{ 'calendar.list' | translate }}</button></div>
+          <div class="inline-flex rounded-2xl bg-slate-100 p-1"><button class="rounded-xl px-4 py-2 text-xs font-extrabold" [ngClass]="view() === 'month' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'" (click)="view.set('month')">Tháng</button><button class="rounded-xl px-4 py-2 text-xs font-extrabold" [ngClass]="view() === 'list' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'" (click)="view.set('list')">Danh sách</button></div>
         </header>
 
         @if (loading()) {

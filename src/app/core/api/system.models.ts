@@ -363,3 +363,18 @@ export interface PagedMaintenanceHistoryResponse extends PagedResponse<Maintenan
   to: string
   totalCost: number
 }
+
+export interface PolicyItem {
+  description: string
+  penalty: string
+}
+
+export interface PolicyCategory {
+  name: string
+  items: PolicyItem[]
+}
+
+export interface PolicyResponse {
+  generalRules: string[]
+  categories: PolicyCategory[]
+}

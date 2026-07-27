@@ -2,7 +2,6 @@ import { NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { TranslatePipe } from '@ngx-translate/core'
 import { SystemService } from '../../core/api/system.service'
 import type { LabRoomResponse, UserManagementResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -26,26 +25,26 @@ interface LabForm {
 
 @Component({
   selector: 'app-labs-page',
-  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'labs.title' | translate" [subtitle]="'labs.subtitle' | translate">
-        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | translate }}</a>
-        @if (store.isAdmin()) { <button type="button" class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> {{ 'labs.addLab' | translate }}</button> }
+      <app-page-header title="Không gian phòng thí nghiệm" subtitle="Khám phá phòng lab, sức chứa, vị trí và trạng thái tài nguyên trước khi tạo booking.">
+        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> Xem lịch</a>
+        @if (store.isAdmin()) { <button type="button" class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> Thêm phòng lab</button> }
       </app-page-header>
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-        <div><label class="field-label">{{ 'common.search' | translate }}</label><div class="relative"><span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" [placeholder]="'labs.search' | translate" /></div></div>
-        <div><label class="field-label">{{ 'labs.status' | translate }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'labs.allStatus' | translate }}</option><option [value]="1">Có thể sử dụng</option><option [value]="2">Tạm không khả dụng</option><option [value]="3">Đang bảo trì</option><option [value]="4">Ngừng hoạt động</option></select></div>
-        <div><label class="field-label">{{ 'labs.minCapacity' | translate }}</label><input class="input-shell" type="number" min="1" [(ngModel)]="minimumCapacity" /></div>
-        <div><label class="field-label">{{ 'labs.viewMode' | translate }}</label><div class="flex h-12 rounded-2xl bg-slate-100 p-1"><button class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'grid' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-400'" (click)="view.set('grid')"><app-icon name="grid" [size]="17" /></button><button class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'table' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-400'" (click)="view.set('table')"><app-icon name="list" [size]="17" /></button></div></div>
-        <div class="flex items-end"><button class="btn-primary w-full" type="button" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'labs.filter' | translate }}</button></div>
+        <div><label class="field-label">Tìm kiếm</label><div class="relative"><span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="Tên phòng, mã phòng, vị trí..." /></div></div>
+        <div><label class="field-label">Trạng thái</label><select class="input-shell" [(ngModel)]="status"><option value="">Tất cả</option><option [value]="1">Có thể sử dụng</option><option [value]="2">Tạm không khả dụng</option><option [value]="3">Đang bảo trì</option><option [value]="4">Ngừng hoạt động</option></select></div>
+        <div><label class="field-label">Sức chứa tối thiểu</label><input class="input-shell" type="number" min="1" [(ngModel)]="minimumCapacity" /></div>
+        <div><label class="field-label">Kiểu hiển thị</label><div class="flex h-12 rounded-2xl bg-slate-100 p-1"><button class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'grid' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-400'" (click)="view.set('grid')"><app-icon name="grid" [size]="17" /></button><button class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'table' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-400'" (click)="view.set('table')"><app-icon name="list" [size]="17" /></button></div></div>
+        <div class="flex items-end"><button class="btn-primary w-full" type="button" (click)="load()"><app-icon name="filter" [size]="17" /> Áp dụng</button></div>
       </div>
 
       @if (loading()) {
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">@for (i of [1,2,3,4,5,6]; track i) { <div class="card-surface overflow-hidden"><div class="skeleton h-40"></div><div class="p-5"><div class="skeleton h-5 w-2/3 rounded"></div><div class="skeleton mt-3 h-4 rounded"></div><div class="skeleton mt-5 h-10 rounded-xl"></div></div></div> }</div>
       } @else if (labs().length === 0) {
-        <app-data-state icon="building" [title]="'labs.notFound' | translate" message="Không có phòng nào khớp bộ lọc hiện tại. Hãy thay đổi từ khóa hoặc trạng thái." />
+        <app-data-state icon="building" title="Chưa tìm thấy phòng lab" message="Không có phòng nào khớp bộ lọc hiện tại. Hãy thay đổi từ khóa hoặc trạng thái." />
       } @else if (view() === 'grid') {
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           @for (lab of labs(); track lab.labId; let index = $index) {
@@ -56,24 +55,18 @@ interface LabForm {
               </div>
               <div class="p-5">
                 <div class="flex items-center justify-between gap-3"><p class="flex min-w-0 items-center gap-2 truncate text-sm text-slate-500"><app-icon name="map-pin" [size]="17" /> {{ lab.location }}</p><app-status-badge [value]="lab.status" domain="lab" /></div>
-                <div class="mt-5 flex gap-2">
-                  <a [routerLink]="['/app/labs', lab.labId]" class="btn-primary flex-1">{{ 'labs.viewDetail' | translate }}</a>
-                  <!-- Phân quyền: Manager và Admin không có chức năng tạo booking -->
-                  @if (store.isRequester()) {
-                    <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab.labId }" class="btn-secondary px-3" [attr.title]="'labs.bookNow' | translate"><app-icon name="calendar-plus" [size]="18" /></a>
-                  }
-                </div>
+                <div class="mt-5 flex gap-2"><a [routerLink]="['/app/labs', lab.labId]" class="btn-primary flex-1">Xem chi tiết</a><a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab.labId }" class="btn-secondary px-3" title="Tạo booking"><app-icon name="calendar-plus" [size]="18" /></a></div>
               </div>
             </article>
           }
         </div>
       } @else {
-        <div class="card-surface overflow-x-auto"><table class="table-shell"><thead><tr><th>Phòng lab</th><th>Vị trí</th><th>Sức chứa</th><th>Trạng thái</th><th></th></tr></thead><tbody>@for (lab of labs(); track lab.labId) { <tr><td><p class="font-black text-slate-900">{{ lab.labName }}</p><p class="mt-1 text-xs text-slate-400">{{ lab.roomCode }}</p></td><td>{{ lab.location }}</td><td>{{ lab.capacity }} {{ 'labs.capacityUnit' | translate }}</td><td><app-status-badge [value]="lab.status" domain="lab" /></td><td class="text-right"><a [routerLink]="['/app/labs', lab.labId]" class="font-black text-violet-600 hover:text-violet-800">{{ 'labs.viewDetail' | translate }} →</a></td></tr> }</tbody></table></div>
+        <div class="card-surface overflow-x-auto"><table class="table-shell"><thead><tr><th>Phòng lab</th><th>Vị trí</th><th>Sức chứa</th><th>Trạng thái</th><th></th></tr></thead><tbody>@for (lab of labs(); track lab.labId) { <tr><td><p class="font-black text-slate-900">{{ lab.labName }}</p><p class="mt-1 text-xs text-slate-400">{{ lab.roomCode }}</p></td><td>{{ lab.location }}</td><td>{{ lab.capacity }} người</td><td><app-status-badge [value]="lab.status" domain="lab" /></td><td class="text-right"><a [routerLink]="['/app/labs', lab.labId]" class="font-black text-violet-600 hover:text-violet-800">Chi tiết →</a></td></tr> }</tbody></table></div>
       }
 
       @if (totalPages() > 1) { <div class="flex items-center justify-center gap-2"><button class="btn-secondary" [disabled]="page() === 1" (click)="changePage(page()-1)">Trước</button><span class="rounded-xl bg-white px-4 py-3 text-xs font-black text-slate-600 shadow-sm">Trang {{ page() }}/{{ totalPages() }}</span><button class="btn-secondary" [disabled]="page() === totalPages()" (click)="changePage(page()+1)">Sau</button></div> }
 
-      <app-modal [open]="createOpen()" [title]="'labs.addLab' | translate" subtitle="Thông tin được gửi trực tiếp tới POST /api/LabRooms." (close)="createOpen.set(false)">
+      <app-modal [open]="createOpen()" title="Thêm phòng thí nghiệm" subtitle="Thông tin được gửi trực tiếp tới POST /api/LabRooms." (close)="createOpen.set(false)">
         <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="create()">
           <div><label class="field-label">Tên phòng *</label><input class="input-shell" required [(ngModel)]="form.labName" name="labName" placeholder="Phòng Nghiên cứu AI" /></div>
           <div><label class="field-label">Mã phòng *</label><input class="input-shell" required [(ngModel)]="form.roomCode" name="roomCode" placeholder="LAB-AI-01" /></div>
@@ -83,7 +76,7 @@ interface LabForm {
           <div class="sm:col-span-2"><label class="field-label">Mô tả</label><textarea class="textarea-shell" [(ngModel)]="form.description" name="description" placeholder="Mô tả ngắn về không gian và mục đích sử dụng..."></textarea></div>
           <div class="sm:col-span-2"><label class="field-label">URL ảnh</label><input class="input-shell" [(ngModel)]="form.imageUrl" name="imageUrl" placeholder="https://..." /></div>
           <div class="sm:col-span-2"><label class="field-label">Hướng dẫn sử dụng</label><textarea class="textarea-shell" [(ngModel)]="form.usageGuideline" name="usageGuideline"></textarea></div>
-          <div class="mt-2 flex justify-end gap-2 sm:col-span-2"><button type="button" class="btn-secondary" (click)="createOpen.set(false)">{{ 'common.cancel' | translate }}</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? ('common.loading' | translate) : ('labs.addLab' | translate) }}</button></div>
+          <div class="mt-2 flex justify-end gap-2 sm:col-span-2"><button type="button" class="btn-secondary" (click)="createOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Tạo phòng lab' }}</button></div>
         </form>
       </app-modal>
     </section>

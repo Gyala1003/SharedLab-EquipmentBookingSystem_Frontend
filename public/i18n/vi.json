@@ -1,231 +1,19 @@
 {
   "app": {
-    "name": "Shared Lab",
-    "tagline": "Booking System",
-    "workspace": "Shared Lab Workspace"
+    "name": "Angular Base",
+    "tagline": "Khởi tạo Angular sẵn sàng cho production"
   },
   "nav": {
-    "groups": {
-      "overview": "Tổng quan",
-      "resources": "Tài nguyên",
-      "personal": "Cá nhân",
-      "management": "Nghiệp vụ quản lý",
-      "systemAdmin": "Quản trị hệ thống"
-    },
-    "items": {
-      "home": "Trang chủ",
-      "dashboard": "Dashboard",
-      "calendar": "Lịch tài nguyên",
-      "labs": "Phòng thí nghiệm",
-      "equipments": "Thiết bị",
-      "maintenances": "Lịch bảo trì",
-      "myBookings": "Booking của tôi",
-      "myWaitlists": "Hàng chờ của tôi",
-      "violations": "Vi phạm & điểm phạt",
-      "notifications": "Thông báo",
-      "profile": "Tài khoản cá nhân",
-      "users": "Người dùng",
-      "departments": "Khoa/phòng ban",
-      "sendNotification": "Gửi thông báo",
-      "quickBooking": "Tạo booking nhanh"
-    }
-  },
-  "header": {
-    "workspaceSub": "Quản lý phòng thí nghiệm & thiết bị dùng chung",
-    "viewCalendar": "Xem lịch",
-    "notifications": "Thông báo",
-    "connected": "Đã kết nối",
+    "home": "Trang chủ",
+    "users": "Người dùng",
     "logout": "Đăng xuất"
-  },
-  "roles": {
-    "Admin": "Quản trị viên",
-    "LabManager": "Quản lý phòng lab",
-    "Requester": "Người đặt lịch"
   },
   "auth": {
     "login": "Đăng nhập",
-    "welcomeBack": "Chào mừng trở lại",
-    "loginAccount": "Đăng nhập tài khoản",
-    "loginDesc": "Sử dụng email do quản trị viên cấp để truy cập hệ thống.",
     "email": "Email",
     "password": "Mật khẩu",
-    "forgotPassword": "Quên mật khẩu?",
-    "rememberMe": "Ghi nhớ đăng nhập trên thiết bị này",
-    "authenticating": "Đang xác thực...",
     "signInToContinue": "Đăng nhập để tiếp tục",
-    "invalidCredentials": "Email hoặc mật khẩu không đúng",
-    "managedNotice": "Tài khoản được quản lý tập trung bởi Admin. Liên hệ quản trị viên nếu bạn chưa được cấp tài khoản.",
-    "smartSpace": "Không gian nghiên cứu thông minh",
-    "sloganLine1": "Đặt phòng lab.",
-    "sloganLine2": "Quản lý thiết bị.",
-    "sloganLine3": "Tối ưu nghiên cứu.",
-    "sloganDesc": "Một nền tảng thống nhất giúp sinh viên, giảng viên và quản lý vận hành tài nguyên phòng thí nghiệm hiệu quả hơn mỗi ngày.",
-    "stats": {
-      "access": "Truy cập lịch",
-      "centralized": "Quản lý tập trung",
-      "realtime": "Cập nhật trạng thái"
-    }
-  },
-  "home": {
-    "greeting": "Chào mừng,",
-    "subtitle": "Tra cứu phòng lab, quản lý lịch đặt và thiết bị nghiên cứu dùng chung.",
-    "quickActions": "Thao tác nhanh",
-    "bookLab": "Đặt phòng lab",
-    "bookEquipment": "Đặt thiết bị",
-    "viewSchedule": "Xem lịch tổng",
-    "myBookings": "Booking của tôi",
-    "recentBookings": "Booking gần đây",
-    "availableLabs": "Phòng lab sẵn sàng",
-    "viewAll": "Xem tất cả",
-    "noBookings": "Bạn chưa có booking nào."
-  },
-  "dashboard": {
-    "title": "Tổng quan hệ thống",
-    "subtitle": "Theo dõi trạng thái phòng lab, thiết bị, lượt đặt và chỉ số vận hành real-time.",
-    "totalLabs": "Tổng số phòng lab",
-    "totalEquipments": "Tổng số thiết bị",
-    "activeBookings": "Booking đang hoạt động",
-    "totalViolations": "Tổng vi phạm",
-    "bookingStatus": "Trạng thái booking",
-    "equipmentStatus": "Trạng thái thiết bị",
-    "recentLogs": "Nhật ký sử dụng gần đây"
-  },
-  "labs": {
-    "title": "Không gian phòng thí nghiệm",
-    "subtitle": "Khám phá phòng lab, sức chứa, vị trí và trạng thái tài nguyên trước khi tạo booking.",
-    "search": "Tìm tên phòng, mã phòng, vị trí...",
-    "status": "Trạng thái",
-    "allStatus": "Tất cả trạng thái",
-    "minCapacity": "Sức chứa tối thiểu",
-    "viewMode": "Kiểu hiển thị",
-    "filter": "Lọc",
-    "addLab": "Thêm phòng lab",
-    "viewDetail": "Xem chi tiết",
-    "bookNow": "Đặt phòng ngay",
-    "capacityUnit": "người",
-    "notFound": "Chưa tìm thấy phòng lab phù hợp."
-  },
-  "labDetail": {
-    "bookLab": "Đặt cả phòng",
-    "scheduleMaintenance": "Lên lịch bảo trì",
-    "editLab": "Chỉnh sửa phòng",
-    "overview": "Tổng quan",
-    "location": "Vị trí",
-    "capacity": "Sức chứa",
-    "manager": "Quản lý",
-    "description": "Mô tả phòng lab",
-    "guideline": "Hướng dẫn sử dụng",
-    "qrTitle": "Điểm danh nhanh bằng QR",
-    "qrSubtitle": "Quét mã để vào phòng",
-    "tabEquipment": "Thiết bị",
-    "tabSchedule": "Lịch tài nguyên",
-    "tabMaintenance": "Lịch bảo trì",
-    "noEquipment": "Phòng này chưa có thiết bị."
-  },
-  "equipments": {
-    "title": "Danh mục thiết bị",
-    "subtitle": "Tìm kiếm, kiểm tra trạng thái và đặt lịch các thiết bị dùng chung trong hệ thống.",
-    "search": "Tên thiết bị, model...",
-    "lab": "Phòng lab",
-    "allLabs": "Tất cả phòng",
-    "addEquipment": "Thêm thiết bị",
-    "bookEquipment": "Đặt thiết bị",
-    "detail": "Chi tiết",
-    "notFound": "Không tìm thấy thiết bị phù hợp."
-  },
-  "equipmentDetail": {
-    "techSpecs": "Thông tin kỹ thuật",
-    "serialNumber": "Mã thiết bị",
-    "labLocation": "Phòng chứa",
-    "modelSpecs": "Model / thông số",
-    "guideline": "Hướng dẫn sử dụng",
-    "schedule30Days": "Lịch 30 ngày tới",
-    "maintenanceHistory": "Lịch sử bảo trì"
-  },
-  "calendar": {
-    "title": "Lịch tài nguyên dùng chung",
-    "subtitle": "Theo dõi booking và bảo trì trên toàn bộ phòng lab, thiết bị theo tháng hoặc dạng danh sách.",
-    "newBooking": "Tạo booking",
-    "month": "Tháng",
-    "list": "Danh sách",
-    "today": "Hôm nay",
-    "allLabs": "Tất cả phòng",
-    "allEquipments": "Tất cả thiết bị",
-    "allEvents": "Booking & bảo trì"
-  },
-  "bookingForm": {
-    "title": "Tạo yêu cầu booking",
-    "subtitle": "Quy trình 4 bước giúp chọn đúng tài nguyên, thời gian và mức ưu tiên trước khi gửi duyệt.",
-    "stepResource": "Tài nguyên",
-    "stepTime": "Thời gian",
-    "stepPurpose": "Mục đích",
-    "stepConfirm": "Xác nhận",
-    "modeLab": "Đặt cả phòng",
-    "modeEquipment": "Đặt thiết bị",
-    "selectLab": "Chọn phòng lab",
-    "startTime": "Thời gian bắt đầu",
-    "endTime": "Thời gian kết thúc",
-    "checkSlot": "Kiểm tra khung giờ",
-    "checking": "Đang kiểm tra...",
-    "purpose": "Mục đích sử dụng",
-    "purposeDesc": "Mô tả chi tiết mục đích",
-    "confirmTitle": "Xác nhận yêu cầu booking",
-    "submit": "Gửi yêu cầu booking",
-    "restrictedNotice": "Tài khoản Manager/Admin không có chức năng tạo booking."
-  },
-  "myBookings": {
-    "title": "Booking của tôi",
-    "subtitle": "Danh sách các yêu cầu đặt phòng lab và thiết bị của bạn.",
-    "search": "Tìm mã booking, phòng lab...",
-    "status": "Trạng thái",
-    "all": "Tất cả",
-    "detail": "Xem chi tiết",
-    "cancel": "Hủy booking",
-    "checkin": "Điểm danh (Check-in)",
-    "checkout": "Hoàn tất (Check-out)",
-    "empty": "Bạn chưa có lịch booking nào."
-  },
-  "notifications": {
-    "title": "Thông báo hệ thống",
-    "subtitle": "Cập nhật các thông báo về trạng thái booking, lịch bảo trì và vi phạm.",
-    "markAllRead": "Đánh dấu tất cả đã đọc",
-    "empty": "Không có thông báo mới."
-  },
-  "profile": {
-    "title": "Tài khoản cá nhân",
-    "subtitle": "Xem và quản lý thông tin tài khoản, vai trò và đổi mật khẩu.",
-    "fullName": "Họ và tên",
-    "email": "Email",
-    "role": "Vai trò",
-    "department": "Khoa/Phòng ban",
-    "changePassword": "Đổi mật khẩu",
-    "currentPassword": "Mật khẩu hiện tại",
-    "newPassword": "Mật khẩu mới",
-    "confirmNewPassword": "Xác nhận mật khẩu mới",
-    "saveChanges": "Lưu thay đổi"
-  },
-  "violations": {
-    "title": "Vi phạm & Điểm phạt",
-    "subtitle": "Theo dõi nhật ký vi phạm, điểm phạt và trạng thái hạn chế tài khoản.",
-    "penaltyPoints": "Tổng điểm phạt",
-    "status": "Trạng thái tài khoản",
-    "empty": "Tài khoản của bạn chưa có lịch sử vi phạm nào."
-  },
-  "admin": {
-    "usersTitle": "Quản lý người dùng",
-    "usersSub": "Danh sách người dùng, phân quyền vai trò và trạng thái hoạt động.",
-    "createUser": "Thêm người dùng",
-    "departmentsTitle": "Quản lý khoa/phòng ban",
-    "departmentsSub": "Danh sách khoa và phòng ban trong toàn trường.",
-    "sendNotifTitle": "Gửi thông báo toàn hệ thống",
-    "sendNotifSub": "Gửi thông tin cập nhật hoặc nhắc nhở tới người dùng."
-  },
-  "pendingCheckout": {
-    "title": "Bạn có phiên sử dụng phòng lab chưa checkout",
-    "subtitle": "Hệ thống phát hiện phiên chưa hoàn tất sau giờ kết thúc booking.",
-    "endTime": "Giờ kết thúc",
-    "continueUsing": "Tiếp tục sử dụng",
-    "confirmCheckout": "Đăng ký hoàn tất (Checkout)"
+    "invalidCredentials": "Email hoặc mật khẩu không đúng"
   },
   "users": {
     "title": "Người dùng",
@@ -246,14 +34,6 @@
     "retry": "Thử lại",
     "error": "Đã có lỗi xảy ra",
     "notFound": "Không tìm thấy trang",
-    "backHome": "Về trang chủ",
-    "language": "Ngôn ngữ",
-    "back": "Quay lại",
-    "next": "Tiếp tục",
-    "save": "Lưu",
-    "cancel": "Hủy",
-    "confirm": "Xác nhận",
-    "search": "Tìm kiếm",
-    "filter": "Lọc"
+    "backHome": "Về trang chủ"
   }
 }

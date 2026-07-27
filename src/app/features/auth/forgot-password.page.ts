@@ -5,24 +5,20 @@ import { firstValueFrom } from 'rxjs'
 import { AuthService } from '../../core/auth/auth.service'
 import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
-import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher'
 
 @Component({
   selector: 'app-forgot-password-page',
-  imports: [FormsModule, RouterLink, IconComponent, LanguageSwitcherComponent],
+  imports: [FormsModule, RouterLink, IconComponent],
   template: `
     <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f5f7fb] p-4 sm:p-6">
       <div class="absolute left-[8%] top-[12%] h-72 w-72 rounded-full bg-violet-200/55 blur-3xl"></div>
       <div class="absolute bottom-[10%] right-[8%] h-80 w-80 rounded-full bg-cyan-200/55 blur-3xl"></div>
 
       <section class="relative w-full max-w-[520px] rounded-[32px] border border-white bg-white/90 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl sm:p-10">
-        <div class="flex items-center justify-between">
-          <a routerLink="/login" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-indigo-600">
-            <app-icon name="arrow-left" [size]="18" />
-            Quay lại đăng nhập
-          </a>
-          <app-language-switcher variant="pill" />
-        </div>
+        <a routerLink="/login" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-indigo-600">
+          <app-icon name="arrow-left" [size]="18" />
+          Quay lại đăng nhập
+        </a>
 
         <div class="mt-9 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-600 shadow-inner">
           <app-icon name="mail" [size]="28" />

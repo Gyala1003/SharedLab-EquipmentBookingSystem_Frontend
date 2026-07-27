@@ -1,7 +1,6 @@
 import { DatePipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TranslatePipe } from '@ngx-translate/core'
 import type { NotificationResponse } from '../../core/api/api.models'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
 import { WorkspaceService } from '../../core/api/workspace.service'
@@ -14,7 +13,7 @@ type NotificationTab = 'all' | 'unread'
 
 @Component({
   selector: 'app-notifications-page',
-  imports: [FormsModule, DatePipe, IconComponent, TranslatePipe],
+  imports: [FormsModule, DatePipe, IconComponent],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
@@ -23,8 +22,8 @@ type NotificationTab = 'all' | 'unread'
             <span class="h-2 w-2 rounded-full bg-rose-500"></span>
             Cập nhật theo thời gian thực
           </div>
-          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'notifications.title' | translate }}</h1>
-          <p class="mt-2 text-sm text-slate-500">{{ 'notifications.subtitle' | translate }}</p>
+          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">Trung tâm thông báo</h1>
+          <p class="mt-2 text-sm text-slate-500">Theo dõi booking, hàng chờ, vi phạm, bảo trì và thông báo hệ thống.</p>
         </div>
         <button
           type="button"
@@ -33,7 +32,7 @@ type NotificationTab = 'all' | 'unread'
           (click)="markAllRead()"
         >
           <app-icon name="check" [size]="18" />
-          {{ 'notifications.markAllRead' | translate }}
+          Đánh dấu tất cả đã đọc
         </button>
       </header>
 
@@ -43,7 +42,7 @@ type NotificationTab = 'all' | 'unread'
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div class="flex rounded-2xl bg-slate-100 p-1">
                 <button type="button" class="flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition" [class.bg-white]="tab() === 'all'" [class.text-slate-900]="tab() === 'all'" [class.shadow-sm]="tab() === 'all'" [class.text-slate-500]="tab() !== 'all'" (click)="changeTab('all')">
-                  {{ 'myBookings.all' | translate }}
+                  Tất cả
                   <span class="rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold">{{ tab() === 'all' ? notifications().length : '' }}</span>
                 </button>
                 <button type="button" class="flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition" [class.bg-white]="tab() === 'unread'" [class.text-slate-900]="tab() === 'unread'" [class.shadow-sm]="tab() === 'unread'" [class.text-slate-500]="tab() !== 'unread'" (click)="changeTab('unread')">
@@ -78,7 +77,7 @@ type NotificationTab = 'all' | 'unread'
           } @else if (filteredNotifications().length === 0) {
             <div class="flex min-h-[460px] flex-col items-center justify-center px-6 py-16 text-center">
               <div class="flex h-20 w-20 items-center justify-center rounded-[28px] bg-indigo-50 text-indigo-500"><app-icon name="bell" [size]="34" /></div>
-              <h2 class="mt-6 text-lg font-bold text-slate-800">{{ 'notifications.empty' | translate }}</h2>
+              <h2 class="mt-6 text-lg font-bold text-slate-800">Không tìm thấy thông báo</h2>
               <p class="mt-2 max-w-sm text-sm leading-6 text-slate-400">Thử đổi tab, loại thông báo hoặc từ khóa tìm kiếm.</p>
               @if (searchText || typeFilter !== 'all') {
                 <button type="button" class="mt-5 text-sm font-bold text-indigo-600 hover:underline" (click)="clearFilters()">Xóa bộ lọc</button>

@@ -25,6 +25,7 @@ import type {
   PagedMaintenanceHistoryResponse,
   PagedResponse,
   PenaltyUserReportResponse,
+  PolicyResponse,
   PriorityRuleResponse,
   ResourceUtilizationResponse,
   RoleResponse,
@@ -408,6 +409,16 @@ export class SystemService {
 
   roles(): Observable<RoleResponse[]> {
     return this.http.get<RoleResponse[]>(`${this.base}/Roles`)
+  }
+
+  // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
+  getPolicy(): Observable<PolicyResponse> {
+    return this.http.get<PolicyResponse>(`${this.base}/Policies`)
+  }
+
+  // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
+  updatePolicy(payload: PolicyResponse): Observable<void> {
+    return this.http.put<void>(`${this.base}/Policies`, payload)
   }
 
   sendNotification(payload: { userId: number; title: string; message: string; notificationType: number }): Observable<NotificationResponse> {

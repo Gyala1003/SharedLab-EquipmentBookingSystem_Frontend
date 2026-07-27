@@ -1,7 +1,6 @@
 import { DecimalPipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TranslatePipe } from '@ngx-translate/core'
 import type {
   CategoryCountResponse,
   DashboardResponse,
@@ -35,7 +34,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [FormsModule, DecimalPipe, IconComponent, TranslatePipe],
+  imports: [FormsModule, DecimalPipe, IconComponent],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
@@ -44,7 +43,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
             Dữ liệu vận hành trực tiếp
           </div>
-          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'dashboard.title' | translate }}</h1>
+          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">Dashboard tổng quan</h1>
           <p class="mt-2 text-sm text-slate-500">
             {{ store.isAdmin() ? 'Toàn bộ hệ thống' : 'Các phòng lab bạn đang quản lý' }} • cập nhật theo khoảng thời gian đã chọn.
           </p>
@@ -62,7 +61,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
           </div>
           <button type="button" class="flex h-10 items-center justify-center gap-2 rounded-xl bg-[#111a3a] px-4 text-xs font-bold text-white hover:bg-[#17234c]" [disabled]="loading()" (click)="load()">
             <app-icon name="refresh" [size]="16" />
-            {{ 'labs.filter' | translate }}
+            Áp dụng
           </button>
         </div>
       </header>
@@ -145,7 +144,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
           <article class="card-surface overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingStatus' | translate }}</h2>
+              <h2 class="text-lg font-bold text-slate-950">Booking theo trạng thái</h2>
               <p class="mt-1 text-xs text-slate-400">Phân bổ trong khoảng thời gian đã chọn</p>
             </div>
             <div class="grid items-center gap-6 p-5 sm:grid-cols-[170px_1fr] sm:p-6 xl:grid-cols-1 2xl:grid-cols-[170px_1fr]">

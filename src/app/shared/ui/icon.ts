@@ -71,7 +71,6 @@ import { Component, input } from '@angular/core'
         @case ('pause') { <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/> }
         @case ('play') { <path d="m8 5 11 7-11 7Z"/> }
         @case ('login') { <path d="M14 8l4 4-4 4M18 12H5"/><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/> }
-        @case ('globe') { <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/> }
         @default { <circle cx="12" cy="12" r="9"/> }
       }
     </svg>

@@ -1,236 +1,24 @@
 {
   "app": {
-    "name": "Shared Lab",
-    "tagline": "Booking System",
-    "workspace": "Shared Lab Workspace"
+    "name": "Angular Base",
+    "tagline": "Production-ready Angular starter"
   },
   "nav": {
-    "groups": {
-      "overview": "Overview",
-      "resources": "Resources",
-      "personal": "Personal",
-      "management": "Management",
-      "systemAdmin": "System Admin"
-    },
-    "items": {
-      "home": "Home",
-      "dashboard": "Dashboard",
-      "calendar": "Resource Calendar",
-      "labs": "Laboratories",
-      "equipments": "Equipment",
-      "maintenances": "Maintenance Schedule",
-      "myBookings": "My Bookings",
-      "myWaitlists": "My Waitlists",
-      "violations": "Violations & Penalty Points",
-      "notifications": "Notifications",
-      "profile": "Profile Account",
-      "users": "Users",
-      "departments": "Departments",
-      "sendNotification": "Send Notification",
-      "quickBooking": "Quick Booking"
-    }
-  },
-  "header": {
-    "workspaceSub": "Shared Laboratories & Equipment Management",
-    "viewCalendar": "View Calendar",
-    "notifications": "Notifications",
-    "connected": "Connected",
+    "home": "Home",
+    "users": "Users",
     "logout": "Log out"
-  },
-  "roles": {
-    "Admin": "Administrator",
-    "LabManager": "Lab Manager",
-    "Requester": "Requester"
   },
   "auth": {
     "login": "Log in",
-    "welcomeBack": "Welcome back",
-    "loginAccount": "Sign in to account",
-    "loginDesc": "Use administrator-provided email to access system.",
     "email": "Email",
     "password": "Password",
-    "forgotPassword": "Forgot password?",
-    "rememberMe": "Remember login on this device",
-    "authenticating": "Authenticating...",
     "signInToContinue": "Sign in to continue",
-    "invalidCredentials": "Invalid email or password",
-    "managedNotice": "Accounts are centrally managed by Admin. Contact administrator if you do not have an account.",
-    "smartSpace": "Smart Research Space",
-    "sloganLine1": "Book lab rooms.",
-    "sloganLine2": "Manage equipment.",
-    "sloganLine3": "Optimize research.",
-    "sloganDesc": "A unified platform empowering students, faculty, and managers to operate lab resources effectively every day.",
-    "stats": {
-      "access": "24/7 Calendar Access",
-      "centralized": "Centralized Platform",
-      "realtime": "Real-time Updates"
-    }
-  },
-  "home": {
-    "greeting": "Welcome,",
-    "subtitle": "Explore lab rooms, manage bookings and shared research equipment.",
-    "quickActions": "Quick Actions",
-    "bookLab": "Book Lab Room",
-    "bookEquipment": "Book Equipment",
-    "viewSchedule": "View Overall Calendar",
-    "myBookings": "My Bookings",
-    "recentBookings": "Recent Bookings",
-    "availableLabs": "Available Laboratories",
-    "viewAll": "View All",
-    "noBookings": "You have no bookings yet."
-  },
-  "dashboard": {
-    "title": "System Dashboard",
-    "subtitle": "Monitor lab rooms, equipment status, bookings and real-time operational metrics.",
-    "totalLabs": "Total Lab Rooms",
-    "totalEquipments": "Total Equipment",
-    "activeBookings": "Active Bookings",
-    "totalViolations": "Total Violations",
-    "bookingStatus": "Booking Status",
-    "equipmentStatus": "Equipment Status",
-    "recentLogs": "Recent Usage Logs"
-  },
-  "labs": {
-    "title": "Laboratory Spaces",
-    "subtitle": "Explore lab rooms, capacity, location and resource status before creating a booking.",
-    "search": "Search room name, code, location...",
-    "status": "Status",
-    "allStatus": "All Statuses",
-    "minCapacity": "Min Capacity",
-    "viewMode": "View Mode",
-    "filter": "Filter",
-    "addLab": "Add Lab Room",
-    "viewDetail": "View Details",
-    "bookNow": "Book Now",
-    "capacityUnit": "people",
-    "notFound": "No matching lab rooms found."
-  },
-  "labDetail": {
-    "bookLab": "Book Entire Room",
-    "scheduleMaintenance": "Schedule Maintenance",
-    "editLab": "Edit Lab Room",
-    "overview": "Overview",
-    "location": "Location",
-    "capacity": "Capacity",
-    "manager": "Manager",
-    "description": "Lab Description",
-    "guideline": "Usage Guideline",
-    "qrTitle": "Quick QR Check-in",
-    "qrSubtitle": "Scan QR code to enter lab",
-    "tabEquipment": "Equipment",
-    "tabSchedule": "Resource Schedule",
-    "tabMaintenance": "Maintenance Schedule",
-    "noEquipment": "No equipment registered for this lab room."
-  },
-  "equipments": {
-    "title": "Equipment Catalog",
-    "subtitle": "Search, check availability, and schedule shared research equipment.",
-    "search": "Equipment name, model...",
-    "lab": "Lab Room",
-    "allLabs": "All Lab Rooms",
-    "addEquipment": "Add Equipment",
-    "bookEquipment": "Book Equipment",
-    "detail": "Details",
-    "notFound": "No matching equipment found."
-  },
-  "equipmentDetail": {
-    "techSpecs": "Technical Specifications",
-    "serialNumber": "Equipment ID",
-    "labLocation": "Host Laboratory",
-    "modelSpecs": "Model / Specs",
-    "guideline": "Usage Guideline",
-    "schedule30Days": "Next 30 Days Schedule",
-    "maintenanceHistory": "Maintenance History"
-  },
-  "calendar": {
-    "title": "Shared Resource Calendar",
-    "subtitle": "Track bookings and maintenance schedules for all labs and equipment in month or list view.",
-    "newBooking": "Create Booking",
-    "month": "Month",
-    "list": "List",
-    "today": "Today",
-    "allLabs": "All Lab Rooms",
-    "allEquipments": "All Equipment",
-    "allEvents": "Bookings & Maintenance"
-  },
-  "bookingForm": {
-    "title": "Create Booking Request",
-    "subtitle": "A 4-step workflow to choose resources, time slots, and priority levels before submitting.",
-    "stepResource": "Resource",
-    "stepTime": "Time Slot",
-    "stepPurpose": "Purpose",
-    "stepConfirm": "Confirmation",
-    "modeLab": "Book Entire Room",
-    "modeEquipment": "Book Equipment",
-    "selectLab": "Select Lab Room",
-    "startTime": "Start Time",
-    "endTime": "End Time",
-    "checkSlot": "Check Time Slot",
-    "checking": "Checking...",
-    "purpose": "Booking Purpose",
-    "purposeDesc": "Detailed Purpose Description",
-    "confirmTitle": "Confirm Booking Request",
-    "submit": "Submit Booking Request",
-    "restrictedNotice": "Manager/Admin accounts do not create bookings."
-  },
-  "myBookings": {
-    "title": "My Bookings",
-    "subtitle": "List of your lab room and equipment booking requests.",
-    "search": "Search booking code, lab...",
-    "status": "Status",
-    "all": "All",
-    "detail": "View Details",
-    "cancel": "Cancel Booking",
-    "checkin": "Check-in",
-    "checkout": "Complete Checkout",
-    "empty": "You have no bookings recorded."
-  },
-  "notifications": {
-    "title": "System Notifications",
-    "subtitle": "Stay updated on booking statuses, maintenance events, and violations.",
-    "markAllRead": "Mark All as Read",
-    "empty": "No new notifications."
-  },
-  "profile": {
-    "title": "Personal Profile",
-    "subtitle": "View and manage your account details, assigned roles, and change password.",
-    "fullName": "Full Name",
-    "email": "Email Address",
-    "role": "Assigned Role",
-    "department": "Department",
-    "changePassword": "Change Password",
-    "currentPassword": "Current Password",
-    "newPassword": "New Password",
-    "confirmNewPassword": "Confirm New Password",
-    "saveChanges": "Save Changes"
-  },
-  "violations": {
-    "title": "Violations & Penalty Points",
-    "subtitle": "Track your violation logs, penalty points, and account restriction status.",
-    "penaltyPoints": "Total Penalty Points",
-    "status": "Account Status",
-    "empty": "Your account has no violation records."
-  },
-  "admin": {
-    "usersTitle": "User Management",
-    "usersSub": "Manage user directory, role permissions, and active statuses.",
-    "createUser": "Add User",
-    "departmentsTitle": "Department Management",
-    "departmentsSub": "List of university faculties and departments.",
-    "sendNotifTitle": "Send System Notification",
-    "sendNotifSub": "Broadcast announcements or reminders to system users."
-  },
-  "pendingCheckout": {
-    "title": "You have an un-checkout lab session",
-    "subtitle": "The system detected an incomplete session after the booking end time.",
-    "endTime": "End time",
-    "continueUsing": "Continue using",
-    "confirmCheckout": "Complete Checkout"
+    "invalidCredentials": "Invalid email or password"
   },
   "users": {
     "title": "Users",
     "search": "Search users…",
-    "create": "New User",
+    "create": "New user",
     "empty": "No users found",
     "name": "Name",
     "username": "Username",
@@ -246,14 +34,6 @@
     "retry": "Retry",
     "error": "Something went wrong",
     "notFound": "Page not found",
-    "backHome": "Back to home",
-    "language": "Language",
-    "back": "Back",
-    "next": "Next",
-    "save": "Save",
-    "cancel": "Cancel",
-    "confirm": "Confirm",
-    "search": "Search",
-    "filter": "Filter"
+    "backHome": "Back to home"
   }
 }

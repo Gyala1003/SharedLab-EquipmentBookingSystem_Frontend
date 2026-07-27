@@ -1,7 +1,6 @@
 import { DatePipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { RouterLink } from '@angular/router'
-import { TranslatePipe } from '@ngx-translate/core'
 import { catchError, forkJoin, of } from 'rxjs'
 import type {
   BookingResponse,
@@ -16,7 +15,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-requester-home-page',
-  imports: [DatePipe, RouterLink, IconComponent, TranslatePipe],
+  imports: [DatePipe, RouterLink, IconComponent],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
@@ -26,19 +25,19 @@ import { ToastService } from '../../shared/ui/toast.service'
             {{ today | date: 'EEEE, dd/MM/yyyy' }}
           </div>
           <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">
-            {{ 'home.greeting' | translate }} {{ firstName() }}!
+            Chào {{ firstName() }}, sẵn sàng nghiên cứu chưa?
           </h1>
-          <p class="mt-2 text-sm text-slate-500">{{ 'home.subtitle' | translate }}</p>
+          <p class="mt-2 text-sm text-slate-500">Theo dõi lịch đặt, hàng chờ và trạng thái tài khoản của bạn tại một nơi.</p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <a routerLink="/app/calendar" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <button type="button" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" (click)="comingSoon('Lịch tài nguyên')">
             <app-icon name="calendar" [size]="18" />
-            {{ 'home.viewSchedule' | translate }}
-          </a>
-          <a routerLink="/app/bookings/new" class="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:shadow-xl">
+            Xem lịch tài nguyên
+          </button>
+          <button type="button" class="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:shadow-xl" (click)="comingSoon('Tạo booking')">
             <span class="text-lg leading-none">+</span>
-            {{ 'home.bookLab' | translate }}
-          </a>
+            Tạo booking nhanh
+          </button>
         </div>
       </header>
 
@@ -58,7 +57,7 @@ import { ToastService } from '../../shared/ui/toast.service'
               <p class="font-bold text-amber-950">Tài khoản cần chú ý</p>
               <p class="mt-1 text-sm leading-6 text-amber-700">{{ accountWarning() }}</p>
             </div>
-            <a routerLink="/app/profile" class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-amber-900 px-4 text-xs font-bold text-white hover:bg-amber-800">{{ 'labs.viewDetail' | translate }}</a>
+            <a routerLink="/app/profile" class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-amber-900 px-4 text-xs font-bold text-white hover:bg-amber-800">Xem chi tiết</a>
           </div>
         }
 
@@ -84,16 +83,16 @@ import { ToastService } from '../../shared/ui/toast.service'
           <article class="card-surface overflow-hidden">
             <div class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">{{ 'home.recentBookings' | translate }}</h2>
+                <h2 class="text-lg font-bold text-slate-950">Booking sắp tới</h2>
                 <p class="mt-1 text-xs text-slate-400">Các lịch đã được duyệt và chuẩn bị diễn ra</p>
               </div>
-              <a routerLink="/app/calendar" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">{{ 'home.viewAll' | translate }}</a>
+              <button type="button" class="text-xs font-bold text-indigo-600 hover:text-indigo-800" (click)="comingSoon('Danh sách booking')">Xem tất cả</button>
             </div>
 
             @if (upcomingBookings().length === 0) {
               <div class="flex flex-col items-center px-6 py-14 text-center">
                 <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-500"><app-icon name="calendar" [size]="25" /></div>
-                <p class="mt-4 font-semibold text-slate-800">{{ 'home.noBookings' | translate }}</p>
+                <p class="mt-4 font-semibold text-slate-800">Chưa có booking sắp tới</p>
                 <p class="mt-1 text-sm text-slate-400">Khi booking được duyệt, lịch sẽ xuất hiện ở đây.</p>
               </div>
             } @else {
@@ -124,7 +123,7 @@ import { ToastService } from '../../shared/ui/toast.service'
           <article class="card-surface p-5 sm:p-6">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">{{ 'violations.status' | translate }}</h2>
+                <h2 class="text-lg font-bold text-slate-950">Sức khỏe tài khoản</h2>
                 <p class="mt-1 text-xs text-slate-400">Cập nhật theo điểm phạt hiện tại</p>
               </div>
               <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"><app-icon name="shield" [size]="22" /></div>
@@ -144,7 +143,7 @@ import { ToastService } from '../../shared/ui/toast.service'
             </div>
 
             <div class="mt-6 space-y-3 rounded-2xl bg-slate-50 p-4">
-              <div class="flex items-center justify-between text-sm"><span class="text-slate-500">{{ 'violations.penaltyPoints' | translate }}</span><strong class="text-slate-900">{{ violationSummary().penaltyPoints }}</strong></div>
+              <div class="flex items-center justify-between text-sm"><span class="text-slate-500">Tổng điểm phạt</span><strong class="text-slate-900">{{ violationSummary().penaltyPoints }}</strong></div>
               <div class="h-px bg-slate-200"></div>
               <div class="flex items-center justify-between text-sm"><span class="text-slate-500">Hạn chế đến</span><strong class="text-slate-900">{{ violationSummary().restrictionUntil ? (violationSummary().restrictionUntil | date: 'dd/MM/yyyy HH:mm') : 'Không có' }}</strong></div>
             </div>
@@ -155,13 +154,13 @@ import { ToastService } from '../../shared/ui/toast.service'
           <article class="card-surface overflow-hidden xl:col-span-2">
             <div class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">{{ 'notifications.title' | translate }}</h2>
+                <h2 class="text-lg font-bold text-slate-950">Thông báo mới nhất</h2>
                 <p class="mt-1 text-xs text-slate-400">Những cập nhật bạn cần xử lý</p>
               </div>
-              <a routerLink="/app/notifications" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">{{ 'home.viewAll' | translate }}</a>
+              <a routerLink="/app/notifications" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">Trung tâm thông báo</a>
             </div>
             @if (recentNotifications().length === 0) {
-              <div class="px-6 py-12 text-center text-sm text-slate-400">{{ 'notifications.empty' | translate }}</div>
+              <div class="px-6 py-12 text-center text-sm text-slate-400">M chưa có thông báo nào.</div>
             } @else {
               <div class="divide-y divide-slate-100">
                 @for (notification of recentNotifications(); track notification.notificationId) {
@@ -185,7 +184,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 
           <article class="card-surface overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <h2 class="text-lg font-bold text-slate-950">{{ 'nav.items.myWaitlists' | translate }}</h2>
+              <h2 class="text-lg font-bold text-slate-950">Hàng chờ của bạn</h2>
               <p class="mt-1 text-xs text-slate-400">Theo dõi vị trí và thời gian được giữ chỗ</p>
             </div>
             @if (activeWaitlists().length === 0) {
@@ -360,5 +359,9 @@ export class RequesterHomePage implements OnInit {
 
   protected bookingDetail(booking: BookingResponse): void {
     this.toast.info(`Booking #${booking.bookingId}`, `${this.purposeLabel(booking.purposeType)} • ${new Date(booking.startTime).toLocaleString('vi-VN')}`)
+  }
+
+  protected comingSoon(name: string): void {
+    this.toast.info(`${name} chưa nằm trong 9 màn hình`, 'Nút đã được chuẩn bị sẵn để nối route trong giai đoạn tiếp theo.')
   }
 }

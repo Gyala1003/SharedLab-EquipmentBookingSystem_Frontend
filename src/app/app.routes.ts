@@ -63,6 +63,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/resources/calendar.page').then((m) => m.CalendarPage),
       },
       {
+        path: 'policy',
+        title: 'Chính sách phòng Lab',
+        loadComponent: () => import('./features/system/policy.page').then((m) => m.PolicyPage),
+      },
+      {
         path: 'labs',
         title: 'Phòng thí nghiệm',
         loadComponent: () => import('./features/resources/labs.page').then((m) => m.LabsPage),

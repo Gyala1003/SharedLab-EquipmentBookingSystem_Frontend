@@ -5,11 +5,10 @@ import { firstValueFrom } from 'rxjs'
 import { AuthService } from '../../core/auth/auth.service'
 import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
-import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher'
 
 @Component({
   selector: 'app-reset-password-page',
-  imports: [FormsModule, RouterLink, IconComponent, LanguageSwitcherComponent],
+  imports: [FormsModule, RouterLink, IconComponent],
   template: `
     <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#111a3a] p-4 sm:p-6">
       <div class="absolute -left-20 top-0 h-96 w-96 rounded-full bg-violet-500/25 blur-3xl"></div>
@@ -30,13 +29,10 @@ import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher'
             </button>
           </div>
         } @else {
-          <div class="flex items-center justify-between">
-            <a routerLink="/login" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600">
-              <app-icon name="arrow-left" [size]="18" />
-              Quay lại đăng nhập
-            </a>
-            <app-language-switcher variant="pill" />
-          </div>
+          <a routerLink="/login" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600">
+            <app-icon name="arrow-left" [size]="18" />
+            Quay lại đăng nhập
+          </a>
 
           <div class="mt-8 flex h-16 w-16 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600">
             <app-icon name="lock" [size]="29" />
