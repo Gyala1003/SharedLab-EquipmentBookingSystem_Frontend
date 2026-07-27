@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router'
 import { SystemService } from '../../core/api/system.service'
 import type { EquipmentResponse, LabRoomResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
@@ -14,23 +16,23 @@ import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-equipments-page',
-  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent],
+  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header title="Danh mục thiết bị" subtitle="Tìm kiếm, kiểm tra trạng thái và đặt lịch các thiết bị dùng chung trong hệ thống.">
-        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> Lịch thiết bị</a>
+      <app-page-header [title]="'nav.equipment' | t" subtitle="Tìm kiếm, kiểm tra trạng thái và đặt lịch các thiết bị dùng chung trong hệ thống.">
+        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
         @if (store.isAdmin()) { <button class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> Thêm thiết bị</button> }
       </app-page-header>
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_auto]">
-        <div><label class="field-label">Tìm thiết bị</label><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="Tên thiết bị, model..." /></div></div>
-        <div><label class="field-label">Phòng lab</label><select class="input-shell" [(ngModel)]="labId"><option [ngValue]="null">Tất cả phòng</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }}</option> }</select></div>
-        <div><label class="field-label">Trạng thái</label><select class="input-shell" [(ngModel)]="status"><option value="">Tất cả</option><option [value]="1">Sẵn sàng</option><option [value]="2">Đang sử dụng</option><option [value]="3">Bảo trì</option><option [value]="4">Bị hỏng</option><option [value]="5">Ngừng sử dụng</option></select></div>
-        <div class="flex items-end"><button class="btn-primary w-full" (click)="load()"><app-icon name="filter" [size]="17" /> Lọc</button></div>
+        <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="Tên thiết bị, model..." /></div></div>
+        <div><label class="field-label">{{ 'maintenances.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId"><option [ngValue]="null">{{ 'maintenances.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }}</option> }</select></div>
+        <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">Sẵn sàng</option><option [value]="2">Đang sử dụng</option><option [value]="3">Bảo trì</option><option [value]="4">Bị hỏng</option><option [value]="5">Ngừng sử dụng</option></select></div>
+        <div class="flex items-end"><button class="btn-primary w-full" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>
 
       @if (loading()) { <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">@for (i of [1,2,3,4,5,6,7,8]; track i) { <div class="card-surface p-5"><div class="skeleton h-36 rounded-2xl"></div><div class="skeleton mt-4 h-5 w-3/4 rounded"></div><div class="skeleton mt-3 h-4 rounded"></div></div> }</div> }
-      @else if (items().length === 0) { <app-data-state title="Không có thiết bị phù hợp" message="Hãy thử đổi từ khóa, phòng lab hoặc trạng thái thiết bị." icon="microscope" /> }
+      @else if (items().length === 0) { <app-data-state [title]="'common.noData' | t" [message]="'common.noData' | t" icon="microscope" /> }
       @else {
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           @for (item of items(); track item.equipmentId; let index = $index) {
@@ -40,7 +42,7 @@ import { ToastService } from '../../shared/ui/toast.service'
                 <div class="relative flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/15 bg-white/10 text-white backdrop-blur"><app-icon name="microscope" [size]="38" /></div>
                 <div class="absolute right-4 top-4"><app-status-badge [value]="item.status" domain="equipment" /></div>
               </div>
-              <div class="p-5"><p class="truncate text-base font-black text-slate-950">{{ item.equipmentName }}</p><p class="mt-2 flex items-center gap-2 truncate text-xs text-slate-400"><app-icon name="building" [size]="15" /> {{ labName(item.labId) }}</p><div class="mt-5 flex gap-2"><a [routerLink]="['/app/equipments', item.equipmentId]" class="btn-primary flex-1">Chi tiết</a><a routerLink="/app/bookings/new" [queryParams]="{ equipmentId: item.equipmentId, labId: item.labId }" class="btn-secondary px-3"><app-icon name="calendar-plus" [size]="18" /></a></div></div>
+              <div class="p-5"><p class="truncate text-base font-black text-slate-950">{{ item.equipmentName }}</p><p class="mt-2 flex items-center gap-2 truncate text-xs text-slate-400"><app-icon name="building" [size]="15" /> {{ labName(item.labId) }}</p><div class="mt-5 flex gap-2"><a [routerLink]="['/app/equipments', item.equipmentId]" class="btn-primary flex-1">{{ 'common.details' | t }}</a><a routerLink="/app/bookings/new" [queryParams]="{ equipmentId: item.equipmentId, labId: item.labId }" class="btn-secondary px-3"><app-icon name="calendar-plus" [size]="18" /></a></div></div>
             </article>
           }
         </div>

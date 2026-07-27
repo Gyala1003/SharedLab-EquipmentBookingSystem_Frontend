@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router'
 import { SystemService } from '../../core/api/system.service'
 import type { LabRoomResponse, UserManagementResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
@@ -25,26 +27,26 @@ interface LabForm {
 
 @Component({
   selector: 'app-labs-page',
-  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent],
+  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header title="Không gian phòng thí nghiệm" subtitle="Khám phá phòng lab, sức chứa, vị trí và trạng thái tài nguyên trước khi tạo booking.">
-        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> Xem lịch</a>
-        @if (store.isAdmin()) { <button type="button" class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> Thêm phòng lab</button> }
+      <app-page-header [title]="'labs.title' | t" [subtitle]="'labs.subtitle' | t">
+        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
+        @if (store.isAdmin()) { <button type="button" class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> {{ 'labs.addLab' | t }}</button> }
       </app-page-header>
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-        <div><label class="field-label">Tìm kiếm</label><div class="relative"><span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="Tên phòng, mã phòng, vị trí..." /></div></div>
-        <div><label class="field-label">Trạng thái</label><select class="input-shell" [(ngModel)]="status"><option value="">Tất cả</option><option [value]="1">Có thể sử dụng</option><option [value]="2">Tạm không khả dụng</option><option [value]="3">Đang bảo trì</option><option [value]="4">Ngừng hoạt động</option></select></div>
-        <div><label class="field-label">Sức chứa tối thiểu</label><input class="input-shell" type="number" min="1" [(ngModel)]="minimumCapacity" /></div>
-        <div><label class="field-label">Kiểu hiển thị</label><div class="flex h-12 rounded-2xl bg-slate-100 p-1"><button class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'grid' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-400'" (click)="view.set('grid')"><app-icon name="grid" [size]="17" /></button><button class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'table' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-400'" (click)="view.set('table')"><app-icon name="list" [size]="17" /></button></div></div>
-        <div class="flex items-end"><button class="btn-primary w-full" type="button" (click)="load()"><app-icon name="filter" [size]="17" /> Áp dụng</button></div>
+        <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="{{ 'labs.searchPlaceholder' | t }}" /></div></div>
+        <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">{{ 'labs.available' | t }}</option><option [value]="2">{{ 'labs.maintenance' | t }}</option><option [value]="3">{{ 'labs.maintenance' | t }}</option><option [value]="4">{{ 'common.all' | t }}</option></select></div>
+        <div><label class="field-label">{{ 'labs.minCapacity' | t }}</label><input class="input-shell" type="number" min="1" [(ngModel)]="minimumCapacity" /></div>
+        <div><label class="field-label">{{ 'labs.viewMode' | t }}</label><div class="flex h-12 rounded-2xl bg-slate-100 p-1"><button class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'grid' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400'" (click)="view.set('grid')"><app-icon name="grid" [size]="17" /></button><button class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'table' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400'" (click)="view.set('table')"><app-icon name="list" [size]="17" /></button></div></div>
+        <div class="flex items-end"><button class="btn-primary w-full" type="button" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>
 
       @if (loading()) {
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">@for (i of [1,2,3,4,5,6]; track i) { <div class="card-surface overflow-hidden"><div class="skeleton h-40"></div><div class="p-5"><div class="skeleton h-5 w-2/3 rounded"></div><div class="skeleton mt-3 h-4 rounded"></div><div class="skeleton mt-5 h-10 rounded-xl"></div></div></div> }</div>
       } @else if (labs().length === 0) {
-        <app-data-state icon="building" title="Chưa tìm thấy phòng lab" message="Không có phòng nào khớp bộ lọc hiện tại. Hãy thay đổi từ khóa hoặc trạng thái." />
+        <app-data-state icon="building" [title]="'common.noData' | t" [message]="'common.noData' | t" />
       } @else if (view() === 'grid') {
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           @for (lab of labs(); track lab.labId; let index = $index) {
@@ -55,7 +57,7 @@ interface LabForm {
               </div>
               <div class="p-5">
                 <div class="flex items-center justify-between gap-3"><p class="flex min-w-0 items-center gap-2 truncate text-sm text-slate-500"><app-icon name="map-pin" [size]="17" /> {{ lab.location }}</p><app-status-badge [value]="lab.status" domain="lab" /></div>
-                <div class="mt-5 flex gap-2"><a [routerLink]="['/app/labs', lab.labId]" class="btn-primary flex-1">Xem chi tiết</a><a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab.labId }" class="btn-secondary px-3" title="Tạo booking"><app-icon name="calendar-plus" [size]="18" /></a></div>
+                <div class="mt-5 flex gap-2"><a [routerLink]="['/app/labs', lab.labId]" class="btn-primary flex-1">{{ 'common.details' | t }}</a><a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab.labId }" class="btn-secondary px-3" title="Tạo booking"><app-icon name="calendar-plus" [size]="18" /></a></div>
               </div>
             </article>
           }

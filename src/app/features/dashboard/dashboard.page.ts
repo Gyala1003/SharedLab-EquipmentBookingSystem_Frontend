@@ -1,7 +1,6 @@
 import { DecimalPipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TranslatePipe } from '@ngx-translate/core'
 import type {
   CategoryCountResponse,
   DashboardResponse,
@@ -9,6 +8,8 @@ import type {
 } from '../../core/api/api.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
@@ -42,27 +43,27 @@ const EMPTY_DASHBOARD: DashboardResponse = {
         <div>
           <div class="flex items-center gap-2 text-sm font-semibold text-cyan-700">
             <span class="h-2 w-2 rounded-full bg-teal-500 shadow-[0_0_0_4px_rgba(20,184,166,.18)]"></span>
-            {{ 'dashboard.liveData' | translate }}
+            {{ 'dashboard.liveData' | t }}
           </div>
-          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'dashboard.title' | translate }}</h1>
+          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'dashboard.title' | t }}</h1>
           <p class="mt-2 text-sm text-slate-500">
-            {{ (store.isAdmin() ? 'dashboard.subtitleAdmin' : 'dashboard.subtitleManager') | translate }} • {{ 'common.from' | translate }}...
+            {{ (store.isAdmin() ? 'dashboard.subtitleAdmin' : 'dashboard.subtitleManager') | t }} • {{ 'common.from' | t }}...
           </p>
         </div>
 
         <div class="flex flex-col gap-3 rounded-3xl border border-cyan-100/90 bg-white/90 p-3 shadow-sm shadow-cyan-950/5 sm:flex-row sm:items-center">
           <div class="flex items-center gap-2">
-            <label class="text-xs font-semibold text-slate-500">{{ 'common.from' | translate }}</label>
+            <label class="text-xs font-semibold text-slate-500">{{ 'common.from' | t }}</label>
             <input [(ngModel)]="fromDate" type="date" class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-cyan-500" />
           </div>
           <div class="hidden h-6 w-px bg-slate-200 sm:block"></div>
           <div class="flex items-center gap-2">
-            <label class="text-xs font-semibold text-slate-500">{{ 'common.to' | translate }}</label>
+            <label class="text-xs font-semibold text-slate-500">{{ 'common.to' | t }}</label>
             <input [(ngModel)]="toDate" type="date" class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-cyan-500" />
           </div>
           <button type="button" class="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 px-4 text-xs font-bold text-white shadow-md shadow-cyan-500/20 hover:from-cyan-700 hover:to-teal-600 transition" [disabled]="loading()" (click)="load()">
             <app-icon name="refresh" [size]="16" />
-            {{ 'common.apply' | translate }}
+            {{ 'common.apply' | t }}
           </button>
         </div>
       </header>
@@ -70,7 +71,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
       <div class="flex flex-wrap gap-2">
         @for (preset of presets; track preset.days) {
           <button type="button" class="rounded-full border px-3.5 py-2 text-xs font-semibold transition" [class.border-cyan-300]="activePreset() === preset.days" [class.bg-cyan-50]="activePreset() === preset.days" [class.text-cyan-700]="activePreset() === preset.days" [class.font-bold]="activePreset() === preset.days" [class.border-slate-200]="activePreset() !== preset.days" [class.bg-white]="activePreset() !== preset.days" [class.text-slate-500]="activePreset() !== preset.days" (click)="applyPreset(preset.days)">
-            {{ preset.label | translate }}
+            {{ preset.labelKey | t }}
           </button>
         }
       </div>
@@ -103,19 +104,19 @@ const EMPTY_DASHBOARD: DashboardResponse = {
           <article class="card-surface overflow-hidden">
             <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.usageTrend' | translate }}</h2>
-                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.usageTrendSub' | translate }}</p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.usageTrend' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.usageTrendSub' | t }}</p>
               </div>
               <div class="flex items-center gap-4 text-xs text-slate-500">
-                <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-cyan-500"></i>{{ 'dashboard.usageLog' | translate }}</span>
-                <span class="rounded-full bg-cyan-50 px-3 py-1.5 font-bold text-cyan-700">{{ totalUsageHours() | number: '1.0-1' }} {{ 'dashboard.hours' | translate }}</span>
+                <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-cyan-500"></i>{{ 'dashboard.usageLog' | t }}</span>
+                <span class="rounded-full bg-cyan-50 px-3 py-1.5 font-bold text-cyan-700">{{ totalUsageHours() | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</span>
               </div>
             </div>
             <div class="p-5 sm:p-6">
               @if (dashboard().usageTrend.length === 0) {
                 <div class="flex h-72 flex-col items-center justify-center text-center">
                   <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-500"><app-icon name="chart" [size]="26" /></div>
-                  <p class="mt-4 text-sm font-semibold text-slate-700">{{ 'common.noData' | translate }}</p>
+                  <p class="mt-4 text-sm font-semibold text-slate-700">{{ 'common.noData' | t }}</p>
                 </div>
               } @else {
                 <div class="relative h-72 overflow-hidden rounded-2xl bg-gradient-to-b from-cyan-50/60 to-white p-4">
@@ -145,8 +146,8 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
           <article class="card-surface overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingStatus' | translate }}</h2>
-              <p class="mt-1 text-xs text-slate-400">Phân bổ trong khoảng thời gian đã chọn</p>
+              <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingStatus' | t }}</h2>
+              <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.bookingStatusSub' | t }}</p>
             </div>
             <div class="grid items-center gap-6 p-5 sm:grid-cols-[170px_1fr] sm:p-6 xl:grid-cols-1 2xl:grid-cols-[170px_1fr]">
               <div class="relative mx-auto flex h-44 w-44 items-center justify-center rounded-full" [style.background]="statusDonut()">
@@ -164,7 +165,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
                     <span class="w-11 text-right text-[10px] text-slate-400">{{ status.percentage | number: '1.0-1' }}%</span>
                   </div>
                 }
-                @if (dashboard().bookingStatusCounts.length === 0) { <p class="py-8 text-center text-sm text-slate-400">Chưa có dữ liệu trạng thái.</p> }
+                @if (dashboard().bookingStatusCounts.length === 0) { <p class="py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
               </div>
             </div>
           </article>
@@ -174,10 +175,10 @@ const EMPTY_DASHBOARD: DashboardResponse = {
           <article class="card-surface p-5 sm:p-6">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">Booking theo mục đích</h2>
-                <p class="mt-1 text-xs text-slate-400">Nhu cầu sử dụng tài nguyên</p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingPurpose' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.bookingPurposeSub' | t }}</p>
               </div>
-              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-50 text-violet-600"><app-icon name="sparkles" [size]="20" /></div>
+              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="sparkles" [size]="20" /></div>
             </div>
             <div class="mt-6 space-y-5">
               @for (item of dashboard().bookingPurposeCounts.slice(0, 6); track item.key; let index = $index) {
@@ -189,60 +190,57 @@ const EMPTY_DASHBOARD: DashboardResponse = {
                   <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full transition-all duration-700" [style.width.%]="item.percentage" [style.background-color]="chartColors[index % chartColors.length]"></div></div>
                 </div>
               }
-              @if (dashboard().bookingPurposeCounts.length === 0) { <p class="py-12 text-center text-sm text-slate-400">Chưa có dữ liệu mục đích.</p> }
+              @if (dashboard().bookingPurposeCounts.length === 0) { <p class="py-12 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
 
           <article class="card-surface p-5 sm:p-6">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">Booking theo khoa / phòng ban</h2>
-                <p class="mt-1 text-xs text-slate-400">Đơn vị có nhu cầu sử dụng cao nhất</p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingDepartment' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.bookingDepartmentSub' | t }}</p>
               </div>
-              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="building" [size]="20" /></div>
             </div>
-            <div class="mt-6 space-y-4">
+            <div class="mt-6 space-y-5">
               @for (item of dashboard().bookingDepartmentCounts.slice(0, 6); track item.key; let index = $index) {
-                <div class="grid grid-cols-[32px_1fr_auto] items-center gap-3">
-                  <span class="flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold" [class.bg-indigo-50]="index === 0" [class.text-indigo-700]="index === 0" [class.bg-slate-100]="index !== 0" [class.text-slate-500]="index !== 0">{{ index + 1 }}</span>
-                  <div class="min-w-0">
-                    <div class="flex items-center justify-between gap-3"><span class="truncate text-sm font-medium text-slate-600">{{ item.displayName || item.key }}</span><span class="text-xs text-slate-400">{{ item.percentage | number: '1.0-1' }}%</span></div>
-                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-cyan-500 to-indigo-500" [style.width.%]="item.percentage"></div></div>
+                <div>
+                  <div class="mb-2 flex items-center justify-between gap-4 text-sm">
+                    <span class="font-medium text-slate-600">{{ item.displayName || item.key }}</span>
+                    <span class="font-bold text-slate-900">{{ item.count }} <small class="font-medium text-slate-400">({{ item.percentage | number: '1.0-1' }}%)</small></span>
                   </div>
-                  <strong class="text-sm text-slate-900">{{ item.count }}</strong>
+                  <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full transition-all duration-700" [style.width.%]="item.percentage" [style.background-color]="chartColors[index % chartColors.length]"></div></div>
                 </div>
               }
-              @if (dashboard().bookingDepartmentCounts.length === 0) { <p class="py-12 text-center text-sm text-slate-400">Chưa có dữ liệu phòng ban.</p> }
+              @if (dashboard().bookingDepartmentCounts.length === 0) { <p class="py-12 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
         </div>
 
-        <div class="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
           <article class="card-surface overflow-hidden">
             <div class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">Hiệu suất tài nguyên</h2>
-                <p class="mt-1 text-xs text-slate-400">Phòng lab và thiết bị có tỷ lệ sử dụng cao</p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.resourceEfficiency' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.resourceEfficiencySub' | t }}</p>
               </div>
               <select [ngModel]="resourceTab()" (ngModelChange)="resourceTab.set($event)" class="h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600">
-                <option value="labs">Phòng lab</option>
-                <option value="equipments">Thiết bị</option>
+                <option value="labs">{{ 'nav.labs' | t }}</option>
+                <option value="equipments">{{ 'nav.equipment' | t }}</option>
               </select>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full min-w-[660px] text-left">
-                <thead><tr class="border-b border-slate-100 bg-slate-50/70 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400"><th class="px-6 py-4">Tài nguyên</th><th class="px-4 py-4">Booking</th><th class="px-4 py-4">Giờ thực tế</th><th class="px-4 py-4">Khả dụng</th><th class="px-6 py-4">Tỷ lệ sử dụng</th></tr></thead>
+                <thead><tr class="border-b border-slate-100 bg-slate-50/70 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400"><th class="px-6 py-4">{{ 'dashboard.resource' | t }}</th><th class="px-4 py-4">Booking</th><th class="px-4 py-4">{{ 'dashboard.actualHours' | t }}</th><th class="px-4 py-4">{{ 'dashboard.availableHours' | t }}</th><th class="px-6 py-4">{{ 'dashboard.utilizationRate' | t }}</th></tr></thead>
                 <tbody class="divide-y divide-slate-100">
                   @for (resource of selectedResources().slice(0, 7); track resource.resourceId) {
                     <tr class="transition hover:bg-slate-50/80">
-                      <td class="px-6 py-4"><div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><app-icon [name]="resourceTab() === 'labs' ? 'flask' : 'microscope'" [size]="18" /></span><div><p class="text-sm font-semibold text-slate-800">{{ resource.resourceName }}</p><p class="mt-0.5 text-[11px] text-slate-400">{{ resource.labName || resource.resourceType }}</p></div></div></td>
+                      <td class="px-6 py-4"><div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600"><app-icon [name]="resourceTab() === 'labs' ? 'flask' : 'microscope'" [size]="18" /></span><div><p class="text-sm font-semibold text-slate-800">{{ resource.resourceName }}</p><p class="mt-0.5 text-[11px] text-slate-400">{{ resource.labName || resource.resourceType }}</p></div></div></td>
                       <td class="px-4 py-4 text-sm font-semibold text-slate-700">{{ resource.bookingCount }}</td>
                       <td class="px-4 py-4 text-sm text-slate-500">{{ resource.actualUsageHours | number: '1.0-1' }}h</td>
                       <td class="px-4 py-4 text-sm text-slate-500">{{ resource.availableHours | number: '1.0-1' }}h</td>
-                      <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="h-2 w-24 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" [class.bg-emerald-500]="resource.utilizationRate >= 70" [class.bg-indigo-500]="resource.utilizationRate >= 40 && resource.utilizationRate < 70" [class.bg-amber-500]="resource.utilizationRate < 40" [style.width.%]="clamp(resource.utilizationRate)"></div></div><span class="w-12 text-right text-xs font-bold text-slate-700">{{ resource.utilizationRate | number: '1.0-1' }}%</span></div></td>
+                      <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="h-2 w-24 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" [class.bg-emerald-500]="resource.utilizationRate >= 70" [class.bg-cyan-500]="resource.utilizationRate >= 40 && resource.utilizationRate < 70" [class.bg-amber-500]="resource.utilizationRate < 40" [style.width.%]="clamp(resource.utilizationRate)"></div></div><span class="w-12 text-right text-xs font-bold text-slate-700">{{ resource.utilizationRate | number: '1.0-1' }}%</span></div></td>
                     </tr>
                   }
-                  @if (selectedResources().length === 0) { <tr><td colspan="5" class="px-6 py-14 text-center text-sm text-slate-400">Chưa có dữ liệu sử dụng tài nguyên.</td></tr> }
+                  @if (selectedResources().length === 0) { <tr><td colspan="5" class="px-6 py-14 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</td></tr> }
                 </tbody>
               </table>
             </div>
@@ -264,7 +262,6 @@ const EMPTY_DASHBOARD: DashboardResponse = {
               @if (dashboard().usersWithMostPenaltyPoints.length === 0) { <div class="px-6 py-14 text-center text-sm text-slate-400">Không có người dùng vi phạm trong kỳ.</div> }
             </div>
           </article>
-        </div>
 
         <div class="grid gap-6 xl:grid-cols-2">
           <article class="card-surface p-5 sm:p-6">
@@ -294,30 +291,32 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 export class DashboardPage implements OnInit {
   private readonly workspace = inject(WorkspaceService)
   protected readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
   protected readonly dashboard = signal<DashboardResponse>(EMPTY_DASHBOARD)
   protected readonly loading = signal(true)
   protected readonly activePreset = signal(30)
   protected readonly chartColors = ['#6366f1', '#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e']
   protected readonly presets = [
-    { label: '7 ngày', days: 7 },
-    { label: '30 ngày', days: 30 },
-    { label: '90 ngày', days: 90 },
-    { label: 'Năm nay', days: 365 },
+    { labelKey: 'dashboard.preset7', days: 7 },
+    { labelKey: 'dashboard.preset30', days: 30 },
+    { labelKey: 'dashboard.preset90', days: 90 },
+    { labelKey: 'dashboard.presetYear', days: 365 },
   ]
   protected fromDate = ''
   protected toDate = ''
   protected readonly resourceTab = signal<'labs' | 'equipments'>('labs')
 
   protected readonly metricCards = computed(() => {
+    this.languageStore.lang()
     const data = this.dashboard()
     return [
-      { label: 'Tổng booking', value: this.integer(data.totalBookings), icon: 'calendar', tone: 'indigo' },
-      { label: 'Usage log', value: this.integer(data.totalUsageLogs), icon: 'activity', tone: 'cyan' },
-      { label: 'Vi phạm', value: this.integer(data.totalViolations), icon: 'alert', tone: 'rose' },
-      { label: 'Chi phí bảo trì', value: this.moneyCompact(data.totalMaintenanceCost), icon: 'wrench', tone: 'violet' },
-      { label: 'No-show', value: this.integer(data.noShow.noShowCount), icon: 'user', tone: 'amber' },
-      { label: 'Tỷ lệ No-show', value: `${data.noShow.noShowRate.toFixed(1)}%`, icon: 'chart', tone: 'emerald' },
+      { label: this.languageStore.t('dashboard.totalBookings'), value: this.integer(data.totalBookings), icon: 'calendar', tone: 'indigo' },
+      { label: this.languageStore.t('dashboard.totalUsageLogs'), value: this.integer(data.totalUsageLogs), icon: 'activity', tone: 'cyan' },
+      { label: this.languageStore.t('dashboard.totalViolations'), value: this.integer(data.totalViolations), icon: 'alert', tone: 'rose' },
+      { label: this.languageStore.t('dashboard.maintenanceCost'), value: this.moneyCompact(data.totalMaintenanceCost), icon: 'wrench', tone: 'violet' },
+      { label: this.languageStore.t('dashboard.noShowCount'), value: this.integer(data.noShow.noShowCount), icon: 'user', tone: 'amber' },
+      { label: this.languageStore.t('dashboard.noShowRate'), value: `${data.noShow.noShowRate.toFixed(1)}%`, icon: 'chart', tone: 'emerald' },
     ]
   })
   protected readonly selectedResources = computed<ResourceUtilizationResponse[]>(() =>

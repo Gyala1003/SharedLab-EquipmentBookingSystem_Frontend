@@ -287,6 +287,10 @@ export class AppLayoutComponent implements OnInit {
       .join('')
   }
 
+  protected roleLabel(role: string): string {
+    return this.languageStore.t('roles.' + role)
+  }
+
   protected async logout(): Promise<void> {
     await this.store.logout()
     void this.router.navigate(['/login'])
