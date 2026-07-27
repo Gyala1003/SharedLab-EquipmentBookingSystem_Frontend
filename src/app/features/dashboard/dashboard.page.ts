@@ -1,6 +1,7 @@
 import { DecimalPipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { TranslatePipe } from '@ngx-translate/core'
 import type {
   CategoryCountResponse,
   DashboardResponse,
@@ -34,42 +35,42 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [FormsModule, DecimalPipe, IconComponent],
+  imports: [FormsModule, DecimalPipe, IconComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
         <div>
-          <div class="flex items-center gap-2 text-sm font-semibold text-indigo-600">
-            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-            Dữ liệu vận hành trực tiếp
+          <div class="flex items-center gap-2 text-sm font-semibold text-cyan-700">
+            <span class="h-2 w-2 rounded-full bg-teal-500 shadow-[0_0_0_4px_rgba(20,184,166,.18)]"></span>
+            {{ 'dashboard.liveData' | translate }}
           </div>
-          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">Dashboard tổng quan</h1>
+          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'dashboard.title' | translate }}</h1>
           <p class="mt-2 text-sm text-slate-500">
-            {{ store.isAdmin() ? 'Toàn bộ hệ thống' : 'Các phòng lab bạn đang quản lý' }} • cập nhật theo khoảng thời gian đã chọn.
+            {{ (store.isAdmin() ? 'dashboard.subtitleAdmin' : 'dashboard.subtitleManager') | translate }} • {{ 'common.from' | translate }}...
           </p>
         </div>
 
-        <div class="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
+        <div class="flex flex-col gap-3 rounded-3xl border border-cyan-100/90 bg-white/90 p-3 shadow-sm shadow-cyan-950/5 sm:flex-row sm:items-center">
           <div class="flex items-center gap-2">
-            <label class="text-xs font-semibold text-slate-500">Từ</label>
-            <input [(ngModel)]="fromDate" type="date" class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700" />
+            <label class="text-xs font-semibold text-slate-500">{{ 'common.from' | translate }}</label>
+            <input [(ngModel)]="fromDate" type="date" class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-cyan-500" />
           </div>
           <div class="hidden h-6 w-px bg-slate-200 sm:block"></div>
           <div class="flex items-center gap-2">
-            <label class="text-xs font-semibold text-slate-500">Đến</label>
-            <input [(ngModel)]="toDate" type="date" class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700" />
+            <label class="text-xs font-semibold text-slate-500">{{ 'common.to' | translate }}</label>
+            <input [(ngModel)]="toDate" type="date" class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-cyan-500" />
           </div>
-          <button type="button" class="flex h-10 items-center justify-center gap-2 rounded-xl bg-[#111a3a] px-4 text-xs font-bold text-white hover:bg-[#17234c]" [disabled]="loading()" (click)="load()">
+          <button type="button" class="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 px-4 text-xs font-bold text-white shadow-md shadow-cyan-500/20 hover:from-cyan-700 hover:to-teal-600 transition" [disabled]="loading()" (click)="load()">
             <app-icon name="refresh" [size]="16" />
-            Áp dụng
+            {{ 'common.apply' | translate }}
           </button>
         </div>
       </header>
 
       <div class="flex flex-wrap gap-2">
         @for (preset of presets; track preset.days) {
-          <button type="button" class="rounded-full border px-3.5 py-2 text-xs font-semibold transition" [class.border-indigo-200]="activePreset() === preset.days" [class.bg-indigo-50]="activePreset() === preset.days" [class.text-indigo-700]="activePreset() === preset.days" [class.border-slate-200]="activePreset() !== preset.days" [class.bg-white]="activePreset() !== preset.days" [class.text-slate-500]="activePreset() !== preset.days" (click)="applyPreset(preset.days)">
-            {{ preset.label }}
+          <button type="button" class="rounded-full border px-3.5 py-2 text-xs font-semibold transition" [class.border-cyan-300]="activePreset() === preset.days" [class.bg-cyan-50]="activePreset() === preset.days" [class.text-cyan-700]="activePreset() === preset.days" [class.font-bold]="activePreset() === preset.days" [class.border-slate-200]="activePreset() !== preset.days" [class.bg-white]="activePreset() !== preset.days" [class.text-slate-500]="activePreset() !== preset.days" (click)="applyPreset(preset.days)">
+            {{ preset.label | translate }}
           </button>
         }
       </div>
@@ -86,9 +87,9 @@ const EMPTY_DASHBOARD: DashboardResponse = {
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           @for (card of metricCards(); track card.label) {
             <article class="card-surface group relative overflow-hidden p-5 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl" [class.bg-indigo-200]="card.tone === 'indigo'" [class.bg-cyan-200]="card.tone === 'cyan'" [class.bg-violet-200]="card.tone === 'violet'" [class.bg-amber-200]="card.tone === 'amber'" [class.bg-rose-200]="card.tone === 'rose'" [class.bg-emerald-200]="card.tone === 'emerald'"></div>
+              <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl" [class.bg-cyan-200]="card.tone === 'indigo' || card.tone === 'cyan'" [class.bg-teal-200]="card.tone === 'violet' || card.tone === 'emerald'" [class.bg-amber-200]="card.tone === 'amber'" [class.bg-rose-200]="card.tone === 'rose'"></div>
               <div class="relative">
-                <div class="flex h-10 w-10 items-center justify-center rounded-2xl" [class.bg-indigo-50]="card.tone === 'indigo'" [class.text-indigo-600]="card.tone === 'indigo'" [class.bg-cyan-50]="card.tone === 'cyan'" [class.text-cyan-600]="card.tone === 'cyan'" [class.bg-violet-50]="card.tone === 'violet'" [class.text-violet-600]="card.tone === 'violet'" [class.bg-amber-50]="card.tone === 'amber'" [class.text-amber-600]="card.tone === 'amber'" [class.bg-rose-50]="card.tone === 'rose'" [class.text-rose-600]="card.tone === 'rose'" [class.bg-emerald-50]="card.tone === 'emerald'" [class.text-emerald-600]="card.tone === 'emerald'">
+                <div class="flex h-10 w-10 items-center justify-center rounded-2xl" [class.bg-cyan-50]="card.tone === 'indigo' || card.tone === 'cyan'" [class.text-cyan-600]="card.tone === 'indigo' || card.tone === 'cyan'" [class.bg-teal-50]="card.tone === 'violet' || card.tone === 'emerald'" [class.text-teal-600]="card.tone === 'violet' || card.tone === 'emerald'" [class.bg-amber-50]="card.tone === 'amber'" [class.text-amber-600]="card.tone === 'amber'" [class.bg-rose-50]="card.tone === 'rose'" [class.text-rose-600]="card.tone === 'rose'">
                   <app-icon [name]="card.icon" [size]="19" />
                 </div>
                 <p class="mt-5 text-2xl font-bold tracking-[-0.04em] text-slate-950">{{ card.value }}</p>
@@ -102,36 +103,36 @@ const EMPTY_DASHBOARD: DashboardResponse = {
           <article class="card-surface overflow-hidden">
             <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">Xu hướng sử dụng</h2>
-                <p class="mt-1 text-xs text-slate-400">Số lượt sử dụng thực tế theo thời gian</p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.usageTrend' | translate }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.usageTrendSub' | translate }}</p>
               </div>
               <div class="flex items-center gap-4 text-xs text-slate-500">
-                <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-indigo-500"></i>Lượt sử dụng</span>
-                <span class="rounded-full bg-indigo-50 px-3 py-1.5 font-bold text-indigo-700">{{ totalUsageHours() | number: '1.0-1' }} giờ</span>
+                <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-cyan-500"></i>{{ 'dashboard.usageLog' | translate }}</span>
+                <span class="rounded-full bg-cyan-50 px-3 py-1.5 font-bold text-cyan-700">{{ totalUsageHours() | number: '1.0-1' }} {{ 'dashboard.hours' | translate }}</span>
               </div>
             </div>
             <div class="p-5 sm:p-6">
               @if (dashboard().usageTrend.length === 0) {
                 <div class="flex h-72 flex-col items-center justify-center text-center">
-                  <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-500"><app-icon name="chart" [size]="26" /></div>
-                  <p class="mt-4 text-sm font-semibold text-slate-700">Chưa có dữ liệu usage trong kỳ</p>
+                  <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-500"><app-icon name="chart" [size]="26" /></div>
+                  <p class="mt-4 text-sm font-semibold text-slate-700">{{ 'common.noData' | translate }}</p>
                 </div>
               } @else {
-                <div class="relative h-72 overflow-hidden rounded-2xl bg-gradient-to-b from-indigo-50/70 to-white p-4">
+                <div class="relative h-72 overflow-hidden rounded-2xl bg-gradient-to-b from-cyan-50/60 to-white p-4">
                   <div class="absolute inset-x-4 bottom-10 top-4 flex flex-col justify-between">
                     @for (line of [1, 2, 3, 4, 5]; track line) { <div class="border-t border-dashed border-slate-200"></div> }
                   </div>
-                  <svg class="relative h-[225px] w-full overflow-visible" viewBox="0 0 600 190" preserveAspectRatio="none" role="img" aria-label="Biểu đồ xu hướng sử dụng">
+                  <svg class="relative h-[225px] w-full overflow-visible" viewBox="0 0 600 190" preserveAspectRatio="none" role="img" aria-label="Usage trend chart">
                     <defs>
                       <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#6366f1" stop-opacity="0.24" />
-                        <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+                        <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.26" />
+                        <stop offset="100%" stop-color="#06b6d4" stop-opacity="0" />
                       </linearGradient>
                     </defs>
                     <polygon [attr.points]="usageAreaPoints()" fill="url(#trendFill)" />
-                    <polyline [attr.points]="usageTrendPoints()" fill="none" stroke="#6366f1" stroke-width="4" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" />
+                    <polyline [attr.points]="usageTrendPoints()" fill="none" stroke="#06b6d4" stroke-width="4" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" />
                     @for (point of usagePointObjects(); track point.x) {
-                      <circle [attr.cx]="point.x" [attr.cy]="point.y" r="5" fill="white" stroke="#6366f1" stroke-width="3" vector-effect="non-scaling-stroke" />
+                      <circle [attr.cx]="point.x" [attr.cy]="point.y" r="5" fill="white" stroke="#06b6d4" stroke-width="3" vector-effect="non-scaling-stroke" />
                     }
                   </svg>
                   <div class="mt-1 flex justify-between text-[10px] font-medium text-slate-400">
@@ -144,7 +145,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
           <article class="card-surface overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <h2 class="text-lg font-bold text-slate-950">Booking theo trạng thái</h2>
+              <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingStatus' | translate }}</h2>
               <p class="mt-1 text-xs text-slate-400">Phân bổ trong khoảng thời gian đã chọn</p>
             </div>
             <div class="grid items-center gap-6 p-5 sm:grid-cols-[170px_1fr] sm:p-6 xl:grid-cols-1 2xl:grid-cols-[170px_1fr]">
