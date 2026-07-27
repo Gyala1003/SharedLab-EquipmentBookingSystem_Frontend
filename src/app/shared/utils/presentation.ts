@@ -16,7 +16,15 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
     '2': { vi: 'Ngừng hoạt động', en: 'Inactive' },
     Active: { vi: 'Đang hoạt động', en: 'Active' },
     Inactive: { vi: 'Ngừng hoạt động', en: 'Inactive' },
+    'Information Technology': { vi: 'Công nghệ thông tin', en: 'Information Technology' },
+    'Computer Science': { vi: 'Khoa học máy tính', en: 'Computer Science' },
+    'Electrical Engineering': { vi: 'Kỹ thuật điện', en: 'Electrical Engineering' },
+    'Mechanical Engineering': { vi: 'Kỹ thuật cơ khí', en: 'Mechanical Engineering' },
+    'Biotechnology': { vi: 'Công nghệ sinh học', en: 'Biotechnology' },
+    'Physics': { vi: 'Vật lý', en: 'Physics' },
+    'Chemistry': { vi: 'Hóa học', en: 'Chemistry' },
   },
+
   booking: {
     Pending: { vi: 'Chờ duyệt', en: 'Pending' },
     Approved: { vi: 'Đã duyệt', en: 'Approved' },

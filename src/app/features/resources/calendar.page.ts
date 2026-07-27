@@ -6,6 +6,8 @@ import { forkJoin } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { CalendarEventResponse, EquipmentResponse, LabRoomResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
@@ -21,31 +23,31 @@ interface CalendarDay {
 
 @Component({
   selector: 'app-calendar-page',
-  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent],
+  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header title="Lịch tài nguyên dùng chung" subtitle="Theo dõi booking và bảo trì trên toàn bộ phòng lab, thiết bị theo tháng hoặc dạng danh sách.">
-        <a routerLink="/app/bookings/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-primary"><app-icon name="plus" [size]="17" /> Tạo booking</a>
-        @if (store.isAdmin() || store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> Lên lịch bảo trì</a> }
+      <app-page-header [title]="'calendar.title' | t" [subtitle]="'calendar.subtitle' | t">
+        <a routerLink="/app/bookings/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-primary"><app-icon name="plus" [size]="17" /> {{ 'calendar.createBooking' | t }}</a>
+        @if (store.isAdmin() || store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> {{ 'calendar.scheduleMaintenance' | t }}</a> }
       </app-page-header>
 
       <div class="filter-bar lg:grid-cols-[1fr_1fr_1fr_auto]">
-        <div><label class="field-label">Phòng lab</label><select class="input-shell" [(ngModel)]="labId" (ngModelChange)="onLabChange()"><option [ngValue]="null">Tất cả phòng</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option> }</select></div>
-        <div><label class="field-label">Thiết bị</label><select class="input-shell" [(ngModel)]="equipmentId" (ngModelChange)="load()"><option [ngValue]="null">Tất cả thiết bị</option>@for (item of filteredEquipments(); track item.equipmentId) { <option [ngValue]="item.equipmentId">{{ item.equipmentName }}</option> }</select></div>
-        <div><label class="field-label">Loại sự kiện</label><select class="input-shell" [(ngModel)]="eventType"><option value="">Booking & bảo trì</option><option value="Booking">Booking</option><option value="Maintenance">Bảo trì</option></select></div>
-        <div class="flex items-end gap-2"><button class="btn-secondary" type="button" (click)="shiftMonth(-1)"><app-icon name="chevron-left" [size]="17" /></button><button class="btn-secondary" type="button" (click)="today()">Hôm nay</button><button class="btn-secondary" type="button" (click)="shiftMonth(1)"><app-icon name="chevron-right" [size]="17" /></button></div>
+        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId" (ngModelChange)="onLabChange()"><option [ngValue]="null">{{ 'calendar.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option> }</select></div>
+        <div><label class="field-label">{{ 'calendar.equipmentFilter' | t }}</label><select class="input-shell" [(ngModel)]="equipmentId" (ngModelChange)="load()"><option [ngValue]="null">{{ 'calendar.allEquipments' | t }}</option>@for (item of filteredEquipments(); track item.equipmentId) { <option [ngValue]="item.equipmentId">{{ item.equipmentName }}</option> }</select></div>
+        <div><label class="field-label">{{ 'calendar.eventTypeFilter' | t }}</label><select class="input-shell" [(ngModel)]="eventType"><option value="">{{ 'calendar.bookingAndMaintenance' | t }}</option><option value="Booking">Booking</option><option value="Maintenance">{{ 'maintenances.scheduled' | t }}</option></select></div>
+        <div class="flex items-end gap-2"><button class="btn-secondary" type="button" (click)="shiftMonth(-1)"><app-icon name="chevron-left" [size]="17" /></button><button class="btn-secondary" type="button" (click)="today()">{{ 'calendar.today' | t }}</button><button class="btn-secondary" type="button" (click)="shiftMonth(1)"><app-icon name="chevron-right" [size]="17" /></button></div>
       </div>
 
       <article class="card-surface overflow-hidden">
         <header class="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div><p class="text-xs font-bold uppercase tracking-[.18em] text-violet-500">{{ monthTitle() }}</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ filteredEvents().length }} sự kiện trong kỳ</h2></div>
-          <div class="inline-flex rounded-2xl bg-slate-100 p-1"><button class="rounded-xl px-4 py-2 text-xs font-extrabold" [ngClass]="view() === 'month' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'" (click)="view.set('month')">Tháng</button><button class="rounded-xl px-4 py-2 text-xs font-extrabold" [ngClass]="view() === 'list' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'" (click)="view.set('list')">Danh sách</button></div>
+          <div><p class="text-xs font-bold uppercase tracking-[.18em] text-violet-500">{{ monthTitle() }}</p><h2 class="mt-1 text-xl font-black text-slate-950">{{ filteredEvents().length }} {{ 'calendar.eventsInPeriod' | t }}</h2></div>
+          <div class="inline-flex rounded-2xl bg-slate-100 p-1"><button class="rounded-xl px-4 py-2 text-xs font-extrabold" [ngClass]="view() === 'month' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'" (click)="view.set('month')">{{ 'calendar.monthView' | t }}</button><button class="rounded-xl px-4 py-2 text-xs font-extrabold" [ngClass]="view() === 'list' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'" (click)="view.set('list')">{{ 'calendar.listView' | t }}</button></div>
         </header>
 
         @if (loading()) {
           <div class="grid grid-cols-7 gap-px bg-slate-100 p-px">@for (i of skeletons; track i) { <div class="h-32 bg-white p-3"><div class="skeleton h-4 w-8 rounded"></div><div class="skeleton mt-5 h-8 rounded-xl"></div></div> }</div>
         } @else if (view() === 'month') {
-          <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50">@for (day of weekdays; track day) { <div class="px-2 py-3 text-center text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ day }}</div> }</div>
+          <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50">@for (day of weekdays(); track day) { <div class="px-2 py-3 text-center text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ day }}</div> }</div>
           <div class="grid grid-cols-7 bg-slate-100 gap-px">
             @for (day of calendarDays(); track day.date.toISOString()) {
               <div class="min-h-32 bg-white p-2 transition hover:bg-violet-50/30" [class.opacity-45]="!day.inMonth">
@@ -54,13 +56,13 @@ interface CalendarDay {
                   @for (event of day.events.slice(0, 3); track event.eventType + event.sourceId) {
                     <button type="button" class="block w-full truncate rounded-lg border px-2 py-1.5 text-left text-[10px] font-bold" [ngClass]="event.eventType === 'Maintenance' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-indigo-200 bg-indigo-50 text-indigo-700'" (click)="openEvent(event)">{{ event.startTime | date:'HH:mm' }} · {{ event.title }}</button>
                   }
-                  @if (day.events.length > 3) { <p class="px-1 text-[10px] font-bold text-slate-400">+{{ day.events.length - 3 }} sự kiện khác</p> }
+                  @if (day.events.length > 3) { <p class="px-1 text-[10px] font-bold text-slate-400">+{{ day.events.length - 3 }} {{ 'calendar.eventsInPeriod' | t }}</p> }
                 </div>
               </div>
             }
           </div>
         } @else if (filteredEvents().length === 0) {
-          <div class="p-6"><app-data-state title="Không có sự kiện" message="Thử đổi tháng hoặc bỏ bớt bộ lọc để xem lịch tài nguyên." icon="calendar" /></div>
+          <div class="p-6"><app-data-state [title]="'common.noData' | t" [message]="'common.noData' | t" icon="calendar" /></div>
         } @else {
           <div class="divide-y divide-slate-100">
             @for (event of filteredEvents(); track event.eventType + event.sourceId) {
@@ -82,6 +84,7 @@ export class CalendarPage implements OnInit {
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
   protected readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly equipments = signal<EquipmentResponse[]>([])
   protected readonly events = signal<CalendarEventResponse[]>([])
@@ -91,12 +94,13 @@ export class CalendarPage implements OnInit {
   protected labId: number | null = null
   protected equipmentId: number | null = null
   protected eventType = ''
-  protected readonly weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
+  protected readonly weekdays = computed(() => this.languageStore.lang() === 'en' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'])
   protected readonly skeletons = Array.from({ length: 35 }, (_, index) => index)
 
-  protected readonly monthTitle = computed(() => new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(this.focus()))
+  protected readonly monthTitle = computed(() => new Intl.DateTimeFormat(this.languageStore.lang() === 'en' ? 'en-US' : 'vi-VN', { month: 'long', year: 'numeric' }).format(this.focus()))
   protected readonly filteredEquipments = computed(() => this.labId ? this.equipments().filter((item) => item.labId === this.labId) : this.equipments())
   protected readonly filteredEvents = computed(() => this.events().filter((event) => !this.eventType || event.eventType === this.eventType).sort((a, b) => +new Date(a.startTime) - +new Date(b.startTime)))
+
   protected readonly calendarDays = computed<CalendarDay[]>(() => {
     const focus = this.focus()
     const first = new Date(focus.getFullYear(), focus.getMonth(), 1)

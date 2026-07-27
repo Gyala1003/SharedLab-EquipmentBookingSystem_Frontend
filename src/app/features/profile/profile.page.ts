@@ -4,22 +4,25 @@ import { FormsModule } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
 import { SystemService } from '../../core/api/system.service'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
 import { ToastService } from '../../shared/ui/toast.service'
+import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-profile-page',
-  imports: [DatePipe, FormsModule, RouterLink, IconComponent, ModalComponent],
+  imports: [DatePipe, FormsModule, RouterLink, IconComponent, ModalComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <header>
         <div class="flex items-center gap-2 text-sm font-semibold text-indigo-600">
           <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-          Hồ sơ cá nhân
+          {{ 'profile.badgeText' | t }}
         </div>
-        <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">Tài khoản của bạn</h1>
-        <p class="mt-2 text-sm text-slate-500">Thông tin được đồng bộ từ hệ thống và hiện chỉ hỗ trợ chế độ xem.</p>
+        <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'profile.title' | t }}</h1>
+        <p class="mt-2 text-sm text-slate-500">{{ 'profile.subtitle' | t }}</p>
       </header>
 
       @if (store.user(); as user) {
@@ -32,7 +35,7 @@ import { ToastService } from '../../shared/ui/toast.service'
               </div>
 
               <div class="mt-6 space-y-4">
-                <div><label class="field-label">Họ và Tên</label><input class="input-shell" type="text" [value]="user.fullName" readonly /></div>
+                <div><label class="field-label">{{ 'profile.fullName' | t }}</label><input class="input-shell" type="text" [value]="user.fullName" readonly /></div>
                 <div><label class="field-label">Email</label><input class="input-shell" type="text" [value]="user.email" readonly /></div>
                 <div>
                   <label class="field-label">Legit Point</label>
@@ -41,33 +44,33 @@ import { ToastService } from '../../shared/ui/toast.service'
                   <p class="mt-1.5 text-xs font-semibold text-slate-400">{{ legitPoint(user) }} / 100</p>
                 </div>
                 <div>
-                  <label class="field-label">Ngày tạo tài khoản</label>
+                  <label class="field-label">{{ 'profile.createdAt' | t }}</label>
                   <!-- TODO: cần Backend bổ sung trường createdAt vào response GET /Auth/me và thêm vào AuthUser (core/auth/auth.types.ts) khi có -->
-                  <div class="input-shell flex items-center gap-2 text-slate-400"><app-icon name="calendar" [size]="16" /> Chưa cập nhật</div>
+                  <div class="input-shell flex items-center gap-2 text-slate-400"><app-icon name="calendar" [size]="16" /> {{ 'profile.notUpdated' | t }}</div>
                 </div>
                 <div>
-                  <label class="field-label">Địa chỉ</label>
+                  <label class="field-label">{{ 'profile.address' | t }}</label>
                   <!-- TODO: cần Backend bổ sung trường address vào response GET /Auth/me và thêm vào AuthUser (core/auth/auth.types.ts) khi có -->
-                  <div class="input-shell flex items-center gap-2 text-slate-400"><app-icon name="map-pin" [size]="16" /> Chưa cập nhật</div>
+                  <div class="input-shell flex items-center gap-2 text-slate-400"><app-icon name="map-pin" [size]="16" /> {{ 'profile.notUpdated' | t }}</div>
                 </div>
-                <div><label class="field-label">Phòng Ban (Department)</label><input class="input-shell" type="text" [value]="user.departmentName || 'Chưa cập nhật'" readonly /></div>
+                <div><label class="field-label">{{ 'profile.department' | t }}</label><input class="input-shell" type="text" [value]="user.departmentName || ('profile.notUpdated' | t)" readonly /></div>
               </div>
 
               <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-5">
-                <button type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-rose-700" (click)="logout()"><app-icon name="logout" [size]="16" /> Đăng Xuất</button>
+                <button type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-rose-700" (click)="logout()"><app-icon name="logout" [size]="16" /> {{ 'profile.logout' | t }}</button>
                 <div class="flex gap-2">
-                  <a routerLink="/app/bookings/my" class="btn-secondary"><app-icon name="book-open" [size]="16" /> Booking History</a>
-                  <button type="button" class="btn-secondary" (click)="openEdit(user)"><app-icon name="edit" [size]="16" /> Edit Profile</button>
+                  <a routerLink="/app/bookings/my" class="btn-secondary"><app-icon name="book-open" [size]="16" /> {{ 'profile.bookingHistory' | t }}</a>
+                  <button type="button" class="btn-secondary" (click)="openEdit(user)"><app-icon name="edit" [size]="16" /> {{ 'profile.editProfile' | t }}</button>
                 </div>
               </div>
             </article>
 
             <article class="rounded-[24px] bg-[#111a3a] p-6 text-white shadow-xl shadow-slate-900/15">
               <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-cyan-300"><app-icon name="shield" [size]="21" /></div>
-              <h3 class="mt-5 text-lg font-bold">Bảo mật tài khoản</h3>
-              <p class="mt-2 text-sm leading-6 text-white/55">Backend hiện chưa có API đổi mật khẩu khi đang đăng nhập. Bạn có thể dùng luồng đặt lại qua email.</p>
+              <h3 class="mt-5 text-lg font-bold">{{ 'profile.accountSecurity' | t }}</h3>
+              <p class="mt-2 text-sm leading-6 text-white/55">{{ 'profile.securityNote' | t }}</p>
               <a routerLink="/forgot-password" class="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-[#111a3a] hover:bg-cyan-50">
-                Đặt lại mật khẩu
+                {{ 'profile.resetPassword' | t }}
                 <app-icon name="arrow-right" [size]="16" />
               </a>
             </article>
@@ -77,10 +80,10 @@ import { ToastService } from '../../shared/ui/toast.service'
             <article class="card-surface overflow-hidden">
               <div class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
                 <div>
-                  <h2 class="text-lg font-bold text-slate-950">Thông tin tài khoản</h2>
-                  <p class="mt-1 text-xs text-slate-400">Dữ liệu được đồng bộ từ hồ sơ hệ thống</p>
+                  <h2 class="text-lg font-bold text-slate-950">{{ 'profile.accountInfo' | t }}</h2>
+                  <p class="mt-1 text-xs text-slate-400">{{ 'profile.accountInfoSub' | t }}</p>
                 </div>
-                <span class="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Chỉ xem</span>
+                <span class="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">ReadOnly</span>
               </div>
               <div class="grid gap-px bg-slate-100 sm:grid-cols-2">
                 @for (item of profileItems(user); track item.label) {
@@ -101,7 +104,7 @@ import { ToastService } from '../../shared/ui/toast.service'
               <article class="card-surface p-5 sm:p-6">
                 <div class="flex items-center gap-3">
                   <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"><app-icon name="activity" [size]="21" /></div>
-                  <div><h2 class="font-bold text-slate-950">Trạng thái hoạt động</h2><p class="text-xs text-slate-400">Quyền sử dụng hệ thống hiện tại</p></div>
+                  <div><h2 class="font-bold text-slate-950">{{ 'profile.activeStatusTitle' | t }}</h2><p class="text-xs text-slate-400">{{ 'profile.activeStatusSub' | t }}</p></div>
                 </div>
                 <div class="mt-6 rounded-2xl border p-5" [class.border-emerald-100]="statusText() === 'Active'" [class.bg-emerald-50]="statusText() === 'Active'" [class.border-amber-100]="statusText() === 'Restricted'" [class.bg-amber-50]="statusText() === 'Restricted'" [class.border-rose-100]="statusText() === 'Locked' || statusText() === 'Inactive'" [class.bg-rose-50]="statusText() === 'Locked' || statusText() === 'Inactive'">
                   <div class="flex items-center justify-between gap-4">
@@ -117,16 +120,16 @@ import { ToastService } from '../../shared/ui/toast.service'
               <article class="card-surface p-5 sm:p-6">
                 <div class="flex items-center gap-3">
                   <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"><app-icon name="clock" [size]="21" /></div>
-                  <div><h2 class="font-bold text-slate-950">Thời hạn hạn chế</h2><p class="text-xs text-slate-400">Áp dụng khi tài khoản Restricted</p></div>
+                  <div><h2 class="font-bold text-slate-950">{{ 'profile.restrictionTitle' | t }}</h2><p class="text-xs text-slate-400">{{ 'profile.restrictionSub' | t }}</p></div>
                 </div>
                 <div class="mt-6 rounded-2xl bg-slate-50 p-5">
                   @if (user.restrictionUntil) {
                     <p class="text-2xl font-bold tracking-[-0.03em] text-slate-950">{{ user.restrictionUntil | date: 'HH:mm' }}</p>
                     <p class="mt-1 text-sm font-semibold text-slate-600">{{ user.restrictionUntil | date: 'dd/MM/yyyy' }}</p>
-                    <p class="mt-3 text-xs leading-5 text-slate-400">Sau thời điểm này, backend sẽ tự mở hạn chế nếu không có điều kiện chặn khác.</p>
+                    <p class="mt-3 text-xs leading-5 text-slate-400">{{ 'violations.restrictedUntil' | t }}</p>
                   } @else {
-                    <p class="text-lg font-bold text-slate-800">Không có thời hạn hạn chế</p>
-                    <p class="mt-2 text-xs leading-5 text-slate-400">Tài khoản hiện không lưu RestrictionUntil.</p>
+                    <p class="text-lg font-bold text-slate-800">{{ 'profile.noRestriction' | t }}</p>
+                    <p class="mt-2 text-xs leading-5 text-slate-400">{{ 'profile.noRestrictionDesc' | t }}</p>
                   }
                 </div>
               </article>
@@ -135,8 +138,8 @@ import { ToastService } from '../../shared/ui/toast.service'
             <article class="flex flex-col gap-4 rounded-3xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 p-5 sm:flex-row sm:items-center sm:p-6">
               <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm"><app-icon name="mail" [size]="22" /></div>
               <div class="min-w-0 flex-1">
-                <p class="font-bold text-indigo-950">Cần cập nhật thông tin?</p>
-                <p class="mt-1 text-sm leading-6 text-indigo-700/70">Hiện chưa có API tự sửa hồ sơ. Hãy liên hệ Admin để thay đổi họ tên, email, khoa/phòng ban hoặc vai trò.</p>
+                <p class="font-bold text-indigo-950">{{ 'profile.needUpdateTitle' | t }}</p>
+                <p class="mt-1 text-sm leading-6 text-indigo-700/70">{{ 'profile.needUpdateSub' | t }}</p>
               </div>
             </article>
           </div>
@@ -147,7 +150,7 @@ import { ToastService } from '../../shared/ui/toast.service'
             <div><label class="field-label">Họ và tên *</label><input class="input-shell" [(ngModel)]="editForm.fullName" name="fullName" required /></div>
             <div><label class="field-label">Username *</label><input class="input-shell" [(ngModel)]="editForm.username" name="username" required /></div>
             <div><label class="field-label">Email *</label><input class="input-shell" type="email" [(ngModel)]="editForm.email" name="email" required /></div>
-            <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</button></div>
+            <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">{{ 'common.cancel' | t }}</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? '...' : 'Save' }}</button></div>
           </form>
         </app-modal>
       }
@@ -156,6 +159,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 })
 export class ProfilePage {
   protected readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
   private readonly router = inject(Router)
@@ -203,18 +207,24 @@ export class ProfilePage {
   }
 
   protected roleLabel(role: string): string {
-    if (role === 'Admin') return 'Quản trị viên'
-    if (role === 'LabManager') return 'Quản lý phòng lab'
-    return 'Người đặt lịch'
+    return labelOf('userRole', role, this.languageStore.lang())
   }
 
   protected statusLabel(status: string): string {
-    return ({ Active: 'Đang hoạt động', Restricted: 'Đang hạn chế', Inactive: 'Ngừng hoạt động', Locked: 'Đã khóa' } as Record<string, string>)[status] ?? status
+    return labelOf('user', status, this.languageStore.lang())
   }
 
   protected statusDescription(status: string): string {
+    if (this.languageStore.lang() === 'en') {
+      return ({
+        Active: 'Full access to all system features according to assigned role.',
+        Restricted: 'Some operations like creating new bookings may be restricted.',
+        Inactive: 'Account is inactive on the system.',
+        Locked: 'Account is locked and requires Admin to unlock.',
+      } as Record<string, string>)[status] ?? 'Unknown account status.'
+    }
     return ({
-      Active: 'M có thể sử dụng đầy đủ các chức năng theo vai trò được cấp.',
+      Active: 'Có thể sử dụng đầy đủ các chức năng theo vai trò được cấp.',
       Restricted: 'Một số thao tác như tạo booking mới có thể bị hạn chế.',
       Inactive: 'Tài khoản không còn hoạt động trên hệ thống.',
       Locked: 'Tài khoản đã bị khóa và cần Admin mở lại.',
@@ -230,12 +240,12 @@ export class ProfilePage {
     departmentName: string
   }): { label: string; value: string; icon: string }[] {
     return [
-      { label: 'Mã người dùng', value: `#${user.userId}`, icon: 'user' },
-      { label: 'Họ và tên', value: user.fullName, icon: 'user' },
-      { label: 'Username', value: user.username, icon: 'shield' },
-      { label: 'Email', value: user.email, icon: 'mail' },
-      { label: 'Vai trò', value: this.roleLabel(user.roleName), icon: 'shield' },
-      { label: 'Khoa / phòng ban', value: user.departmentName || 'Chưa cập nhật', icon: 'building' },
+      { label: this.languageStore.t('profile.userId'), value: `#${user.userId}`, icon: 'user' },
+      { label: this.languageStore.t('profile.fullName'), value: user.fullName, icon: 'user' },
+      { label: this.languageStore.t('profile.username'), value: user.username, icon: 'shield' },
+      { label: this.languageStore.t('profile.email'), value: user.email, icon: 'mail' },
+      { label: this.languageStore.t('profile.role'), value: this.roleLabel(user.roleName), icon: 'shield' },
+      { label: this.languageStore.t('profile.department'), value: user.departmentName || this.languageStore.t('profile.notUpdated'), icon: 'building' },
     ]
   }
 }

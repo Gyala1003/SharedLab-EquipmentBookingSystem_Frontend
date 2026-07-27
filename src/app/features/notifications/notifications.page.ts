@@ -5,25 +5,28 @@ import type { NotificationResponse } from '../../core/api/api.models'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
+import { labelOf } from '../../shared/utils/presentation'
 
 type NotificationTab = 'all' | 'unread'
 
 @Component({
   selector: 'app-notifications-page',
-  imports: [FormsModule, DatePipe, IconComponent],
+  imports: [FormsModule, DatePipe, IconComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
         <div>
           <div class="flex items-center gap-2 text-sm font-semibold text-indigo-600">
             <span class="h-2 w-2 rounded-full bg-rose-500"></span>
-            Cập nhật theo thời gian thực
+            {{ 'notifications.badgeText' | t }}
           </div>
-          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">Trung tâm thông báo</h1>
-          <p class="mt-2 text-sm text-slate-500">Theo dõi booking, hàng chờ, vi phạm, bảo trì và thông báo hệ thống.</p>
+          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'notifications.title' | t }}</h1>
+          <p class="mt-2 text-sm text-slate-500">{{ 'notifications.subtitle' | t }}</p>
         </div>
         <button
           type="button"
@@ -32,7 +35,7 @@ type NotificationTab = 'all' | 'unread'
           (click)="markAllRead()"
         >
           <app-icon name="check" [size]="18" />
-          Đánh dấu tất cả đã đọc
+          {{ 'notifications.markAllAsRead' | t }}
         </button>
       </header>
 
@@ -42,11 +45,11 @@ type NotificationTab = 'all' | 'unread'
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div class="flex rounded-2xl bg-slate-100 p-1">
                 <button type="button" class="flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition" [class.bg-white]="tab() === 'all'" [class.text-slate-900]="tab() === 'all'" [class.shadow-sm]="tab() === 'all'" [class.text-slate-500]="tab() !== 'all'" (click)="changeTab('all')">
-                  Tất cả
+                  {{ 'common.all' | t }}
                   <span class="rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold">{{ tab() === 'all' ? notifications().length : '' }}</span>
                 </button>
                 <button type="button" class="flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition" [class.bg-white]="tab() === 'unread'" [class.text-slate-900]="tab() === 'unread'" [class.shadow-sm]="tab() === 'unread'" [class.text-slate-500]="tab() !== 'unread'" (click)="changeTab('unread')">
-                  Chưa đọc
+                  {{ 'waitlists.waiting' | t }}
                   <span class="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">{{ unreadCount() }}</span>
                 </button>
               </div>
@@ -54,12 +57,12 @@ type NotificationTab = 'all' | 'unread'
               <div class="flex flex-col gap-3 sm:flex-row">
                 <div class="relative min-w-[220px]">
                   <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400"><app-icon name="search" [size]="17" /></span>
-                  <input [(ngModel)]="searchText" type="search" placeholder="Tìm trong thông báo..." class="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400" />
+                  <input [(ngModel)]="searchText" type="search" placeholder="{{ 'notifications.searchPlaceholder' | t }}" class="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400" />
                 </div>
                 <div class="relative">
                   <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><app-icon name="filter" [size]="16" /></span>
                   <select [(ngModel)]="typeFilter" class="h-10 min-w-[170px] appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-xs font-semibold text-slate-600">
-                    <option value="all">Tất cả loại</option>
+                    <option value="all">{{ 'notifications.allTypes' | t }}</option>
                     @for (type of availableTypes(); track type) { <option [value]="type">{{ typeLabel(type) }}</option> }
                   </select>
                   <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400"><app-icon name="chevron-down" [size]="15" /></span>
@@ -77,10 +80,10 @@ type NotificationTab = 'all' | 'unread'
           } @else if (filteredNotifications().length === 0) {
             <div class="flex min-h-[460px] flex-col items-center justify-center px-6 py-16 text-center">
               <div class="flex h-20 w-20 items-center justify-center rounded-[28px] bg-indigo-50 text-indigo-500"><app-icon name="bell" [size]="34" /></div>
-              <h2 class="mt-6 text-lg font-bold text-slate-800">Không tìm thấy thông báo</h2>
-              <p class="mt-2 max-w-sm text-sm leading-6 text-slate-400">Thử đổi tab, loại thông báo hoặc từ khóa tìm kiếm.</p>
+              <h2 class="mt-6 text-lg font-bold text-slate-800">{{ 'common.noData' | t }}</h2>
+              <p class="mt-2 max-w-sm text-sm leading-6 text-slate-400">{{ 'common.noData' | t }}</p>
               @if (searchText || typeFilter !== 'all') {
-                <button type="button" class="mt-5 text-sm font-bold text-indigo-600 hover:underline" (click)="clearFilters()">Xóa bộ lọc</button>
+                <button type="button" class="mt-5 text-sm font-bold text-indigo-600 hover:underline" (click)="clearFilters()">{{ 'common.cancel' | t }}</button>
               }
             </div>
           } @else {
@@ -115,10 +118,10 @@ type NotificationTab = 'all' | 'unread'
 
             @if (tab() === 'all') {
               <div class="flex items-center justify-between border-t border-slate-100 px-5 py-4 sm:px-6">
-                <p class="text-xs text-slate-400">Trang {{ pageNumber() }} • tối đa {{ pageSize }} thông báo/trang</p>
+                <p class="text-xs text-slate-400">{{ 'common.page' | t: { current: pageNumber(), total: pageSize } }}</p>
                 <div class="flex gap-2">
-                  <button type="button" class="flex h-9 items-center gap-1 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40" [disabled]="pageNumber() === 1 || loading()" (click)="previousPage()"><app-icon name="arrow-left" [size]="15" />Trước</button>
-                  <button type="button" class="flex h-9 items-center gap-1 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40" [disabled]="notifications().length < pageSize || loading()" (click)="nextPage()">Sau<app-icon name="arrow-right" [size]="15" /></button>
+                  <button type="button" class="flex h-9 items-center gap-1 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40" [disabled]="pageNumber() === 1 || loading()" (click)="previousPage()"><app-icon name="arrow-left" [size]="15" />{{ 'common.prev' | t }}</button>
+                  <button type="button" class="flex h-9 items-center gap-1 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40" [disabled]="notifications().length < pageSize || loading()" (click)="nextPage()">{{ 'common.next' | t }}<app-icon name="arrow-right" [size]="15" /></button>
                 </div>
               </div>
             }
@@ -129,18 +132,18 @@ type NotificationTab = 'all' | 'unread'
           <article class="rounded-[24px] bg-[#111a3a] p-6 text-white shadow-xl shadow-slate-900/15">
             <div class="flex items-start justify-between gap-4">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-cyan-300"><app-icon name="bell" [size]="23" /></div>
-              <span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-bold">{{ unreadCount() }} chưa đọc</span>
+              <span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-bold">{{ unreadCount() }} {{ 'waitlists.waiting' | t }}</span>
             </div>
-            <h2 class="mt-6 text-xl font-bold">Tổng quan hộp thư</h2>
-            <p class="mt-2 text-sm leading-6 text-white/55">Thông báo chưa đọc sẽ có nền tím nhạt và chấm trạng thái ở bên phải.</p>
+            <h2 class="mt-6 text-xl font-bold">{{ 'notifications.overviewTitle' | t }}</h2>
+            <p class="mt-2 text-sm leading-6 text-white/55">{{ 'notifications.overviewSub' | t }}</p>
             <div class="mt-6 grid grid-cols-2 gap-3">
-              <div class="rounded-2xl bg-white/[0.07] p-4"><p class="text-2xl font-bold">{{ notifications().length }}</p><p class="mt-1 text-[10px] text-white/40">Đang hiển thị</p></div>
-              <div class="rounded-2xl bg-white/[0.07] p-4"><p class="text-2xl font-bold">{{ availableTypes().length }}</p><p class="mt-1 text-[10px] text-white/40">Nhóm thông báo</p></div>
+              <div class="rounded-2xl bg-white/[0.07] p-4"><p class="text-2xl font-bold">{{ notifications().length }}</p><p class="mt-1 text-[10px] text-white/40">{{ 'notifications.showing' | t }}</p></div>
+              <div class="rounded-2xl bg-white/[0.07] p-4"><p class="text-2xl font-bold">{{ availableTypes().length }}</p><p class="mt-1 text-[10px] text-white/40">{{ 'notifications.groups' | t }}</p></div>
             </div>
           </article>
 
           <article class="card-surface p-5">
-            <h2 class="font-bold text-slate-950">Phân loại nhanh</h2>
+            <h2 class="font-bold text-slate-950">{{ 'notifications.quickClass' | t }}</h2>
             <div class="mt-4 space-y-2">
               @for (summary of typeSummaries(); track summary.type) {
                 <button type="button" class="flex w-full items-center gap-3 rounded-2xl p-3 text-left transition hover:bg-slate-50" (click)="typeFilter = summary.type">
@@ -149,12 +152,13 @@ type NotificationTab = 'all' | 'unread'
                   <strong class="text-xs text-slate-900">{{ summary.count }}</strong>
                 </button>
               }
-              @if (typeSummaries().length === 0) { <p class="py-6 text-center text-xs text-slate-400">Chưa có dữ liệu phân loại.</p> }
+              @if (typeSummaries().length === 0) { <p class="py-6 text-center text-xs text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
         </aside>
       </div>
     </section>
+
 
     @if (selected(); as notification) {
       <button type="button" class="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm" aria-label="Đóng chi tiết" (click)="selected.set(null)"></button>
@@ -192,6 +196,7 @@ export class NotificationsPage implements OnInit {
   private readonly workspace = inject(WorkspaceService)
   private readonly badge = inject(NotificationBadgeService)
   private readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
   protected readonly notifications = signal<NotificationResponse[]>([])
   protected readonly unreadCount = this.badge.count
@@ -300,16 +305,9 @@ export class NotificationsPage implements OnInit {
   }
 
   protected typeLabel(type: string): string {
-    const normalized = type.toLowerCase()
-    if (normalized.includes('approve')) return 'Booking được duyệt'
-    if (normalized.includes('reject')) return 'Booking bị từ chối'
-    if (normalized.includes('reminder')) return 'Nhắc lịch booking'
-    if (normalized.includes('waitlist') || normalized.includes('available')) return 'Hàng chờ có chỗ'
-    if (normalized.includes('maintenance')) return 'Bảo trì'
-    if (normalized.includes('violation')) return 'Vi phạm'
-    if (normalized.includes('booking')) return 'Booking'
-    return type || 'Hệ thống'
+    return labelOf('notification', type, this.languageStore.lang())
   }
+
 
   protected tone(type: string): 'emerald' | 'rose' | 'amber' | 'indigo' | 'cyan' {
     const normalized = type.toLowerCase()

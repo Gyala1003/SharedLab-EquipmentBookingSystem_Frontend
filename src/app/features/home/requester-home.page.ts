@@ -10,12 +10,16 @@ import type {
 } from '../../core/api/api.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
+import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-requester-home-page',
-  imports: [DatePipe, RouterLink, IconComponent],
+  imports: [DatePipe, RouterLink, IconComponent, TranslatePipe],
+
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
@@ -25,19 +29,19 @@ import { ToastService } from '../../shared/ui/toast.service'
             {{ today | date: 'EEEE, dd/MM/yyyy' }}
           </div>
           <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">
-            Chào {{ firstName() }}, sẵn sàng nghiên cứu chưa?
+            {{ 'home.greeting' | t: { name: firstName() } }}
           </h1>
-          <p class="mt-2 text-sm text-slate-500">Theo dõi lịch đặt, hàng chờ và trạng thái tài khoản của bạn tại một nơi.</p>
+          <p class="mt-2 text-sm text-slate-500">{{ 'home.sub' | t }}</p>
         </div>
         <div class="flex flex-wrap gap-3">
-          <button type="button" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" (click)="comingSoon('Lịch tài nguyên')">
+          <a routerLink="/app/calendar" class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <app-icon name="calendar" [size]="18" />
-            Xem lịch tài nguyên
-          </button>
-          <button type="button" class="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:shadow-xl" (click)="comingSoon('Tạo booking')">
+            {{ 'home.viewCalendar' | t }}
+          </a>
+          <a routerLink="/app/bookings/new" class="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:shadow-xl">
             <span class="text-lg leading-none">+</span>
-            Tạo booking nhanh
-          </button>
+            {{ 'home.quickBooking' | t }}
+          </a>
         </div>
       </header>
 
@@ -54,12 +58,13 @@ import { ToastService } from '../../shared/ui/toast.service'
               <app-icon name="alert" [size]="23" />
             </div>
             <div class="min-w-0 flex-1">
-              <p class="font-bold text-amber-950">Tài khoản cần chú ý</p>
+              <p class="font-bold text-amber-950">{{ 'home.accountNotice' | t }}</p>
               <p class="mt-1 text-sm leading-6 text-amber-700">{{ accountWarning() }}</p>
             </div>
-            <a routerLink="/app/profile" class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-amber-900 px-4 text-xs font-bold text-white hover:bg-amber-800">Xem chi tiết</a>
+            <a routerLink="/app/profile" class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-amber-900 px-4 text-xs font-bold text-white hover:bg-amber-800">{{ 'home.viewDetails' | t }}</a>
           </div>
         }
+
 
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           @for (card of kpiCards(); track card.label) {
@@ -83,17 +88,17 @@ import { ToastService } from '../../shared/ui/toast.service'
           <article class="card-surface overflow-hidden">
             <div class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">Booking sắp tới</h2>
-                <p class="mt-1 text-xs text-slate-400">Các lịch đã được duyệt và chuẩn bị diễn ra</p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'home.upcomingTitle' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'home.upcomingSubtitle' | t }}</p>
               </div>
-              <button type="button" class="text-xs font-bold text-indigo-600 hover:text-indigo-800" (click)="comingSoon('Danh sách booking')">Xem tất cả</button>
+              <a routerLink="/app/bookings/my" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">{{ 'home.viewAll' | t }}</a>
             </div>
 
             @if (upcomingBookings().length === 0) {
               <div class="flex flex-col items-center px-6 py-14 text-center">
                 <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-500"><app-icon name="calendar" [size]="25" /></div>
-                <p class="mt-4 font-semibold text-slate-800">Chưa có booking sắp tới</p>
-                <p class="mt-1 text-sm text-slate-400">Khi booking được duyệt, lịch sẽ xuất hiện ở đây.</p>
+                <p class="mt-4 font-semibold text-slate-800">{{ 'home.noUpcoming' | t }}</p>
+                <p class="mt-1 text-sm text-slate-400">{{ 'home.noUpcomingSub' | t }}</p>
               </div>
             } @else {
               <div class="divide-y divide-slate-100">
@@ -106,7 +111,7 @@ import { ToastService } from '../../shared/ui/toast.service'
                     <div class="min-w-0 flex-1">
                       <div class="flex flex-wrap items-center gap-2">
                         <p class="truncate font-semibold text-slate-900">{{ purposeLabel(booking.purposeType) }}</p>
-                        <span class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">Đã duyệt</span>
+                        <span class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">{{ statusLabel('Approved') }}</span>
                       </div>
                       <p class="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
                         <app-icon name="clock" [size]="14" />
@@ -123,8 +128,8 @@ import { ToastService } from '../../shared/ui/toast.service'
           <article class="card-surface p-5 sm:p-6">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">Sức khỏe tài khoản</h2>
-                <p class="mt-1 text-xs text-slate-400">Cập nhật theo điểm phạt hiện tại</p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'home.accountHealth' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'home.accountHealthSub' | t }}</p>
               </div>
               <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"><app-icon name="shield" [size]="22" /></div>
             </div>
@@ -138,14 +143,14 @@ import { ToastService } from '../../shared/ui/toast.service'
               </div>
               <div class="min-w-0">
                 <span class="inline-flex rounded-full px-3 py-1.5 text-xs font-bold" [class.bg-emerald-50]="statusText() === 'Active'" [class.text-emerald-700]="statusText() === 'Active'" [class.bg-amber-50]="statusText() === 'Restricted'" [class.text-amber-700]="statusText() === 'Restricted'" [class.bg-rose-50]="statusText() === 'Locked' || statusText() === 'Inactive'" [class.text-rose-700]="statusText() === 'Locked' || statusText() === 'Inactive'">{{ statusLabel(statusText()) }}</span>
-                <p class="mt-3 text-sm leading-6 text-slate-500">{{ violationSummary().activeViolationCount }} vi phạm đang hoạt động, {{ violationSummary().activePenaltyPoints }} điểm phạt hiệu lực.</p>
+                <p class="mt-3 text-sm leading-6 text-slate-500">{{ violationSummary().activeViolationCount }} {{ 'dashboard.activeViolations' | t }}, {{ violationSummary().activePenaltyPoints }} {{ 'dashboard.points' | t }}.</p>
               </div>
             </div>
 
             <div class="mt-6 space-y-3 rounded-2xl bg-slate-50 p-4">
-              <div class="flex items-center justify-between text-sm"><span class="text-slate-500">Tổng điểm phạt</span><strong class="text-slate-900">{{ violationSummary().penaltyPoints }}</strong></div>
+              <div class="flex items-center justify-between text-sm"><span class="text-slate-500">{{ 'home.totalPenaltyPoints' | t }}</span><strong class="text-slate-900">{{ violationSummary().penaltyPoints }}</strong></div>
               <div class="h-px bg-slate-200"></div>
-              <div class="flex items-center justify-between text-sm"><span class="text-slate-500">Hạn chế đến</span><strong class="text-slate-900">{{ violationSummary().restrictionUntil ? (violationSummary().restrictionUntil | date: 'dd/MM/yyyy HH:mm') : 'Không có' }}</strong></div>
+              <div class="flex items-center justify-between text-sm"><span class="text-slate-500">{{ 'home.restrictionUntil' | t }}</span><strong class="text-slate-900">{{ violationSummary().restrictionUntil ? (violationSummary().restrictionUntil | date: 'dd/MM/yyyy HH:mm') : ('home.none' | t) }}</strong></div>
             </div>
           </article>
         </div>
@@ -154,13 +159,13 @@ import { ToastService } from '../../shared/ui/toast.service'
           <article class="card-surface overflow-hidden xl:col-span-2">
             <div class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">Thông báo mới nhất</h2>
-                <p class="mt-1 text-xs text-slate-400">Những cập nhật bạn cần xử lý</p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'home.latestNotifications' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'home.latestNotificationsSub' | t }}</p>
               </div>
-              <a routerLink="/app/notifications" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">Trung tâm thông báo</a>
+              <a routerLink="/app/notifications" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">{{ 'home.notificationCenter' | t }}</a>
             </div>
             @if (recentNotifications().length === 0) {
-              <div class="px-6 py-12 text-center text-sm text-slate-400">M chưa có thông báo nào.</div>
+              <div class="px-6 py-12 text-center text-sm text-slate-400">{{ 'home.noNotifications' | t }}</div>
             } @else {
               <div class="divide-y divide-slate-100">
                 @for (notification of recentNotifications(); track notification.notificationId) {
@@ -184,26 +189,26 @@ import { ToastService } from '../../shared/ui/toast.service'
 
           <article class="card-surface overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <h2 class="text-lg font-bold text-slate-950">Hàng chờ của bạn</h2>
-              <p class="mt-1 text-xs text-slate-400">Theo dõi vị trí và thời gian được giữ chỗ</p>
+              <h2 class="text-lg font-bold text-slate-950">{{ 'home.yourWaitlist' | t }}</h2>
+              <p class="mt-1 text-xs text-slate-400">{{ 'home.waitlistSub' | t }}</p>
             </div>
             @if (activeWaitlists().length === 0) {
               <div class="flex flex-col items-center px-6 py-12 text-center">
                 <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="clock" [size]="22" /></div>
-                <p class="mt-4 text-sm font-semibold text-slate-700">Không có hàng chờ hoạt động</p>
+                <p class="mt-4 text-sm font-semibold text-slate-700">{{ 'home.noWaitlists' | t }}</p>
               </div>
             } @else {
               <div class="space-y-3 p-4">
                 @for (waitlist of activeWaitlists().slice(0, 3); track waitlist.waitlistId) {
                   <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                     <div class="flex items-center justify-between gap-3">
-                      <span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 shadow-sm">#{{ waitlist.queuePosition }} trong hàng chờ</span>
+                      <span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 shadow-sm">#{{ waitlist.queuePosition }} {{ 'home.inWaitlist' | t }}</span>
                       <span class="text-[10px] font-bold" [class.text-amber-600]="waitlist.status === 'Waiting'" [class.text-emerald-600]="waitlist.status === 'Notified'">{{ waitlistStatusLabel(waitlist.status) }}</span>
                     </div>
-                    <p class="mt-3 text-sm font-semibold text-slate-800">{{ waitlist.labId ? 'Phòng lab #' + waitlist.labId : 'Thiết bị #' + waitlist.equipmentId }}</p>
+                    <p class="mt-3 text-sm font-semibold text-slate-800">{{ waitlist.labId ? ('labs.labRoom' | t) + ' #' + waitlist.labId : ('equipments.title' | t) + ' #' + waitlist.equipmentId }}</p>
                     <p class="mt-1 text-xs text-slate-400">{{ waitlist.requestedStart | date: 'HH:mm dd/MM' }} – {{ waitlist.requestedEnd | date: 'HH:mm dd/MM' }}</p>
                     @if (waitlist.notifiedAt) {
-                      <p class="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">Đã thông báo lúc {{ waitlist.notifiedAt | date: 'HH:mm dd/MM' }}</p>
+                      <p class="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">{{ 'home.notifiedAt' | t }} {{ waitlist.notifiedAt | date: 'HH:mm dd/MM' }}</p>
                     }
                   </div>
                 }
@@ -214,11 +219,15 @@ import { ToastService } from '../../shared/ui/toast.service'
       }
     </section>
   `,
+
+
 })
 export class RequesterHomePage implements OnInit {
   private readonly workspace = inject(WorkspaceService)
   protected readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
+
   protected readonly today = new Date()
   protected readonly loading = signal(true)
   protected readonly bookings = signal<BookingResponse[]>([])
@@ -268,24 +277,38 @@ export class RequesterHomePage implements OnInit {
     () => `conic-gradient(#10b981 0 ${this.healthScore()}%, #e2e8f0 ${this.healthScore()}% 100%)`,
   )
   protected readonly accountWarning = computed(() => {
+    const isEn = this.languageStore.lang() === 'en'
     const status = this.statusText()
     if (status === 'Restricted') {
       const until = this.store.user()?.restrictionUntil
+      if (isEn) {
+        return until
+          ? `Your account is restricted until ${new Date(until).toLocaleString('en-US')}. You may not be able to create new bookings.`
+          : 'Your account is restricted. Please check your active violations.'
+      }
       return until
         ? `Tài khoản đang bị hạn chế đến ${new Date(until).toLocaleString('vi-VN')}. Trong thời gian này bạn có thể không tạo được booking mới.`
         : 'Tài khoản đang bị hạn chế. Vui lòng xem các vi phạm đang hoạt động.'
     }
-    if (status === 'Locked') return 'Tài khoản đã bị khóa. Hãy liên hệ Admin để được hỗ trợ.'
-    if (status === 'Inactive') return 'Tài khoản đang ngừng hoạt động. Hãy liên hệ Admin.'
-    if (this.violationSummary().activeViolationCount > 0) return `Bạn đang có ${this.violationSummary().activeViolationCount} vi phạm hoạt động. Hãy kiểm tra để tránh bị hạn chế tài khoản.`
+    if (status === 'Locked') return isEn ? 'Your account is locked. Please contact Admin for support.' : 'Tài khoản đã bị khóa. Hãy liên hệ Admin để được hỗ trợ.'
+    if (status === 'Inactive') return isEn ? 'Your account is inactive. Please contact Admin.' : 'Tài khoản đang ngừng hoạt động. Hãy liên hệ Admin.'
+    if (this.violationSummary().activeViolationCount > 0) {
+      return isEn
+        ? `You have ${this.violationSummary().activeViolationCount} active violation(s). Please review to avoid account restrictions.`
+        : `Bạn đang có ${this.violationSummary().activeViolationCount} vi phạm hoạt động. Hãy kiểm tra để tránh bị hạn chế tài khoản.`
+    }
     return ''
   })
-  protected readonly kpiCards = computed(() => [
-    { label: 'Đang chờ duyệt', value: this.pendingBookings(), note: 'Booking cần quản lý xử lý', icon: 'clock', tone: 'amber' },
-    { label: 'Sắp diễn ra', value: this.upcomingBookings().length, note: 'Booking đã được duyệt', icon: 'calendar', tone: 'indigo' },
-    { label: 'Hàng chờ hoạt động', value: this.activeWaitlists().length, note: 'Đang giữ vị trí ưu tiên', icon: 'activity', tone: 'cyan' },
-    { label: 'Thông báo chưa đọc', value: this.unreadCount(), note: 'Cập nhật mới cần xem', icon: 'bell', tone: 'rose' },
-  ])
+
+  protected readonly kpiCards = computed(() => {
+    this.languageStore.lang()
+    return [
+      { label: this.languageStore.t('home.pendingApproval'), value: this.pendingBookings(), note: this.languageStore.t('home.pendingNote'), icon: 'clock', tone: 'amber' },
+      { label: this.languageStore.t('home.upcomingBookings'), value: this.upcomingBookings().length, note: this.languageStore.t('home.approvedNote'), icon: 'calendar', tone: 'indigo' },
+      { label: this.languageStore.t('home.activeWaitlist'), value: this.activeWaitlists().length, note: this.languageStore.t('home.waitlistNote'), icon: 'activity', tone: 'cyan' },
+      { label: this.languageStore.t('home.unreadNotifications'), value: this.unreadCount(), note: this.languageStore.t('home.unreadNote'), icon: 'bell', tone: 'rose' },
+    ]
+  })
 
   ngOnInit(): void {
     const user = this.store.user()
@@ -325,21 +348,17 @@ export class RequesterHomePage implements OnInit {
   }
 
   protected purposeLabel(value: string): string {
-    const labels: Record<string, string> = {
-      ResearchProject: 'Dự án nghiên cứu',
-      CoursePractice: 'Thực hành môn học',
-      SelfStudy: 'Tự học / nghiên cứu cá nhân',
-    }
-    return labels[value] ?? value
+    return labelOf('purpose', value, this.languageStore.lang())
   }
 
   protected statusLabel(value: string): string {
-    return ({ Active: 'Đang hoạt động', Restricted: 'Đang hạn chế', Inactive: 'Ngừng hoạt động', Locked: 'Đã khóa' } as Record<string, string>)[value] ?? value
+    return labelOf('user', value, this.languageStore.lang())
   }
 
   protected waitlistStatusLabel(value: string): string {
-    return ({ Waiting: 'Đang chờ', Notified: 'Đã có chỗ', Booked: 'Đã đặt', Cancelled: 'Đã hủy', Expired: 'Hết hạn' } as Record<string, string>)[value] ?? value
+    return labelOf('waitlist', value, this.languageStore.lang())
   }
+
 
   protected notificationTone(type: string): 'indigo' | 'emerald' | 'amber' | 'rose' {
     const normalized = type.toLowerCase()

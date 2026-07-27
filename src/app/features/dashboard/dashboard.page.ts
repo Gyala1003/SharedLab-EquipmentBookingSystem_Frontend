@@ -13,6 +13,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
+import { labelOf } from '../../shared/utils/presentation'
 
 const EMPTY_DASHBOARD: DashboardResponse = {
   from: '',
@@ -184,7 +185,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
               @for (item of dashboard().bookingPurposeCounts.slice(0, 6); track item.key; let index = $index) {
                 <div>
                   <div class="mb-2 flex items-center justify-between gap-4 text-sm">
-                    <span class="font-medium text-slate-600">{{ item.displayName || purposeLabel(item.key) }}</span>
+                    <span class="font-medium text-slate-600">{{ purposeLabel(item.key) }}</span>
                     <span class="font-bold text-slate-900">{{ item.count }} <small class="font-medium text-slate-400">({{ item.percentage | number: '1.0-1' }}%)</small></span>
                   </div>
                   <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full transition-all duration-700" [style.width.%]="item.percentage" [style.background-color]="chartColors[index % chartColors.length]"></div></div>
@@ -205,12 +206,13 @@ const EMPTY_DASHBOARD: DashboardResponse = {
               @for (item of dashboard().bookingDepartmentCounts.slice(0, 6); track item.key; let index = $index) {
                 <div>
                   <div class="mb-2 flex items-center justify-between gap-4 text-sm">
-                    <span class="font-medium text-slate-600">{{ item.displayName || item.key }}</span>
+                    <span class="font-medium text-slate-600">{{ departmentLabel(item.displayName || item.key) }}</span>
                     <span class="font-bold text-slate-900">{{ item.count }} <small class="font-medium text-slate-400">({{ item.percentage | number: '1.0-1' }}%)</small></span>
                   </div>
                   <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full transition-all duration-700" [style.width.%]="item.percentage" [style.background-color]="chartColors[index % chartColors.length]"></div></div>
                 </div>
               }
+
               @if (dashboard().bookingDepartmentCounts.length === 0) { <p class="py-12 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
@@ -248,42 +250,43 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
           <article class="card-surface overflow-hidden">
             <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <h2 class="text-lg font-bold text-slate-950">Người dùng có điểm phạt cao</h2>
-              <p class="mt-1 text-xs text-slate-400">Ưu tiên theo dõi trong kỳ</p>
+              <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.topPenalizedUsers' | t }}</h2>
+              <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.topPenalizedSub' | t }}</p>
             </div>
             <div class="divide-y divide-slate-100">
               @for (user of dashboard().usersWithMostPenaltyPoints.slice(0, 6); track user.userId; let index = $index) {
                 <div class="flex items-center gap-4 px-5 py-4 sm:px-6">
                   <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-bold" [class.bg-rose-50]="index < 3" [class.text-rose-700]="index < 3" [class.bg-slate-100]="index >= 3" [class.text-slate-500]="index >= 3">{{ index + 1 }}</span>
-                  <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-800">{{ user.fullName }}</p><p class="mt-0.5 truncate text-[11px] text-slate-400">{{ user.departmentName }} • {{ user.activeViolationCount }} vi phạm hoạt động</p></div>
-                  <div class="text-right"><p class="text-base font-bold text-rose-600">{{ user.penaltyPoints }}</p><p class="text-[10px] text-slate-400">điểm</p></div>
+                  <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-800">{{ user.fullName }}</p><p class="mt-0.5 truncate text-[11px] text-slate-400">{{ user.departmentName }} • {{ user.activeViolationCount }} {{ 'dashboard.activeViolations' | t }}</p></div>
+                  <div class="text-right"><p class="text-base font-bold text-rose-600">{{ user.penaltyPoints }}</p><p class="text-[10px] text-slate-400">{{ 'dashboard.points' | t }}</p></div>
                 </div>
               }
-              @if (dashboard().usersWithMostPenaltyPoints.length === 0) { <div class="px-6 py-14 text-center text-sm text-slate-400">Không có người dùng vi phạm trong kỳ.</div> }
+              @if (dashboard().usersWithMostPenaltyPoints.length === 0) { <div class="px-6 py-14 text-center text-sm text-slate-400">{{ 'dashboard.noPenalizedUsers' | t }}</div> }
             </div>
           </article>
 
         <div class="grid gap-6 xl:grid-cols-2">
           <article class="card-surface p-5 sm:p-6">
-            <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><app-icon name="flask" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">Phòng lab dùng nhiều nhất</h2><p class="text-xs text-slate-400">Xếp hạng theo giờ sử dụng thực tế</p></div></div>
+            <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><app-icon name="flask" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.mostUsedLabs' | t }}</h2><p class="text-xs text-slate-400">{{ 'dashboard.mostUsedLabsSub' | t }}</p></div></div>
             <div class="mt-6 grid gap-3 sm:grid-cols-3">
               @for (lab of dashboard().mostUsedLabRooms.slice(0, 3); track lab.resourceId; let index = $index) {
-                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-indigo-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ lab.usageCount }} lượt</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ lab.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ lab.actualUsageHours | number: '1.0-1' }} giờ</p></div>
+                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-indigo-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ lab.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ lab.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ lab.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
               }
-              @if (dashboard().mostUsedLabRooms.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">Chưa có dữ liệu.</p> }
+              @if (dashboard().mostUsedLabRooms.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
 
           <article class="card-surface p-5 sm:p-6">
-            <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="microscope" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">Thiết bị dùng nhiều nhất</h2><p class="text-xs text-slate-400">Xếp hạng theo giờ sử dụng thực tế</p></div></div>
+            <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="microscope" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.mostUsedEquipments' | t }}</h2><p class="text-xs text-slate-400">{{ 'dashboard.mostUsedEquipmentsSub' | t }}</p></div></div>
             <div class="mt-6 grid gap-3 sm:grid-cols-3">
               @for (equipment of dashboard().mostUsedEquipments.slice(0, 3); track equipment.resourceId; let index = $index) {
-                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-cyan-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ equipment.usageCount }} lượt</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ equipment.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ equipment.actualUsageHours | number: '1.0-1' }} giờ</p></div>
+                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-cyan-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ equipment.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ equipment.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ equipment.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
               }
-              @if (dashboard().mostUsedEquipments.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">Chưa có dữ liệu.</p> }
+              @if (dashboard().mostUsedEquipments.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
         </div>
+
       }
     </section>
   `,
@@ -392,12 +395,18 @@ export class DashboardPage implements OnInit {
   }
 
   protected statusLabel(value: string): string {
-    return ({ Pending: 'Chờ duyệt', Approved: 'Đã duyệt', Rejected: 'Từ chối', Cancelled: 'Đã hủy', Completed: 'Hoàn thành', NoShow: 'No-show' } as Record<string, string>)[value] ?? value
+    return labelOf('booking', value, this.languageStore.lang())
   }
 
   protected purposeLabel(value: string): string {
-    return ({ ResearchProject: 'Dự án nghiên cứu', CoursePractice: 'Thực hành môn học', SelfStudy: 'Tự học' } as Record<string, string>)[value] ?? value
+    return labelOf('purpose', value, this.languageStore.lang())
   }
+
+  protected departmentLabel(value: string): string {
+    return labelOf('department', value, this.languageStore.lang())
+  }
+
+
 
   protected clamp(value: number): number {
     return Math.max(0, Math.min(100, value))

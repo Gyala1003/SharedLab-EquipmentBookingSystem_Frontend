@@ -261,12 +261,15 @@ export class AppLayoutComponent implements OnInit {
   ]
 
   protected readonly visibleGroups = computed(() => {
+    this.languageStore.lang()
     const role = this.store.role()
     return this.groups
       .filter((group) => !group.roles || group.roles.includes(role))
       .map((group) => ({ ...group, items: group.items.filter((item) => !item.roles || item.roles.includes(role)) }))
       .filter((group) => group.items.length > 0)
   })
+
+
 
   ngOnInit(): void {
     const user = this.store.user()

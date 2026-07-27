@@ -19,15 +19,16 @@ import { ToastService } from '../../shared/ui/toast.service'
   imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'nav.equipment' | t" subtitle="Tìm kiếm, kiểm tra trạng thái và đặt lịch các thiết bị dùng chung trong hệ thống.">
+      <app-page-header [title]="'equipments.title' | t" [subtitle]="'equipments.subtitle' | t">
         <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
-        @if (store.isAdmin()) { <button class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> Thêm thiết bị</button> }
+        @if (store.isAdmin()) { <button class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> {{ 'equipments.addEquipment' | t }}</button> }
       </app-page-header>
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_auto]">
-        <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="Tên thiết bị, model..." /></div></div>
-        <div><label class="field-label">{{ 'maintenances.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId"><option [ngValue]="null">{{ 'maintenances.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }}</option> }</select></div>
-        <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">Sẵn sàng</option><option [value]="2">Đang sử dụng</option><option [value]="3">Bảo trì</option><option [value]="4">Bị hỏng</option><option [value]="5">Ngừng sử dụng</option></select></div>
+        <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="{{ 'equipments.searchPlaceholder' | t }}" /></div></div>
+        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId"><option [ngValue]="null">{{ 'calendar.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }}</option> }</select></div>
+        <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">{{ 'equipments.ready' | t }}</option><option [value]="2">{{ 'equipments.inUse' | t }}</option><option [value]="3">{{ 'labs.maintenance' | t }}</option><option [value]="4">{{ 'equipments.broken' | t }}</option><option [value]="5">{{ 'equipments.retired' | t }}</option></select></div>
+
         <div class="flex items-end"><button class="btn-primary w-full" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>
 
