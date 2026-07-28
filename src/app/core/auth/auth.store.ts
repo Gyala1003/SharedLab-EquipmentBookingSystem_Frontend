@@ -1,36 +1,32 @@
 import { Injectable, computed, inject, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
+import { ApiError } from '../http/api-error'
 import { AuthService } from './auth.service'
 import { TokenStorage } from './token-storage'
-import type { AuthUser, LoginPayload } from './auth.types'
+import type { AuthUser, LoginPayload, UserRole } from './auth.types'
 
 const USER_KEY = 'auth.user'
 
-/**
- * Signal-based auth store. This is the native-Signals equivalent of an NgRx
- * SignalStore — state as signals, derived values as computed, async methods
- * mutating the signals. To migrate to @ngrx/signals later, replace this class
- * with `signalStore(withState(...), withMethods(...))` — call sites (which read
- * `store.user()`, `store.isAuthenticated()`) stay identical.
- */
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
   private readonly auth = inject(AuthService)
   private readonly tokens = inject(TokenStorage)
 
-  // --- state ---
   private readonly _user = signal<AuthUser | null>(this.restore())
   private readonly _status = signal<'idle' | 'loading' | 'error'>('idle')
   private readonly _error = signal<string | null>(null)
   private readonly _logoutStatus = signal<'idle' | 'loading'>('idle')
 
-  // --- selectors ---
   readonly user = this._user.asReadonly()
   readonly status = this._status.asReadonly()
   readonly error = this._error.asReadonly()
+  readonly isAuthenticated = computed(() => Boolean(this._user() && this.tokens.access))
+  readonly role = computed(() => this._user()?.roleName ?? '')
+  readonly roles = computed(() => this._user()?.roleName ? [this._user()!.roleName as UserRole] : [])
+  readonly isRequester = computed(() => this.role() === 'Requester')
+  readonly isManager = computed(() => this.role() === 'LabManager')
+  readonly isAdmin = computed(() => this.role() === 'Admin')
   readonly logoutStatus = this._logoutStatus.asReadonly()
-  readonly isAuthenticated = computed(() => this._user() !== null)
-  readonly roles = computed(() => this._user()?.roles ?? [])
 
   // --- methods ---
   async login(payload: LoginPayload): Promise<void> {
@@ -48,6 +44,16 @@ export class AuthStore {
       this._status.set('error')
       this._error.set(e instanceof Error ? e.message : 'error')
       throw e
+    }
+  }
+
+  async hydrate(): Promise<void> {
+    if (!this.tokens.access) return
+    try {
+      const user = await firstValueFrom(this.auth.me())
+      this.setUser(user)
+    } catch {
+      this.clearLocalSession()
     }
   }
 
@@ -70,16 +76,29 @@ export class AuthStore {
     }
   }
 
-  /** Used by the error interceptor on 401 — clears state without an API round-trip. */
-  clear(): void {
+  hasRole(roles: readonly UserRole[]): boolean {
+    return roles.includes(this.role() as UserRole)
+  }
+
+  clearLocalSession(): void {
     this.tokens.clear()
     localStorage.removeItem(USER_KEY)
+    sessionStorage.removeItem(USER_KEY)
     this._user.set(null)
+    this._status.set('idle')
+    this._error.set(null)
+  }
+
+  private setUser(user: AuthUser, persistent = this.tokens.isPersistent): void {
+    this._user.set(user)
+    const target = persistent ? localStorage : sessionStorage
+    const other = persistent ? sessionStorage : localStorage
+    other.removeItem(USER_KEY)
+    target.setItem(USER_KEY, JSON.stringify(user))
   }
 
   private restore(): AuthUser | null {
-    const raw = localStorage.getItem(USER_KEY)
-
+    const raw = localStorage.getItem(USER_KEY) ?? sessionStorage.getItem(USER_KEY)
     // Kiểm tra nếu không có dữ liệu hoặc dữ liệu là chuỗi 'undefined' / 'null'
     if (!raw || raw === 'undefined' || raw === 'null') {
       return null
@@ -87,11 +106,16 @@ export class AuthStore {
 
     try {
       return JSON.parse(raw) as AuthUser
-    } catch (e) {
-      console.error('Lỗi parse AuthUser từ localStorage:', e)
-      // Nếu dữ liệu bị hỏng, dọn dẹp sạch luôn
+    } catch {
       localStorage.removeItem(USER_KEY)
+      sessionStorage.removeItem(USER_KEY)
       return null
     }
+  }
+
+  private resolveMessage(error: unknown): string {
+    if (error instanceof ApiError) return error.message
+    if (error instanceof Error) return error.message
+    return 'Không thể đăng nhập. Vui lòng thử lại.'
   }
 }

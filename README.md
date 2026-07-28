@@ -1,6 +1,4 @@
-# 🧪 ShareLab — Shared Lab & Equipment Booking System
-
-> **Nền tảng quản lý và đặt lịch phòng thí nghiệm, thiết bị dùng chung dành cho các tổ chức giáo dục & nghiên cứu.**
+# Lab & Equipment Booking — Frontend
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Angular](https://img.shields.io/badge/Angular-22-DD0031?logo=angular&logoColor=white)](https://angular.dev/)
@@ -48,49 +46,26 @@ Hệ thống được thiết kế theo kiến trúc hiện đại:
 
 ---
 
-### 🔒 Quy tắc bảo mật Mật khẩu (Password Security Policy)
 
-Hệ thống áp dụng chính sách kiểm tra mật khẩu 2 lớp chặt chẽ:
+## Quick start
+npm start          # http://localhost:4200
+Log in with an account issued by the backend, then open **Users**.
+## Scripts
+| Script | Purpose |
+|---|---|
+| `npm start` | Dev server (`ng serve`) at :4200 |
+| `npm run build` | Production build to `dist/frontend/browser` |
+| `npm run build:prod` | Same, explicit production configuration |
+| `npm run watch` | Rebuild on change (development config) |
+| `npm test` | Vitest via `ng test` |
+| `npm run format` / `format:check` | Prettier |
+## Architecture
 
-| Điều kiện kiểm tra | Client (`FluentPasswordPolicy`) | Server (`UserService.ValidatePassword`) |
-|---|:---:|:---:|
-| **Độ dài tối thiểu** | `> 8` ký tự (từ 9 ký tự trở lên) | `≥ 8` ký tự |
-| **Ký tự in hoa (A-Z)** | ✅ Bắt buộc | ✅ Bắt buộc |
-| **Ký tự in thường (a-z)** | ✅ Bắt buộc | ✅ Bắt buộc |
-| **Chữ số (0-9)** | ✅ Bắt buộc | ✅ Bắt buộc |
-| **Ký tự đặc biệt (`!@#$%^&*...`)** | ✅ Bắt buộc | ⛔ Không bắt buộc |
+Standalone components throughout — **no NgModules**. State is held in
+**Signals-based store services**; UI reads signals directly and Angular's
+change detection reacts automatically. No `zone.js`.
 
-> **Lưu ý:** Client áp dụng bộ lọc Fluent Validation nghiêm ngặt hơn Server nhằm đảm bảo mọi mật khẩu hợp lệ ở Client đều vượt qua kiểm tra từ phía Server.
-
----
-
-### 🔁 Luồng xử lý Quên / Đặt lại mật khẩu (Password Reset Flow)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as User (Trình duyệt)
-    participant FE as Angular (ForgotPasswordPage)
-    participant BE as API (.NET 10 Web API)
-    participant DB as Database (SQL Server)
-    participant Mail as Email Service
-
-    U->>FE: Nhập Email khôi phục
-    FE->>BE: POST /api/auth/forgot-password { email, resetLink }
-    BE->>DB: Kiểm tra Email, tạo Token Hex 64 (Hạn 1 giờ)
-    BE->>Mail: Gửi Email chứa Token khôi phục
-    BE-->>FE: 200 OK
-    U->>Mail: Mở Email, click link khôi phục
-    Mail-->>U: Điều hướng tới /auth/reset-password?token=...&email=...
-    U->>FE: Nhập Mật khẩu mới (ResetPasswordPage)
-    FE->>BE: POST /api/auth/reset-password { email, token, newPassword }
-    BE->>DB: Xác thực Token, Cập nhật Mật khẩu mới
-    BE-->>FE: 200 OK (hoặc 400 Token không hợp lệ / hết hạn)
-    FE-->>U: Thông báo thành công, chuyển hướng về /auth/login
-
-```
-
----
+### Folder structure
 
 ## 📁 Cấu trúc thư mục dự án (Project Structure)
 
@@ -131,121 +106,64 @@ sharelab/
 ```
 
 ---
+### State management
 
-## 🚀 Hướng dẫn Cài đặt & Chạy dự án (Getting Started)
+State lives in `@Injectable({ providedIn: 'root' })` services that expose
+`signal`/`computed` values and async methods — the native-Signals
+equivalent of an NgRx SignalStore. See `core/auth/auth.store.ts` and
+`features/users/users.store.ts`.
 
-### Yêu cầu môi trường (Prerequisites)
+### HTTP layer (`core/http/`)
 
-* [.NET SDK 10.0+](https://dotnet.microsoft.com/download)
-* [Node.js 20+](https://nodejs.org/) & `npm 11+`
-* SQL Server (LocalDB / Express / Docker Container)
-* Angular CLI: `npm install -g @angular/cli`
+Two functional interceptors registered in `app.config.ts`:
 
----
+- `authInterceptor` — attaches `Authorization: Bearer <token>` to requests
+  targeting `env.apiBaseUrl`.
+- `errorInterceptor` — on `401` clears the session and routes to
+  `/auth/login`; normalizes every failure to an **`ApiError`**
+  (`status`, `message`, `code`, `details`).
+### Auth & guards
+`core/auth/auth.guard.ts` exports `authGuard` (protects `/users`, redirects
+to `/auth/login?redirect=…`) and `guestGuard` (keeps signed-in users off
+`/auth/login`). `core/auth/auth.service.ts` calls the real backend
+(`POST {apiBaseUrl}/auth/login`); `AuthStore` owns the session
+side-effects (token storage, current-user signal, `roles`).
 
-### 1. Clone Dự án
+### i18n
 
+`@ngx-translate/core` (v18, function-based providers) with the HTTP loader
+reading `public/i18n/{lang}.json` (copied to the site root at build time).
+Default locale is `vi`. `app.config.ts` uses `provideAppInitializer` to
+load the initial locale before first paint.
+
+### Styling
+
+Tailwind v4 via PostCSS (`.postcssrc.json` → `@tailwindcss/postcss`). The
+global entry is `src/styles.css`; design tokens (brand palette, surface
+colors, card radius/shadow) live in the `@theme` block.
+
+## Testing
+
+Angular 22's `@angular/build:unit-test` builder runs **Vitest**. Examples:
+`src/app/app.spec.ts`, `src/app/shared/ui/button.spec.ts`. Run `npm test`.
+
+## Configuration
+
+Swapped by `fileReplacements` in `angular.json` (dev build uses
+`environment.development.ts`). Access via `core/config/env.ts`.
+
+| Field | Dev | Prod |
+|---|---|---|
+| `apiBaseUrl` | `https://localhost:7080/api` | `https://api.example.com/api` |
+| `defaultLocale` | `vi` | `vi` |
+| `supportedLocales` | `['vi','en']` | `['vi','en']` |
+## Docker
 ```bash
-git clone https://github.com/<your-org>/sharelab.git
-cd sharelab
-
+docker build -t lab-booking-frontend .
+docker run -p 8080:80 lab-booking-frontend
 ```
-
----
-
-### 2. Cấu hình & Khởi chạy Backend (.NET 10 API)
-
-1. Di chuyển vào thư mục Backend:
-```bash
-cd SharedLabAndEquipmentBookingSystem
-
-```
-
-
-2. Cập nhật chuỗi kết nối Database & cấu hình JWT trong file `appsettings.Development.json`:
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=ShareLabDb;Trusted_Connection=True;TrustServerCertificate=True;"
-  },
-  "Jwt": {
-    "Key": "YOUR_SUPER_SECRET_KEY_WITH_AT_LEAST_256_BITS_LENGTH",
-    "Issuer": "ShareLabAPI",
-    "Audience": "ShareLabClient"
-  }
-}
-
-```
-
-
-3. Cập nhật Database và chạy API:
-```bash
-dotnet restore
-dotnet ef database update
-dotnet run
-
-```
-
-
-> 📍 **Backend API:** `https://localhost:7073`
-> 📄 **Swagger UI:** `https://localhost:7073/swagger`
-
-
-
----
-
-### 3. Cấu hình & Khởi chạy Frontend (Angular 22)
-
-1. Mở cửa sổ Terminal mới tại thư mục gốc của dự án (`sharelab/`).
-2. Kiểm tra file cấu hình môi trường `src/environments/environment.development.ts`:
-```typescript
-export const environment = {
-  production: false,
-  apiBaseUrl: 'https://localhost:7073/api',
-  defaultLocale: 'vi',
-  supportedLocales: ['vi', 'en'] as const,
-}
-
-```
-
-
-3. Cài đặt các thư viện phụ thuộc và chạy ứng dụng Angular:
-```bash
-npm install
-npm start
-
-```
-
-
-> 🌐 **Frontend Application:** `http://localhost:4200`
-
-
-
----
-
-## 🛠️ Lệnh Script Hỗ trợ (NPM Scripts)
-
-| Lệnh Script | Mô tả |
-| --- | --- |
-| `npm start` | Chạy Angular Dev Server (`ng serve`) |
-| `npm run build` | Build ứng dụng cho môi trường Production |
-| `npm run test` | Chạy Unit Test với Vitest |
-| `node scripts/open-browser.js` | Tự động mở ứng dụng trên trình duyệt mặc định |
-
----
-
-## 🐳 Triển khai với Docker (Deployment)
-
-Dự án cung cấp sẵn `Dockerfile` và `nginx.conf` hỗ trợ đóng gói và triển khai ứng dụng bằng Container:
-
-```bash
-# Build Docker Image cho Frontend
-docker build -t sharelab-frontend .
-
-# Chạy Container trên cổng 80
-docker run -d -p 80:80 --name sharelab-app sharelab-frontend
-
-```
+Multi-stage build (Node → nginx). Build output is `dist/frontend/browser`
+(Angular application builder), which the Dockerfile copies into nginx.
 
 ---
 

@@ -1,19 +1,33 @@
-import { Injectable, inject } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
-import { Observable } from 'rxjs'
+import { Injectable, inject } from '@angular/core'
+import { Observable, map } from 'rxjs'
 import { env } from '../config/env'
-import type { LoginPayload, LoginResponse, ResetPasswordPayload } from './auth.types'
+import type {
+  AuthTokens,
+  AuthUser,
+  ForgotPasswordPayload,
+  LoginPayload,
+  ResetPasswordPayload,
+  UserStatus,
+} from './auth.types'
 
-/**
- * Talks to the backend's /auth endpoints. Pure API calls only — session
- * side effects (token storage, current-user signal) live in AuthStore.
- */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient)
+  private readonly baseUrl = `${env.apiBaseUrl}/Auth`
 
-  login(payload: LoginPayload): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${env.apiBaseUrl}/auth/login`, payload)
+  login(payload: LoginPayload): Observable<AuthTokens> {
+    return this.http.post<AuthTokens>(`${this.baseUrl}/login`, payload)
+  }
+
+  me(): Observable<AuthUser> {
+    return this.http.get<AuthUser>(`${this.baseUrl}/me`).pipe(
+      map((user) => ({ ...user, status: normalizeUserStatus(user.status) })),
+    )
+  }
+
+  refresh(refreshToken: string): Observable<AuthTokens> {
+    return this.http.post<AuthTokens>(`${this.baseUrl}/refresh`, { refreshToken })
   }
 
   logout(refreshToken: string): Observable<{ message: string }> {
@@ -30,4 +44,14 @@ export class AuthService {
   resetPassword(payload: ResetPasswordPayload): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${env.apiBaseUrl}/auth/reset-password`, payload)
   }
+}
+
+function normalizeUserStatus(value: UserStatus): Exclude<UserStatus, number> {
+  if (typeof value === 'string') return value
+  return ({
+    1: 'Active',
+    2: 'Inactive',
+    3: 'Restricted',
+    4: 'Locked',
+  } as Record<number, Exclude<UserStatus, number>>)[value] ?? 'Inactive'
 }

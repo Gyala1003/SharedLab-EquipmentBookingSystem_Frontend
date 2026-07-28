@@ -3,15 +3,15 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "analytics": false
+    "analytics": "f0d44066-e45d-4c10-8d55-4cc9c032784a"
   },
   "newProjectRoot": "projects",
   "projects": {
-    "frontend": {
+    "angular-base": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
-          "style": "css"
+          "style": "scss"
         }
       },
       "root": "",
@@ -23,7 +23,7 @@
           "options": {
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "inlineStyleLanguage": "css",
+            "inlineStyleLanguage": "scss",
             "assets": [
               {
                 "glob": "**/*",
@@ -68,13 +68,16 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "frontend:build:production"
+              "buildTarget": "angular-base:build:production"
             },
             "development": {
-              "buildTarget": "frontend:build:development"
+              "buildTarget": "angular-base:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          }
         },
         "test": {
           "builder": "@angular/build:unit-test"

@@ -6,22 +6,29 @@ import {
 } from '@angular/core'
 import { provideRouter, withComponentInputBinding } from '@angular/router'
 import { provideHttpClient, withInterceptors } from '@angular/common/http'
-import { provideTranslateService, TranslateService } from '@ngx-translate/core'
-import { provideTranslateHttpLoader } from '@ngx-translate/http-loader'
-import { firstValueFrom } from 'rxjs'
+import { provideTranslateService, TranslateLoader, TranslateService } from '@ngx-translate/core'
+import { Observable, firstValueFrom, of } from 'rxjs'
+
+import { AuthStore } from './core/auth/auth.store'
 
 import { routes } from './app.routes'
 import { env } from './core/config/env'
+import { getDictionary } from './core/i18n/translations'
 import { authInterceptor } from './core/http/auth.interceptor'
 import { errorInterceptor } from './core/http/error.interceptor'
 
+class UnifiedTranslateLoader implements TranslateLoader {
+  getTranslation(lang: string): Observable<Record<string, any>> {
+    return of(getDictionary(lang === 'en' ? 'en' : 'vi'))
+  }
+}
+
 function resolveInitialLocale(): string {
-  const stored = localStorage.getItem('app.locale')
+  const stored = localStorage.getItem('app.locale') || localStorage.getItem('app.lang')
   if (stored && (env.supportedLocales as readonly string[]).includes(stored)) {
     return stored
   }
-  const nav = navigator.language.split('-')[0] ?? ''
-  return (env.supportedLocales as readonly string[]).includes(nav) ? nav : env.defaultLocale
+  return env.defaultLocale
 }
 
 export const appConfig: ApplicationConfig = {
@@ -31,14 +38,16 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     provideTranslateService({
       fallbackLang: env.defaultLocale,
-      loader: provideTranslateHttpLoader({ prefix: './i18n/', suffix: '.json' }),
+      loader: { provide: TranslateLoader, useClass: UnifiedTranslateLoader },
     }),
     // Load the initial language before the app renders to avoid flashes.
     provideAppInitializer(() => {
       const translate = inject(TranslateService)
+      const authStore = inject(AuthStore)
       const locale = resolveInitialLocale()
       document.documentElement.lang = locale
-      return firstValueFrom(translate.use(locale))
+      return Promise.all([firstValueFrom(translate.use(locale)), authStore.hydrate()])
     }),
   ],
 }
+

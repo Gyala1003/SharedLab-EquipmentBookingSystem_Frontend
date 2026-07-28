@@ -1,8 +1,16 @@
+export type UserRole = 'Admin' | 'LabManager' | 'Requester'
+export type UserStatus = 'Active' | 'Restricted' | 'Inactive' | 'Locked' | number
+
 export interface AuthUser {
-  id: string
+  userId: number
   fullName: string
+  username: string
   email: string
-  roles: string[]
+  roleName: UserRole | string
+  departmentName: string
+  penaltyPoints: number
+  restrictionUntil: string | null
+  status: UserStatus
 }
 
 export interface LoginPayload {
@@ -10,11 +18,13 @@ export interface LoginPayload {
   password: string
 }
 
-export interface LoginResponse {
+export interface AuthTokens {
   accessToken: string
   refreshToken: string
-  expiresIn: number
-  user: AuthUser
+}
+
+export interface ForgotPasswordPayload {
+  email: string
 }
 
 export interface ResetPasswordPayload {
