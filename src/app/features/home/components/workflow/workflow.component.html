@@ -1,0 +1,37 @@
+<section id="workflow" class="bg-white py-24">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-2xl text-center">
+      <span class="text-sm font-semibold uppercase tracking-wider text-blue-600">
+        {{ 'home.workflow.eyebrow' | translate }}
+      </span>
+      <h2 class="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        {{ 'home.workflow.title' | translate }}
+      </h2>
+      <p class="mt-4 text-lg text-gray-600">{{ 'home.workflow.subtitle' | translate }}</p>
+    </div>
+
+    <div class="relative mt-16">
+      <div
+        class="absolute left-5 top-0 hidden h-full w-px bg-gray-200 lg:left-0 lg:top-5 lg:h-px lg:w-full"
+      ></div>
+
+      <div class="grid grid-cols-1 gap-10 lg:grid-cols-5 lg:gap-6">
+        @for (step of steps; track step.order) {
+          <div class="relative flex gap-4 lg:flex-col lg:items-center lg:gap-0 lg:text-center">
+            <span
+              class="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white"
+            >
+              {{ step.order }}
+            </span>
+            <div class="lg:mt-5">
+              <h3 class="text-sm font-semibold text-gray-900">{{ step.titleKey | translate }}</h3>
+              <p class="mt-1.5 text-sm leading-relaxed text-gray-600">
+                {{ step.descriptionKey | translate }}
+              </p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</section>
