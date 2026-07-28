@@ -305,26 +305,29 @@ const EMPTY_DASHBOARD: DashboardResponse = {
             </div>
           </article>
 
-        <div class="grid gap-6 xl:grid-cols-2">
-          <article class="card-surface p-5 sm:p-6">
-            <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><app-icon name="flask" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.mostUsedLabs' | t }}</h2><p class="text-xs text-slate-400">{{ 'dashboard.mostUsedLabsSub' | t }}</p></div></div>
-            <div class="mt-6 grid gap-3 sm:grid-cols-3">
-              @for (lab of dashboard().mostUsedLabRooms.slice(0, 3); track lab.resourceId; let index = $index) {
-                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-indigo-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ lab.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ lab.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ lab.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
-              }
-              @if (dashboard().mostUsedLabRooms.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
-            </div>
-          </article>
+        @if (!store.isAdmin()) {
+          <div class="grid gap-6 xl:grid-cols-2">
+            <article class="card-surface p-5 sm:p-6">
+              <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><app-icon name="flask" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.mostUsedLabs' | t }}</h2><p class="text-xs text-slate-400">{{ 'dashboard.mostUsedLabsSub' | t }}</p></div></div>
+              <div class="mt-6 grid gap-3 sm:grid-cols-3">
+                @for (lab of dashboard().mostUsedLabRooms.slice(0, 3); track lab.resourceId; let index = $index) {
+                  <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-indigo-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ lab.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ lab.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ lab.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
+                }
+                @if (dashboard().mostUsedLabRooms.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
+              </div>
+            </article>
 
-          <article class="card-surface p-5 sm:p-6">
-            <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="microscope" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.mostUsedEquipments' | t }}</h2><p class="text-xs text-slate-400">{{ 'dashboard.mostUsedEquipmentsSub' | t }}</p></div></div>
-            <div class="mt-6 grid gap-3 sm:grid-cols-3">
-              @for (equipment of dashboard().mostUsedEquipments.slice(0, 3); track equipment.resourceId; let index = $index) {
-                <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-cyan-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ equipment.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ equipment.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ equipment.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
-              }
-            </div>
-          </article>
-        </div>
+            <article class="card-surface p-5 sm:p-6">
+              <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="microscope" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.mostUsedEquipments' | t }}</h2><p class="text-xs text-slate-400">{{ 'dashboard.mostUsedEquipmentsSub' | t }}</p></div></div>
+              <div class="mt-6 grid gap-3 sm:grid-cols-3">
+                @for (equipment of dashboard().mostUsedEquipments.slice(0, 3); track equipment.resourceId; let index = $index) {
+                  <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-cyan-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ equipment.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ equipment.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ equipment.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
+                }
+                @if (dashboard().mostUsedEquipments.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
+              </div>
+            </article>
+          </div>
+        }
       }
     </section>
   `,
