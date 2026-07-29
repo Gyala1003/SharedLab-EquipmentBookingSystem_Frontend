@@ -10,76 +10,149 @@ import { IconComponent } from '../../shared/ui/icon'
   selector: 'app-reset-password-page',
   imports: [FormsModule, RouterLink, IconComponent],
   template: `
-    <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#111a3a] p-4 sm:p-6">
-      <div class="absolute -left-20 top-0 h-96 w-96 rounded-full bg-violet-500/25 blur-3xl"></div>
-      <div class="absolute -bottom-24 right-0 h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl"></div>
-      <div class="absolute inset-0 opacity-[0.06]" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 30px 30px"></div>
+    <main
+      class="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#111a3a] p-4 sm:p-6"
+    >
+      <div class="absolute top-0 -left-20 h-96 w-96 rounded-full bg-violet-500/25 blur-3xl"></div>
+      <div class="absolute right-0 -bottom-24 h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl"></div>
+      <div
+        class="absolute inset-0 opacity-[0.06]"
+        style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 30px 30px"
+      ></div>
 
-      <section class="relative w-full max-w-[560px] rounded-[32px] bg-white p-6 shadow-2xl shadow-black/25 sm:p-10">
+      <section
+        class="relative w-full max-w-[560px] rounded-[32px] bg-white p-6 shadow-2xl shadow-black/25 sm:p-10"
+      >
         @if (success) {
           <div class="py-6 text-center">
-            <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+            <div
+              class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"
+            >
               <app-icon name="check" [size]="36" />
             </div>
-            <h1 class="mt-6 text-3xl font-bold tracking-[-0.035em] text-slate-950">Đặt lại thành công</h1>
-            <p class="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500">Mật khẩu mới đã được cập nhật. Các phiên đăng nhập cũ cũng đã được thu hồi để bảo vệ tài khoản.</p>
-            <button type="button" class="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-7 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700" (click)="goLogin()">
+            <h1 class="mt-6 text-3xl font-bold tracking-[-0.035em] text-slate-950">
+              Đặt lại thành công
+            </h1>
+            <p class="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500">
+              Mật khẩu mới đã được cập nhật. Các phiên đăng nhập cũ cũng đã được thu hồi để bảo vệ
+              tài khoản.
+            </p>
+            <button
+              type="button"
+              class="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-7 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700"
+              (click)="goLogin()"
+            >
               Đăng nhập ngay
               <app-icon name="arrow-right" [size]="18" />
             </button>
           </div>
         } @else {
-          <a routerLink="/login" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600">
+          <a
+            routerLink="/login"
+            class="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-indigo-600"
+          >
             <app-icon name="arrow-left" [size]="18" />
             Quay lại đăng nhập
           </a>
 
-          <div class="mt-8 flex h-16 w-16 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600">
+          <div
+            class="mt-8 flex h-16 w-16 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600"
+          >
             <app-icon name="lock" [size]="29" />
           </div>
-          <h1 class="mt-6 text-3xl font-bold tracking-[-0.035em] text-slate-950">Tạo mật khẩu mới</h1>
-          <p class="mt-3 text-sm leading-6 text-slate-500">Chọn mật khẩu đủ mạnh và khác với mật khẩu m đã dùng trước đây.</p>
+          <h1 class="mt-6 text-3xl font-bold tracking-[-0.035em] text-slate-950">
+            Tạo mật khẩu mới
+          </h1>
+          <p class="mt-3 text-sm leading-6 text-slate-500">
+            Chọn mật khẩu đủ mạnh và khác với mật khẩu m đã dùng trước đây.
+          </p>
 
           <form class="mt-8 space-y-5" (ngSubmit)="submit()" #form="ngForm">
             <label class="block">
               <span class="mb-2 block text-sm font-semibold text-slate-700">Email</span>
-              <input [(ngModel)]="email" name="email" type="email" email required autocomplete="email" class="input-shell" />
+              <input
+                [(ngModel)]="email"
+                name="email"
+                type="email"
+                email
+                required
+                autocomplete="email"
+                class="input-shell"
+              />
             </label>
 
             <label class="block">
               <span class="mb-2 block text-sm font-semibold text-slate-700">Mật khẩu mới</span>
               <div class="relative">
-                <input [(ngModel)]="newPassword" (ngModelChange)="passwordSignal.set($event)" name="newPassword" [type]="showPassword ? 'text' : 'password'" required minlength="8" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" class="input-shell !pr-12" />
-                <button type="button" class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-indigo-600" (click)="showPassword = !showPassword">
+                <input
+                  [(ngModel)]="newPassword"
+                  (ngModelChange)="passwordSignal.set($event)"
+                  name="newPassword"
+                  [type]="showPassword ? 'text' : 'password'"
+                  required
+                  minlength="8"
+                  autocomplete="new-password"
+                  placeholder="Tối thiểu 8 ký tự"
+                  class="input-shell !pr-12"
+                />
+                <button
+                  type="button"
+                  class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-indigo-600"
+                  (click)="showPassword = !showPassword"
+                >
                   <app-icon [name]="showPassword ? 'eye-off' : 'eye'" [size]="19" />
                 </button>
               </div>
               <div class="mt-3 grid grid-cols-4 gap-1.5">
                 @for (index of [1, 2, 3, 4]; track index) {
-                  <span class="h-1.5 rounded-full" [class.bg-slate-200]="passwordStrength() < index" [class.bg-rose-400]="passwordStrength() >= index && passwordStrength() === 1" [class.bg-amber-400]="passwordStrength() >= index && passwordStrength() === 2" [class.bg-indigo-500]="passwordStrength() >= index && passwordStrength() === 3" [class.bg-emerald-500]="passwordStrength() >= index && passwordStrength() === 4"></span>
+                  <span
+                    class="h-1.5 rounded-full"
+                    [class.bg-slate-200]="passwordStrength() < index"
+                    [class.bg-rose-400]="passwordStrength() >= index && passwordStrength() === 1"
+                    [class.bg-amber-400]="passwordStrength() >= index && passwordStrength() === 2"
+                    [class.bg-indigo-500]="passwordStrength() >= index && passwordStrength() === 3"
+                    [class.bg-emerald-500]="passwordStrength() >= index && passwordStrength() === 4"
+                  ></span>
                 }
               </div>
-              <p class="mt-2 text-xs text-slate-400">Nên có chữ hoa, chữ thường, số và ký tự đặc biệt.</p>
+              <p class="mt-2 text-xs text-slate-400">
+                Nên có chữ hoa, chữ thường, số và ký tự đặc biệt.
+              </p>
             </label>
 
             <label class="block">
               <span class="mb-2 block text-sm font-semibold text-slate-700">Nhập lại mật khẩu</span>
-              <input [(ngModel)]="confirmPassword" name="confirmPassword" type="password" required autocomplete="new-password" class="input-shell" />
+              <input
+                [(ngModel)]="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required
+                autocomplete="new-password"
+                class="input-shell"
+              />
               @if (confirmPassword && confirmPassword !== newPassword) {
                 <p class="mt-2 text-xs font-medium text-rose-600">Mật khẩu nhập lại chưa khớp.</p>
               }
             </label>
 
             @if (errorMessage) {
-              <div class="flex gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-700">
+              <div
+                class="flex gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-700"
+              >
                 <app-icon name="alert" [size]="18" />
                 <p>{{ errorMessage }}</p>
               </div>
             }
 
-            <button type="submit" [disabled]="form.invalid || loading || newPassword !== confirmPassword || !token" class="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+            <button
+              type="submit"
+              [disabled]="form.invalid || loading || newPassword !== confirmPassword || !token"
+              class="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
               @if (loading) {
-                <span class="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                <span
+                  class="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                ></span>
                 Đang cập nhật...
               } @else {
                 Xác nhận mật khẩu mới
@@ -89,7 +162,9 @@ import { IconComponent } from '../../shared/ui/icon'
           </form>
 
           @if (!token) {
-            <p class="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">Đường dẫn đặt lại mật khẩu thiếu token. Hãy mở đúng liên kết trong email.</p>
+            <p class="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-700">
+              Đường dẫn đặt lại mật khẩu thiếu token. Hãy mở đúng liên kết trong email.
+            </p>
           }
         }
       </section>

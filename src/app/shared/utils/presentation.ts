@@ -20,9 +20,9 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
     'Computer Science': { vi: 'Khoa học máy tính', en: 'Computer Science' },
     'Electrical Engineering': { vi: 'Kỹ thuật điện', en: 'Electrical Engineering' },
     'Mechanical Engineering': { vi: 'Kỹ thuật cơ khí', en: 'Mechanical Engineering' },
-    'Biotechnology': { vi: 'Công nghệ sinh học', en: 'Biotechnology' },
-    'Physics': { vi: 'Vật lý', en: 'Physics' },
-    'Chemistry': { vi: 'Hóa học', en: 'Chemistry' },
+    Biotechnology: { vi: 'Công nghệ sinh học', en: 'Biotechnology' },
+    Physics: { vi: 'Vật lý', en: 'Physics' },
+    Chemistry: { vi: 'Hóa học', en: 'Chemistry' },
   },
 
   booking: {
@@ -111,7 +111,11 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
   },
 }
 
-export function labelOf(domain: string, value: ApiEnum | null | undefined, lang: 'vi' | 'en' = 'vi'): string {
+export function labelOf(
+  domain: string,
+  value: ApiEnum | null | undefined,
+  lang: 'vi' | 'en' = 'vi',
+): string {
   if (value === null || value === undefined || value === '') return '—'
   const key = String(value)
   const entry = maps[domain]?.[key]
@@ -122,19 +126,51 @@ export function labelOf(domain: string, value: ApiEnum | null | undefined, lang:
 export function toneOf(domain: string, value: ApiEnum | null | undefined): string {
   const key = String(value ?? '')
   const tones: Record<string, Record<string, string>> = {
-    user: { '1': 'emerald', '2': 'rose', '3': 'amber', '4': 'rose', Active: 'emerald', Inactive: 'rose', Restricted: 'amber', Locked: 'rose' },
+    user: {
+      '1': 'emerald',
+      '2': 'rose',
+      '3': 'amber',
+      '4': 'rose',
+      Active: 'emerald',
+      Inactive: 'rose',
+      Restricted: 'amber',
+      Locked: 'rose',
+    },
     department: { '1': 'emerald', '2': 'rose', Active: 'emerald', Inactive: 'rose' },
-    booking: { Pending: 'amber', Approved: 'emerald', Rejected: 'rose', Cancelled: 'rose', Completed: 'emerald', NoShow: 'rose' },
+    booking: {
+      Pending: 'amber',
+      Approved: 'emerald',
+      Rejected: 'rose',
+      Cancelled: 'rose',
+      Completed: 'emerald',
+      NoShow: 'rose',
+    },
     lab: { Available: 'emerald', Unavailable: 'rose', Maintenance: 'indigo', Inactive: 'rose' },
-    equipment: { Available: 'emerald', InUse: 'indigo', Maintenance: 'indigo', Broken: 'rose', Retired: 'rose' },
-    maintenance: { Scheduled: 'amber', InProgress: 'indigo', Completed: 'emerald', Cancelled: 'rose' },
-    waitlist: { Waiting: 'amber', Notified: 'indigo', Booked: 'emerald', Cancelled: 'rose', Expired: 'rose' },
+    equipment: {
+      Available: 'emerald',
+      InUse: 'indigo',
+      Maintenance: 'indigo',
+      Broken: 'rose',
+      Retired: 'rose',
+    },
+    maintenance: {
+      Scheduled: 'amber',
+      InProgress: 'indigo',
+      Completed: 'emerald',
+      Cancelled: 'rose',
+    },
+    waitlist: {
+      Waiting: 'amber',
+      Notified: 'indigo',
+      Booked: 'emerald',
+      Cancelled: 'rose',
+      Expired: 'rose',
+    },
     violation: { Active: 'rose', Resolved: 'emerald', Cancelled: 'slate' },
     incident: { NotRequired: 'slate', Pending: 'amber', Confirmed: 'rose', Rejected: 'slate' },
   }
   return tones[domain]?.[key] ?? 'slate'
 }
-
 
 export function toIso(localValue: string): string {
   return localValue ? new Date(localValue).toISOString() : ''
@@ -154,5 +190,9 @@ export function toLocalDateTimeInput(value: string | Date): string {
 }
 
 export function formatMoney(value: number): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0)
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value || 0)
 }

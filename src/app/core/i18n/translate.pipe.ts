@@ -8,7 +8,7 @@ export class TranslatePipe implements PipeTransform {
 
   transform(key: string, params?: Record<string, string | number>): string {
     const entry = translations[key]
-    let result = entry ? (entry[this.languageStore.lang()] || entry.vi || key) : key
+    let result = entry ? entry[this.languageStore.lang()] || entry.vi || key : key
     if (params) {
       for (const [k, v] of Object.entries(params)) {
         result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
@@ -17,4 +17,3 @@ export class TranslatePipe implements PipeTransform {
     return result
   }
 }
-

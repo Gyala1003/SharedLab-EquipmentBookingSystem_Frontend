@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input } from '@angular/core'
 
 @Component({
   selector: 'app-button',
@@ -6,11 +6,9 @@ import { Component, input } from '@angular/core';
   templateUrl: './button.component.html',
 })
 export class ButtonComponent {
+  variant = input<'primary' | 'secondary'>('primary')
 
-  variant = input<'primary' | 'secondary'>('primary');
+  type = input<'button' | 'submit' | 'reset'>('button')
 
-  type = input<'button' | 'submit' | 'reset'>('button');
-
-  disabled = input(false);
-
+  disabled = input(false)
 }

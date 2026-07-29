@@ -16,4 +16,3 @@ export class LanguageService {
     this.store.toggleLang()
   }
 }
-

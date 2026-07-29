@@ -15,17 +15,39 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-bookings-management-page',
-  imports: [DatePipe, FormsModule, RouterLink, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [
+    DatePipe,
+    FormsModule,
+    RouterLink,
+    PageHeaderComponent,
+    IconComponent,
+    StatusBadgeComponent,
+    DataStateComponent,
+    TranslatePipe,
+  ],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'manageBookings.title' | t" [subtitle]="'manageBookings.subtitle' | t">
-        <a routerLink="/app/management/bookings/pending" class="btn-primary"><app-icon name="clock" [size]="17" /> {{ 'nav.pendingBookings' | t }}</a>
-        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
+      <app-page-header
+        [title]="'manageBookings.title' | t"
+        [subtitle]="'manageBookings.subtitle' | t"
+      >
+        <a routerLink="/app/management/bookings/pending" class="btn-primary"
+          ><app-icon name="clock" [size]="17" /> {{ 'nav.pendingBookings' | t }}</a
+        >
+        <a routerLink="/app/calendar" class="btn-secondary"
+          ><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a
+        >
       </app-page-header>
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         @for (card of cards(); track card.status) {
-          <button type="button" class="kpi-card text-left transition hover:-translate-y-1" (click)="status = card.status">
-            <p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ card.label }}</p>
+          <button
+            type="button"
+            class="kpi-card text-left transition hover:-translate-y-1"
+            (click)="status = card.status"
+          >
+            <p class="text-[10px] font-black tracking-[.14em] text-slate-400 uppercase">
+              {{ card.label }}
+            </p>
             <p class="mt-2 text-3xl font-black" [class]="card.className">{{ card.count }}</p>
           </button>
         }
@@ -33,28 +55,57 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_1fr_auto]">
         <div>
           <label class="field-label">{{ 'common.search' | t }}</label>
-          <input class="input-shell" [(ngModel)]="keyword" [placeholder]="'manageBookings.searchPlaceholder' | t" />
+          <input
+            class="input-shell"
+            [(ngModel)]="keyword"
+            [placeholder]="'manageBookings.searchPlaceholder' | t"
+          />
         </div>
         <div>
           <label class="field-label">{{ 'common.status' | t }}</label>
           <select class="input-shell" [(ngModel)]="status">
             <option value="">{{ 'common.all' | t }}</option>
-            @for (tab of statuses(); track tab.value) { <option [value]="tab.value">{{ tab.label }}</option> }
+            @for (tab of statuses(); track tab.value) {
+              <option [value]="tab.value">{{ tab.label }}</option>
+            }
           </select>
         </div>
-        <div><label class="field-label">{{ 'common.from' | t }}</label><input class="input-shell" type="date" [(ngModel)]="from" /></div>
-        <div><label class="field-label">{{ 'common.to' | t }}</label><input class="input-shell" type="date" [(ngModel)]="to" /></div>
-        <div class="flex items-end"><button class="btn-secondary w-full" (click)="reset()"><app-icon name="refresh" [size]="17" /> {{ 'common.reset' | t }}</button></div>
+        <div>
+          <label class="field-label">{{ 'common.from' | t }}</label
+          ><input class="input-shell" type="date" [(ngModel)]="from" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'common.to' | t }}</label
+          ><input class="input-shell" type="date" [(ngModel)]="to" />
+        </div>
+        <div class="flex items-end">
+          <button class="btn-secondary w-full" (click)="reset()">
+            <app-icon name="refresh" [size]="17" /> {{ 'common.reset' | t }}
+          </button>
+        </div>
       </div>
       <article class="card-surface overflow-hidden">
         <header class="flex items-center justify-between border-b border-slate-100 px-5 py-5">
-          <div><h2 class="font-black text-slate-950">{{ 'manageBookings.title' | t }}</h2><p class="mt-1 text-xs text-slate-400">{{ filtered().length }} {{ 'common.records' | t }}</p></div>
-          <button class="btn-secondary" (click)="load()"><app-icon name="refresh" [size]="16" /> {{ 'common.refresh' | t }}</button>
+          <div>
+            <h2 class="font-black text-slate-950">{{ 'manageBookings.title' | t }}</h2>
+            <p class="mt-1 text-xs text-slate-400">
+              {{ filtered().length }} {{ 'common.records' | t }}
+            </p>
+          </div>
+          <button class="btn-secondary" (click)="load()">
+            <app-icon name="refresh" [size]="16" /> {{ 'common.refresh' | t }}
+          </button>
         </header>
         @if (loading()) {
           <div class="p-6"><div class="skeleton h-80 rounded-2xl"></div></div>
         } @else if (filtered().length === 0) {
-          <div class="p-6"><app-data-state [title]="'common.noData' | t" [message]="'common.noData' | t" icon="calendar" /></div>
+          <div class="p-6">
+            <app-data-state
+              [title]="'common.noData' | t"
+              [message]="'common.noData' | t"
+              icon="calendar"
+            />
+          </div>
         } @else {
           <div class="overflow-x-auto">
             <table class="table-shell">
@@ -72,18 +123,57 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
               <tbody>
                 @for (item of filtered(); track item.bookingId) {
                   <tr>
-                    <td><a [routerLink]="['/app/bookings', item.bookingId]" class="font-black text-cyan-700">#BK-{{ item.bookingId.toString().padStart(5,'0') }}</a><p class="mt-1 text-xs text-slate-400">{{ item.createdAt | date:'dd/MM/yyyy' }}</p></td>
-                    <td><p class="font-bold text-slate-800">User #{{ item.userId }}</p></td>
+                    <td>
+                      <a
+                        [routerLink]="['/app/bookings', item.bookingId]"
+                        class="font-black text-cyan-700"
+                        >#BK-{{ item.bookingId.toString().padStart(5, '0') }}</a
+                      >
+                      <p class="mt-1 text-xs text-slate-400">
+                        {{ item.createdAt | date: 'dd/MM/yyyy' }}
+                      </p>
+                    </td>
+                    <td>
+                      <p class="font-bold text-slate-800">User #{{ item.userId }}</p>
+                    </td>
                     <td>{{ labelOf('purpose', item.purposeType, languageStore.lang()) }}</td>
-                    <td><p class="font-bold text-slate-700">{{ item.startTime | date:'HH:mm dd/MM' }}</p><p class="mt-1 text-xs text-slate-400">{{ item.endTime | date:'HH:mm dd/MM' }}</p></td>
-                    <td><span class="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-700">P{{ item.priorityLevel ?? '—' }}</span></td>
+                    <td>
+                      <p class="font-bold text-slate-700">
+                        {{ item.startTime | date: 'HH:mm dd/MM' }}
+                      </p>
+                      <p class="mt-1 text-xs text-slate-400">
+                        {{ item.endTime | date: 'HH:mm dd/MM' }}
+                      </p>
+                    </td>
+                    <td>
+                      <span
+                        class="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-700"
+                        >P{{ item.priorityLevel ?? '—' }}</span
+                      >
+                    </td>
                     <td><app-status-badge [value]="item.status" domain="booking" /></td>
                     <td>
                       <div class="flex items-center gap-2">
-                        <a [routerLink]="['/app/bookings', item.bookingId]" class="btn-secondary h-9 min-h-9 px-3">{{ 'common.details' | t }}</a>
+                        <a
+                          [routerLink]="['/app/bookings', item.bookingId]"
+                          class="btn-secondary h-9 min-h-9 px-3"
+                          >{{ 'common.details' | t }}</a
+                        >
                         @if (item.status === 'Approved') {
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700" title="Complete" (click)="action(item,'complete')"><app-icon name="check" [size]="16" /></button>
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700" title="NoShow" (click)="action(item,'no-show')"><app-icon name="alert" [size]="16" /></button>
+                          <button
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700"
+                            title="Complete"
+                            (click)="action(item, 'complete')"
+                          >
+                            <app-icon name="check" [size]="16" />
+                          </button>
+                          <button
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700"
+                            title="NoShow"
+                            (click)="action(item, 'no-show')"
+                          >
+                            <app-icon name="alert" [size]="16" />
+                          </button>
                         }
                       </div>
                     </td>
@@ -114,12 +204,82 @@ export class BookingsManagementPage implements OnInit {
     { value: 'Rejected', label: labelOf('booking', 'Rejected', this.languageStore.lang()) },
     { value: 'Cancelled', label: labelOf('booking', 'Cancelled', this.languageStore.lang()) },
     { value: 'Completed', label: labelOf('booking', 'Completed', this.languageStore.lang()) },
-    { value: 'NoShow', label: labelOf('booking', 'NoShow', this.languageStore.lang()) }
+    { value: 'NoShow', label: labelOf('booking', 'NoShow', this.languageStore.lang()) },
   ])
-  protected readonly filtered = computed(() => { const needle=this.keyword.trim().toLowerCase(); return [...this.items()].filter((item)=>{ const date=toDateInput(new Date(item.startTime)); return (!this.status||item.status===this.status)&&(!this.from||date>=this.from)&&(!this.to||date<=this.to)&&(!needle||String(item.bookingId).includes(needle)||String(item.userId).includes(needle)||labelOf('purpose',item.purposeType,this.languageStore.lang()).toLowerCase().includes(needle)) }).sort((a,b)=>+new Date(b.createdAt)-+new Date(a.createdAt)) })
-  protected readonly cards = computed(() => [{ status:'',label:this.languageStore.t('dashboard.totalBookings'),count:this.items().length,className:'text-slate-950' },...this.statuses().map((item,index)=>({ status:item.value,label:item.label,count:this.items().filter((booking)=>booking.status===item.value).length,className:['text-amber-600','text-emerald-600','text-rose-600','text-slate-500','text-cyan-600','text-rose-600'][index] }))])
-  ngOnInit(): void { this.load() }
-  protected load(): void { this.loading.set(true); this.api.bookings().subscribe({ next:(items)=>{this.items.set(items);this.loading.set(false)}, error:()=>{this.loading.set(false);this.toast.error('Không tải được danh sách booking')} }) }
-  protected reset(): void { this.keyword='';this.status='';this.from='';this.to='' }
-  protected action(item: BookingResponse, action:'complete'|'no-show'): void { if(!confirm(`Xác nhận ${action} booking #${item.bookingId}?`))return; const request=action==='complete'?this.api.completeBooking(item.bookingId):this.api.noShowBooking(item.bookingId); request.subscribe({next:()=>{this.toast.success('Đã cập nhật booking');this.load()},error:()=>this.toast.error('Không thể cập nhật booking')}) }
+  protected readonly filtered = computed(() => {
+    const needle = this.keyword.trim().toLowerCase()
+    return [...this.items()]
+      .filter((item) => {
+        const date = toDateInput(new Date(item.startTime))
+        return (
+          (!this.status || item.status === this.status) &&
+          (!this.from || date >= this.from) &&
+          (!this.to || date <= this.to) &&
+          (!needle ||
+            String(item.bookingId).includes(needle) ||
+            String(item.userId).includes(needle) ||
+            labelOf('purpose', item.purposeType, this.languageStore.lang())
+              .toLowerCase()
+              .includes(needle))
+        )
+      })
+      .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+  })
+  protected readonly cards = computed(() => [
+    {
+      status: '',
+      label: this.languageStore.t('dashboard.totalBookings'),
+      count: this.items().length,
+      className: 'text-slate-950',
+    },
+    ...this.statuses().map((item, index) => ({
+      status: item.value,
+      label: item.label,
+      count: this.items().filter((booking) => booking.status === item.value).length,
+      className: [
+        'text-amber-600',
+        'text-emerald-600',
+        'text-rose-600',
+        'text-slate-500',
+        'text-cyan-600',
+        'text-rose-600',
+      ][index],
+    })),
+  ])
+  ngOnInit(): void {
+    this.load()
+  }
+  protected load(): void {
+    this.loading.set(true)
+    this.api.bookings().subscribe({
+      next: (items) => {
+        this.items.set(items)
+        this.loading.set(false)
+      },
+      error: () => {
+        this.loading.set(false)
+        this.toast.error('Không tải được danh sách booking')
+      },
+    })
+  }
+  protected reset(): void {
+    this.keyword = ''
+    this.status = ''
+    this.from = ''
+    this.to = ''
+  }
+  protected action(item: BookingResponse, action: 'complete' | 'no-show'): void {
+    if (!confirm(`Xác nhận ${action} booking #${item.bookingId}?`)) return
+    const request =
+      action === 'complete'
+        ? this.api.completeBooking(item.bookingId)
+        : this.api.noShowBooking(item.bookingId)
+    request.subscribe({
+      next: () => {
+        this.toast.success('Đã cập nhật booking')
+        this.load()
+      },
+      error: () => this.toast.error('Không thể cập nhật booking'),
+    })
+  }
 }

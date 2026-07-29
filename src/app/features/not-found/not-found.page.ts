@@ -9,7 +9,7 @@ import { TranslatePipe } from '@ngx-translate/core'
     <div class="mx-auto mt-16 max-w-md text-center">
       <h1 class="text-3xl font-semibold text-slate-900">404</h1>
       <p class="mt-2 text-slate-600">{{ 'notFound.title' | translate }}</p>
-      <a routerLink="/" class="mt-4 inline-block text-brand-600 hover:underline">
+      <a routerLink="/" class="text-brand-600 mt-4 inline-block hover:underline">
         {{ 'notFound.back' | translate }}
       </a>
     </div>

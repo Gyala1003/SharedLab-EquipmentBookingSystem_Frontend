@@ -1,7 +1,7 @@
 import { Component, HostListener, inject, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import { TranslatePipe, TranslateService } from '@ngx-translate/core'
-import {RouterLink, RouterLinkActive} from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router'
 
 interface NavItem {
   label: string

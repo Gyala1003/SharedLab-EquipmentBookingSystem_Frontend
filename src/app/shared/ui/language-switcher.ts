@@ -43,7 +43,7 @@ import { IconComponent } from './icon'
 
       @if (isOpen()) {
         <div
-          class="absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-2xl border border-slate-100 bg-white p-1.5 shadow-xl shadow-slate-900/10 ring-1 ring-black/5 backdrop-blur focus:outline-none"
+          class="absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-2xl border border-slate-100 bg-white p-1.5 shadow-xl ring-1 shadow-slate-900/10 ring-black/5 backdrop-blur focus:outline-none"
         >
           @for (opt of options; track opt.value) {
             <button
@@ -76,7 +76,13 @@ export class LanguageSwitcherComponent {
   readonly variant = input<'header' | 'pill' | 'dark-pill'>('header')
   protected readonly isOpen = signal(false)
 
-  protected readonly options: Array<{ value: SupportedLocale; label: string; shortLabel: string; code: string; flag: string }> = [
+  protected readonly options: Array<{
+    value: SupportedLocale
+    label: string
+    shortLabel: string
+    code: string
+    flag: string
+  }> = [
     { value: 'vi', label: 'Tiếng Việt', shortLabel: 'VIE', code: 'VI', flag: '🇻🇳' },
     { value: 'en', label: 'English', shortLabel: 'ENG', code: 'EN', flag: '🇬🇧' },
   ]

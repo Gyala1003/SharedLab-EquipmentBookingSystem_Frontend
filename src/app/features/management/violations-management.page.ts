@@ -16,16 +16,35 @@ import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-violations-management-page',
-  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [
+    DatePipe,
+    NgClass,
+    FormsModule,
+    RouterLink,
+    PageHeaderComponent,
+    IconComponent,
+    ModalComponent,
+    StatusBadgeComponent,
+    DataStateComponent,
+    TranslatePipe,
+  ],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'manageViolations.title' | t" [subtitle]="'manageViolations.subtitle' | t">
-        <button class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> {{ 'manageViolations.createViolation' | t }}</button>
+      <app-page-header
+        [title]="'manageViolations.title' | t"
+        [subtitle]="'manageViolations.subtitle' | t"
+      >
+        <button class="btn-primary" (click)="openCreate()">
+          <app-icon name="plus" [size]="17" /> {{ 'manageViolations.createViolation' | t }}
+        </button>
       </app-page-header>
 
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @for (tab of tabs(); track tab.value) {
-          <button class="kpi-card text-left transition hover:-translate-y-1" (click)="status = tab.value">
+          <button
+            class="kpi-card text-left transition hover:-translate-y-1"
+            (click)="status = tab.value"
+          >
             <p class="text-xs font-bold text-slate-400">{{ tab.label }}</p>
             <p class="mt-2 text-3xl font-black" [ngClass]="tab.className">{{ count(tab.value) }}</p>
           </button>
@@ -35,7 +54,11 @@ import { labelOf } from '../../shared/utils/presentation'
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_auto]">
         <div>
           <label class="field-label">{{ 'common.search' | t }}</label>
-          <input class="input-shell" [(ngModel)]="keyword" [placeholder]="'manageViolations.searchPlaceholder' | t" />
+          <input
+            class="input-shell"
+            [(ngModel)]="keyword"
+            [placeholder]="'manageViolations.searchPlaceholder' | t"
+          />
         </div>
         <div>
           <label class="field-label">{{ 'manageViolations.violationType' | t }}</label>
@@ -56,7 +79,9 @@ import { labelOf } from '../../shared/utils/presentation'
           </select>
         </div>
         <div class="flex items-end">
-          <button class="btn-secondary w-full" (click)="reset()"><app-icon name="refresh" [size]="17" /> {{ 'common.reset' | t }}</button>
+          <button class="btn-secondary w-full" (click)="reset()">
+            <app-icon name="refresh" [size]="17" /> {{ 'common.reset' | t }}
+          </button>
         </div>
       </div>
 
@@ -64,7 +89,13 @@ import { labelOf } from '../../shared/utils/presentation'
         @if (loading()) {
           <div class="p-6"><div class="skeleton h-80 rounded-2xl"></div></div>
         } @else if (filtered().length === 0) {
-          <div class="p-6"><app-data-state [title]="'common.noData' | t" [message]="'common.noData' | t" icon="shield" /></div>
+          <div class="p-6">
+            <app-data-state
+              [title]="'common.noData' | t"
+              [message]="'common.noData' | t"
+              icon="shield"
+            />
+          </div>
         } @else {
           <div class="overflow-x-auto">
             <table class="table-shell">
@@ -84,17 +115,48 @@ import { labelOf } from '../../shared/utils/presentation'
                 @for (item of filtered(); track item.violationId) {
                   <tr>
                     <td class="font-black text-slate-900">#VP-{{ item.violationId }}</td>
-                    <td><a [routerLink]="['/app/admin/users', item.userId]" class="font-black text-violet-700">User #{{ item.userId }}</a></td>
-                    <td><a [routerLink]="['/app/bookings', item.bookingId]" class="font-black text-indigo-700">#BK-{{ item.bookingId }}</a></td>
-                    <td>{{ labelOf('violationType', item.violationType, languageStore.lang()) }}</td>
-                    <td><span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700">+{{ item.penaltyPointsAdded }}</span></td>
+                    <td>
+                      <a
+                        [routerLink]="['/app/admin/users', item.userId]"
+                        class="font-black text-violet-700"
+                        >User #{{ item.userId }}</a
+                      >
+                    </td>
+                    <td>
+                      <a
+                        [routerLink]="['/app/bookings', item.bookingId]"
+                        class="font-black text-indigo-700"
+                        >#BK-{{ item.bookingId }}</a
+                      >
+                    </td>
+                    <td>
+                      {{ labelOf('violationType', item.violationType, languageStore.lang()) }}
+                    </td>
+                    <td>
+                      <span
+                        class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700"
+                        >+{{ item.penaltyPointsAdded }}</span
+                      >
+                    </td>
                     <td>{{ item.loggedAt | date: 'HH:mm dd/MM/yyyy' }}</td>
                     <td><app-status-badge [value]="item.status" domain="violation" /></td>
                     <td>
                       @if (item.status === 'Active') {
                         <div class="flex gap-2">
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700" title="Resolve" (click)="action(item, 'resolve')"><app-icon name="check" [size]="16" /></button>
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700" title="Cancel" (click)="action(item, 'cancel')"><app-icon name="x" [size]="16" /></button>
+                          <button
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700"
+                            title="Resolve"
+                            (click)="action(item, 'resolve')"
+                          >
+                            <app-icon name="check" [size]="16" />
+                          </button>
+                          <button
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700"
+                            title="Cancel"
+                            (click)="action(item, 'cancel')"
+                          >
+                            <app-icon name="x" [size]="16" />
+                          </button>
                         </div>
                       }
                     </td>
@@ -106,7 +168,12 @@ import { labelOf } from '../../shared/utils/presentation'
         }
       </article>
 
-      <app-modal [open]="createOpen()" [title]="'manageViolations.createViolation' | t" [subtitle]="'manageViolations.subtitle' | t" (close)="createOpen.set(false)">
+      <app-modal
+        [open]="createOpen()"
+        [title]="'manageViolations.createViolation' | t"
+        [subtitle]="'manageViolations.subtitle' | t"
+        (close)="createOpen.set(false)"
+      >
         <form class="grid gap-4" (ngSubmit)="create()">
           <div>
             <label class="field-label">{{ 'nav.users' | t }} *</label>
@@ -117,7 +184,17 @@ import { labelOf } from '../../shared/utils/presentation'
               }
             </select>
           </div>
-          <div><label class="field-label">Booking ID *</label><input class="input-shell" type="number" min="1" required [(ngModel)]="form.bookingId" name="bookingId" /></div>
+          <div>
+            <label class="field-label">Booking ID *</label
+            ><input
+              class="input-shell"
+              type="number"
+              min="1"
+              required
+              [(ngModel)]="form.bookingId"
+              name="bookingId"
+            />
+          </div>
           <div>
             <label class="field-label">{{ 'manageViolations.violationType' | t }} *</label>
             <select class="input-shell" [(ngModel)]="form.violationType" name="violationType">
@@ -127,8 +204,12 @@ import { labelOf } from '../../shared/utils/presentation'
             </select>
           </div>
           <div class="flex justify-end gap-2">
-            <button type="button" class="btn-secondary" (click)="createOpen.set(false)">{{ 'common.cancel' | t }}</button>
-            <button class="btn-primary" [disabled]="saving()">{{ saving() ? ('common.saving' | t) : ('manageViolations.createViolation' | t) }}</button>
+            <button type="button" class="btn-secondary" (click)="createOpen.set(false)">
+              {{ 'common.cancel' | t }}
+            </button>
+            <button class="btn-primary" [disabled]="saving()">
+              {{ saving() ? ('common.saving' | t) : ('manageViolations.createViolation' | t) }}
+            </button>
           </div>
         </form>
       </app-modal>
@@ -147,14 +228,30 @@ export class ViolationsManagementPage implements OnInit {
   protected keyword = ''
   protected status = ''
   protected type = ''
-  protected form = { userId: null as number | null, bookingId: null as number | null, violationType: 1 }
+  protected form = {
+    userId: null as number | null,
+    bookingId: null as number | null,
+    violationType: 1,
+  }
   protected readonly labelOf = labelOf
 
   protected readonly tabs = computed(() => [
     { value: '', label: this.languageStore.t('common.all'), className: 'text-slate-950' },
-    { value: 'Active', label: this.languageStore.t('manageViolations.active'), className: 'text-rose-600' },
-    { value: 'Resolved', label: this.languageStore.t('manageViolations.resolved'), className: 'text-emerald-600' },
-    { value: 'Cancelled', label: this.languageStore.t('manageViolations.cancelled'), className: 'text-slate-500' },
+    {
+      value: 'Active',
+      label: this.languageStore.t('manageViolations.active'),
+      className: 'text-rose-600',
+    },
+    {
+      value: 'Resolved',
+      label: this.languageStore.t('manageViolations.resolved'),
+      className: 'text-emerald-600',
+    },
+    {
+      value: 'Cancelled',
+      label: this.languageStore.t('manageViolations.cancelled'),
+      className: 'text-slate-500',
+    },
   ])
 
   protected readonly violationTypes = computed(() => {
@@ -171,7 +268,15 @@ export class ViolationsManagementPage implements OnInit {
   protected readonly filtered = computed(() => {
     const n = this.keyword.trim()
     return this.items()
-      .filter((x) => (!this.status || x.status === this.status) && (!this.type || x.violationType === this.type) && (!n || String(x.violationId).includes(n) || String(x.userId).includes(n) || String(x.bookingId).includes(n)))
+      .filter(
+        (x) =>
+          (!this.status || x.status === this.status) &&
+          (!this.type || x.violationType === this.type) &&
+          (!n ||
+            String(x.violationId).includes(n) ||
+            String(x.userId).includes(n) ||
+            String(x.bookingId).includes(n)),
+      )
       .sort((a, b) => +new Date(b.loggedAt) - +new Date(a.loggedAt))
   })
 
@@ -192,7 +297,8 @@ export class ViolationsManagementPage implements OnInit {
   protected openCreate(): void {
     this.form = { userId: null, bookingId: null, violationType: 1 }
     this.createOpen.set(true)
-    if (!this.users().length) this.api.users({ pageSize: 100 }).subscribe((x) => this.users.set(x.items))
+    if (!this.users().length)
+      this.api.users({ pageSize: 100 }).subscribe((x) => this.users.set(x.items))
   }
 
   protected create(): void {
@@ -201,23 +307,32 @@ export class ViolationsManagementPage implements OnInit {
       return
     }
     this.saving.set(true)
-    this.api.createViolation({ userId: this.form.userId, bookingId: this.form.bookingId, violationType: this.form.violationType }).subscribe({
-      next: () => {
-        this.saving.set(false)
-        this.createOpen.set(false)
-        this.toast.success('Đã tạo vi phạm')
-        this.load()
-      },
-      error: () => {
-        this.saving.set(false)
-        this.toast.error('Không thể tạo vi phạm')
-      },
-    })
+    this.api
+      .createViolation({
+        userId: this.form.userId,
+        bookingId: this.form.bookingId,
+        violationType: this.form.violationType,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false)
+          this.createOpen.set(false)
+          this.toast.success('Đã tạo vi phạm')
+          this.load()
+        },
+        error: () => {
+          this.saving.set(false)
+          this.toast.error('Không thể tạo vi phạm')
+        },
+      })
   }
 
   protected action(item: ViolationResponse, action: 'resolve' | 'cancel'): void {
     if (!confirm(`${action === 'resolve' ? 'Xử lý' : 'Hủy'} vi phạm #${item.violationId}?`)) return
-    const req = action === 'resolve' ? this.api.resolveViolation(item.violationId) : this.api.cancelViolation(item.violationId)
+    const req =
+      action === 'resolve'
+        ? this.api.resolveViolation(item.violationId)
+        : this.api.cancelViolation(item.violationId)
     req.subscribe({
       next: () => {
         this.toast.success('Đã cập nhật vi phạm')
