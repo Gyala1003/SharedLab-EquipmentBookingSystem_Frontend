@@ -14,8 +14,12 @@ interface NavItem {
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, UserMenuComponent, TranslatePipe],
-  templateUrl: './header.component.html',
+  imports: [
+    CommonModule, 
+    RouterLink, 
+    UserMenuComponent, 
+    TranslatePipe
+  ],templateUrl: './header.component.html',
 })
 export class HeaderComponent {
   protected readonly store = inject(AuthStore)
@@ -27,14 +31,7 @@ export class HeaderComponent {
   isLangMenuOpen = signal(false)
   isScrolled = signal(false)
 
-  navItems: NavItem[] = [
-    { label: 'header.nav.home', fragment: 'hero' },
-    { label: 'header.nav.about', fragment: 'about' },
-    { label: 'header.nav.feature', fragment: 'feature' },
-    { label: 'header.nav.workflow', fragment: 'workflow' },
-    { label: 'header.nav.statistics', fragment: 'statistics' },
-    { label: 'header.nav.contact', fragment: 'cta' },
-  ]
+  navItems: NavItem[] = []
 
   languages = [
     { code: 'vi' as const, label: 'Tiếng Việt' },
