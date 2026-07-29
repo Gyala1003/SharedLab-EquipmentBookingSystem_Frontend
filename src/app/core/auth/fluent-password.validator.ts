@@ -66,7 +66,7 @@ export function createResetPasswordPolicy(): FluentPasswordPolicy {
   return new FluentPasswordPolicy().minLength(8).uppercase().lowercase().digit().specialChar()
 }
 
-/** Cross-field validator: sets/clears `passwordMismatch` directly on the confirm control. */
+/** Cross-field validator: sets/clears `passwordMismatch` directly on the confirmation control. */
 export function passwordMatchValidator(passwordKey: string, confirmKey: string): ValidatorFn {
   return (group: AbstractControl): ValidationErrors | null => {
     const passwordControl = group.get(passwordKey)

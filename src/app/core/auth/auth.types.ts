@@ -21,6 +21,8 @@ export interface LoginPayload {
 export interface AuthTokens {
   accessToken: string
   refreshToken: string
+  expiresIn: number
+  user: AuthUser
 }
 
 export interface ForgotPasswordPayload {

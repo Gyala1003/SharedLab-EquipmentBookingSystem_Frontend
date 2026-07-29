@@ -35,6 +35,7 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
+code_tong_hop_FE.md
 
 # build
 /dist

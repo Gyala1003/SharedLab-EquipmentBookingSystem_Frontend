@@ -1,8 +1,9 @@
-import { Component, HostListener, inject, signal } from '@angular/core'
+import { Component, HostListener, inject, signal, computed } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { TranslatePipe, TranslateService } from '@ngx-translate/core'
 import { RouterLink, RouterLinkActive } from '@angular/router'
 import { AuthStore } from '../../../core/auth/auth.store'
+import { LanguageStore } from '../../../core/i18n/language.store'
+import { TranslatePipe } from '../../../core/i18n/translate.pipe'
 import { UserMenuComponent } from '../../ui/user-menu/user-menu.component'
 
 interface NavItem {
@@ -10,26 +11,21 @@ interface NavItem {
   fragment: string
 }
 
-interface LanguageOption {
-  code: string
-  label: string
-}
-
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, RouterLink, RouterLinkActive, UserMenuComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, UserMenuComponent, TranslatePipe],
   templateUrl: './header.component.html',
 })
 export class HeaderComponent {
-  private readonly translate = inject(TranslateService)
   protected readonly store = inject(AuthStore)
+  protected readonly lang = inject(LanguageStore)
+
+  currentLang = computed(() => this.lang.lang())
 
   isMobileMenuOpen = signal(false)
   isLangMenuOpen = signal(false)
   isScrolled = signal(false)
-
-  currentLang = signal(this.translate.currentLang() || this.translate.getFallbackLang() || 'vi')
 
   navItems: NavItem[] = [
     { label: 'header.nav.home', fragment: 'hero' },
@@ -40,9 +36,9 @@ export class HeaderComponent {
     { label: 'header.nav.contact', fragment: 'cta' },
   ]
 
-  languages: LanguageOption[] = [
-    { code: 'vi', label: 'Tiếng Việt' },
-    { code: 'en', label: 'English' },
+  languages = [
+    { code: 'vi' as const, label: 'Tiếng Việt' },
+    { code: 'en' as const, label: 'English' },
   ]
 
   @HostListener('window:scroll')
@@ -62,18 +58,12 @@ export class HeaderComponent {
     this.isLangMenuOpen.update((value) => !value)
   }
 
-  closeLangMenu(): void {
-    this.isLangMenuOpen.set(false)
-  }
-
-  changeLanguage(code: string): void {
-    this.translate.use(code)
-    this.currentLang.set(code)
+  changeLanguage(code: 'vi' | 'en'): void {
+    this.lang.setLang(code)
     this.isLangMenuOpen.set(false)
   }
 
   currentLanguageLabel(): string {
-    const found = this.languages.find((lang) => lang.code === this.currentLang())
-    return found ? found.label : ''
+    return this.languages.find((l) => l.code === this.lang.lang())?.label ?? ''
   }
 }

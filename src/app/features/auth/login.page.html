@@ -12,11 +12,11 @@
 
     <div class="rounded-2xl border border-gray-200 bg-white p-8 shadow-xl">
       <div class="text-center">
-        <h1 class="text-xl font-bold text-gray-900">{{ 'auth.loginTitle' | translate }}</h1>
-        <p class="mt-2 text-sm text-gray-600">{{ 'auth.loginSubtitle' | translate }}</p>
+        <h1 class="text-xl font-bold text-gray-900">{{ 'auth.loginTitle' | t }}</h1>
+        <p class="mt-2 text-sm text-gray-600">{{ 'auth.loginSubtitle' | t }}</p>
       </div>
 
-      @if (errorKind()) {
+      @if (errorKind() && !showSuccess()) {
         <div class="mt-6 flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <svg class="mt-0.5 h-4.5 w-4.5 shrink-0 text-red-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
@@ -24,7 +24,7 @@
             <circle cx="12" cy="16" r="0.9" fill="currentColor"/>
           </svg>
           <p class="text-sm font-medium text-red-700">
-            {{ (errorKind() === 'invalidCredentials' ? 'auth.error.invalidCredentials' : 'auth.error.serverError') | translate }}
+            {{ (errorKind() === 'invalidCredentials' ? 'auth.error.invalidCredentials' : 'auth.error.serverError') | t }}
           </p>
         </div>
       }
@@ -35,13 +35,13 @@
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/>
             <path d="M8 12.5L10.5 15L16 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <p class="text-sm font-medium text-emerald-700">{{ 'auth.success.login' | translate }}</p>
+          <p class="text-sm font-medium text-emerald-700">{{ 'auth.success.login' | t }}</p>
         </div>
       }
 
       <form class="mt-6 flex flex-col gap-5" [formGroup]="form" (ngSubmit)="submit()">
         <label class="flex flex-col gap-1.5">
-          <span class="text-sm font-medium text-gray-700">{{ 'auth.email' | translate }}</span>
+          <span class="text-sm font-medium text-gray-700">{{ 'auth.email' | t }}</span>
           <div class="relative">
             <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
               <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -58,12 +58,12 @@
             />
           </div>
           @if (emailErrorKey(); as key) {
-            <span class="text-xs text-red-600">{{ key | translate }}</span>
+            <span class="text-xs text-red-600">{{ key | t }}</span>
           }
         </label>
 
         <label class="flex flex-col gap-1.5">
-          <span class="text-sm font-medium text-gray-700">{{ 'auth.password' | translate }}</span>
+          <span class="text-sm font-medium text-gray-700">{{ 'auth.password' | t }}</span>
           <div class="relative">
             <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
               <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -99,7 +99,7 @@
             </button>
           </div>
           @if (passwordErrorKey(); as key) {
-            <span class="text-xs text-red-600">{{ key | translate }}</span>
+            <span class="text-xs text-red-600">{{ key | t }}</span>
           }
         </label>
 
@@ -111,15 +111,16 @@
               (change)="toggleRememberMe()"
               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <span class="text-sm text-gray-600">{{ 'auth.rememberMe' | translate }}</span>
+            <span class="text-sm text-gray-600">{{ 'auth.rememberMe' | t }}</span>
           </label>
 
-          <a routerLink="/auth/forgot-password" class="text-sm font-medium text-blue-600 hover:underline">
-            {{ 'auth.forgotPassword' | translate }}
+          <a routerLink="/forgot-password" class="text-sm font-medium text-blue-600 hover:underline">
+            {{ 'auth.forgotPassword' | t }}
           </a>
         </div>
 
         <div class="mt-2 flex flex-col gap-3">
+          <!-- Trích đoạn nút Đăng nhập trong login.page.html -->
           <button
             type="submit"
             [disabled]="form.invalid || store.status() === 'loading'"
@@ -128,14 +129,14 @@
             @if (store.status() === 'loading') {
               <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
             }
-            {{ 'auth.loginBtn' | translate }}
+            {{ 'auth.loginBtn' | t }}
           </button>
 
           <a
             routerLink="/"
             class="flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
           >
-            {{ 'auth.cancel' | translate }}
+            {{ 'auth.cancel' | t }}
           </a>
         </div>
       </form>

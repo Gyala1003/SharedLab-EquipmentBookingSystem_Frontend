@@ -30,7 +30,12 @@ export const landingGuard: CanActivateFn = () => {
 }
 
 export function landingPath(role: string): string {
-  if (role === 'Admin') return '/app/dashboard'
-  if (role === 'LabManager') return '/app/management/bookings/pending'
-  return '/app/home'
+  // Chuẩn hóa role về chữ hoa/thường nếu cần
+  const formattedRole = role?.trim()
+
+  if (formattedRole === 'Admin') return '/app/dashboard'
+  if (formattedRole === 'LabManager') return '/app/management/bookings/pending'
+
+  // Sửa '/app/home' (không tồn tại trong routes) thành route mặc định hợp lệ của ứng dụng
+  return '/app/labs'
 }

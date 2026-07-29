@@ -32,7 +32,7 @@
           routerLinkActive="text-blue-600"
           class="text-sm font-medium text-gray-600 transition-colors hover:text-blue-600"
         >
-          {{ item.label | translate }}
+          {{ item.label | t }}
         </a>
       }
     </nav>
@@ -57,16 +57,16 @@
 
         @if (isLangMenuOpen()) {
           <div class="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-            @for (lang of languages; track lang.code) {
+            @for (langItem of languages; track langItem.code) {
               <button
                 type="button"
                 class="flex w-full items-center px-4 py-2 text-sm hover:bg-gray-50"
-                [class.text-blue-600]="lang.code === currentLang()"
-                [class.font-semibold]="lang.code === currentLang()"
-                [class.text-gray-700]="lang.code !== currentLang()"
-                (click)="changeLanguage(lang.code)"
+                [class.text-blue-600]="langItem.code === lang.lang()"
+                [class.font-semibold]="langItem.code === lang.lang()"
+                [class.text-gray-700]="langItem.code !== lang.lang()"
+                (click)="changeLanguage(langItem.code)"
               >
-                {{ lang.label }}
+                {{ langItem.label }}
               </button>
             }
           </div>
@@ -80,7 +80,7 @@
           routerLink="/auth/login"
           class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
         >
-          {{ 'header.login' | translate }}
+          {{ 'header.login' | t }}
         </a>
       }
     </div>
@@ -114,7 +114,7 @@
             class="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
             (click)="closeMobileMenu()"
           >
-            {{ item.label | translate }}
+            {{ item.label | t }}
           </a>
         }
       </nav>
@@ -147,7 +147,7 @@
             class="mt-2 rounded-md bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white"
             (click)="closeMobileMenu()"
           >
-            {{ 'header.login' | translate }}
+            {{ 'header.login' | t }}
           </a>
         }
       </div>

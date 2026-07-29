@@ -22,27 +22,28 @@ export class AuthStore {
   readonly error = this._error.asReadonly()
   readonly isAuthenticated = computed(() => Boolean(this._user() && this.tokens.access))
   readonly role = computed(() => this._user()?.roleName ?? '')
-  readonly roles = computed(() => this._user()?.roleName ? [this._user()!.roleName as UserRole] : [])
+  readonly roles = computed(() =>
+    this._user()?.roleName ? [this._user()!.roleName as UserRole] : [],
+  )
   readonly isRequester = computed(() => this.role() === 'Requester')
   readonly isManager = computed(() => this.role() === 'LabManager')
   readonly isAdmin = computed(() => this.role() === 'Admin')
   readonly logoutStatus = this._logoutStatus.asReadonly()
 
-  // --- methods ---
-  async login(payload: LoginPayload): Promise<void> {
+  /** Trả về AuthUser để trang Login điều hướng theo role ngay sau khi đăng nhập. */
+  async login(payload: LoginPayload, remember = true): Promise<AuthUser> {
     this._status.set('loading')
     this._error.set(null)
     try {
       const res = await firstValueFrom(this.auth.login(payload))
-      this.tokens.set(res.accessToken, res.refreshToken)
-      this._user.set(res.user)
-      if (res.user) {
-        localStorage.setItem(USER_KEY, JSON.stringify(res.user))
-      }
+      this.tokens.set(res.accessToken, res.refreshToken, remember)
+      this.setUser(res.user, remember)
+      this._error.set(null) // Reset lỗi về null khi thành công
       this._status.set('idle')
+      return res.user
     } catch (e) {
       this._status.set('error')
-      this._error.set(e instanceof Error ? e.message : 'error')
+      this._error.set(this.resolveMessage(e))
       throw e
     }
   }
@@ -51,18 +52,12 @@ export class AuthStore {
     if (!this.tokens.access) return
     try {
       const user = await firstValueFrom(this.auth.me())
-      this.setUser(user)
+      this.setUser(user, this.tokens.isPersistent)
     } catch {
-      this.clearLocalSession()
+      this.clear()
     }
   }
 
-  /**
-   * Calls the backend logout endpoint, then always clears local session state
-   * regardless of the API outcome (a failed round-trip shouldn't leave the
-   * user stuck "logged in" locally). Re-throws on failure so the caller can
-   * distinguish success vs. failure for navigation purposes.
-   */
   async logout(): Promise<void> {
     const refreshToken = this.tokens.refresh
     this._logoutStatus.set('loading')
@@ -80,7 +75,7 @@ export class AuthStore {
     return roles.includes(this.role() as UserRole)
   }
 
-  clearLocalSession(): void {
+  clear(): void {
     this.tokens.clear()
     localStorage.removeItem(USER_KEY)
     sessionStorage.removeItem(USER_KEY)
@@ -89,7 +84,7 @@ export class AuthStore {
     this._error.set(null)
   }
 
-  private setUser(user: AuthUser, persistent = this.tokens.isPersistent): void {
+  private setUser(user: AuthUser, persistent: boolean): void {
     this._user.set(user)
     const target = persistent ? localStorage : sessionStorage
     const other = persistent ? sessionStorage : localStorage
@@ -99,11 +94,7 @@ export class AuthStore {
 
   private restore(): AuthUser | null {
     const raw = localStorage.getItem(USER_KEY) ?? sessionStorage.getItem(USER_KEY)
-    // Kiểm tra nếu không có dữ liệu hoặc dữ liệu là chuỗi 'undefined' / 'null'
-    if (!raw || raw === 'undefined' || raw === 'null') {
-      return null
-    }
-
+    if (!raw || raw === 'undefined' || raw === 'null') return null
     try {
       return JSON.parse(raw) as AuthUser
     } catch {
