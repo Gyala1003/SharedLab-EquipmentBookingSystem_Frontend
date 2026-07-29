@@ -58,10 +58,6 @@ import { labelOf } from '../../shared/utils/presentation'
 
               <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-5">
                 <button type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-rose-700" (click)="logout()"><app-icon name="logout" [size]="16" /> {{ 'profile.logout' | t }}</button>
-                <div class="flex gap-2">
-                  <a routerLink="/app/bookings/my" class="btn-secondary"><app-icon name="book-open" [size]="16" /> {{ 'profile.bookingHistory' | t }}</a>
-                  <button type="button" class="btn-secondary" (click)="openEdit(user)"><app-icon name="edit" [size]="16" /> {{ 'profile.editProfile' | t }}</button>
-                </div>
               </div>
             </article>
 
