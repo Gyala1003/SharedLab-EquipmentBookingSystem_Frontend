@@ -71,10 +71,9 @@ export class LoginPage {
       const user = await this.store.login(this.form.getRawValue(), this.rememberMe())
       this.showSuccess.set(true)
 
-      // Bọc cẩn thận đoạn lấy destination để không bị sập try/catch nếu roleName undefined
       const redirect = this.route.snapshot.queryParamMap.get('redirect')
       const role = user?.roleName ?? ''
-      destination = redirect && redirect !== '/' ? redirect : landingPath(role)
+      destination = this.normalizeRedirect(redirect, role)
     } catch (e) {
       // Nếu lỗi thật sự từ API Login, reset lại showSuccess
       this.showSuccess.set(false)
@@ -89,9 +88,26 @@ export class LoginPage {
       return
     }
 
-    // Chuyển hướng sau khi đã hoàn tất và thành công hoàn toàn
-    setTimeout(() => {
-      void this.router.navigateByUrl(destination)
-    }, 600)
+    // Chuyển hướng ngay khi đã login thành công.
+    const success = await this.router.navigateByUrl(destination, { replaceUrl: true })
+    const currentUrl = this.router.url
+
+    if (!success || currentUrl !== destination) {
+      window.location.href = destination
+    }
+  }
+
+  private normalizeRedirect(redirect: string | null, role: string): string {
+    const target = redirect?.trim() ?? ''
+    if (
+      !target ||
+      target === '/' ||
+      target === '/app/home' ||
+      target === '/login' ||
+      target === '/app/login'
+    ) {
+      return landingPath(role)
+    }
+    return target.startsWith('/') ? target : `/${target}`
   }
 }

@@ -21,13 +21,13 @@ export class AuthStore {
   readonly status = this._status.asReadonly()
   readonly error = this._error.asReadonly()
   readonly isAuthenticated = computed(() => Boolean(this._user() && this.tokens.access))
-  readonly role = computed(() => this._user()?.roleName ?? '')
+  readonly role = computed(() => this._user()?.roleName?.trim() ?? '')
   readonly roles = computed(() =>
     this._user()?.roleName ? [this._user()!.roleName as UserRole] : [],
   )
-  readonly isRequester = computed(() => this.role() === 'Requester')
-  readonly isManager = computed(() => this.role() === 'LabManager')
-  readonly isAdmin = computed(() => this.role() === 'Admin')
+  readonly isRequester = computed(() => this.role().toLowerCase() === 'requester')
+  readonly isManager = computed(() => this.role().toLowerCase() === 'labmanager')
+  readonly isAdmin = computed(() => this.role().toLowerCase() === 'admin')
   readonly logoutStatus = this._logoutStatus.asReadonly()
 
   /** Trả về AuthUser để trang Login điều hướng theo role ngay sau khi đăng nhập. */
@@ -72,7 +72,8 @@ export class AuthStore {
   }
 
   hasRole(roles: readonly UserRole[]): boolean {
-    return roles.includes(this.role() as UserRole)
+    const userRole = this.role().trim().toLowerCase()
+    return roles.some((role) => role.trim().toLowerCase() === userRole)
   }
 
   clear(): void {

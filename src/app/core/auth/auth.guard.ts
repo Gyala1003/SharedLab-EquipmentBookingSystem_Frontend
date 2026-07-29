@@ -17,11 +17,13 @@ export const guestGuard: CanActivateFn = () => {
   return store.isAuthenticated() ? router.createUrlTree([landingPath(store.role())]) : true
 }
 
-export const roleGuard = (roles: readonly UserRole[]): CanActivateFn => () => {
-  const store = inject(AuthStore)
-  const router = inject(Router)
-  return store.hasRole(roles) ? true : router.createUrlTree(['/403'])
-}
+export const roleGuard =
+  (roles: readonly UserRole[]): CanActivateFn =>
+  () => {
+    const store = inject(AuthStore)
+    const router = inject(Router)
+    return store.hasRole(roles) ? true : router.createUrlTree(['/403'])
+  }
 
 export const landingGuard: CanActivateFn = () => {
   const store = inject(AuthStore)
@@ -31,10 +33,10 @@ export const landingGuard: CanActivateFn = () => {
 
 export function landingPath(role: string): string {
   // Chuẩn hóa role về chữ hoa/thường nếu cần
-  const formattedRole = role?.trim()
+  const formattedRole = role?.trim().toLowerCase()
 
-  if (formattedRole === 'Admin') return '/app/dashboard'
-  if (formattedRole === 'LabManager') return '/app/management/bookings/pending'
+  if (formattedRole === 'admin') return '/app/dashboard'
+  if (formattedRole === 'labmanager') return '/app/management/bookings/pending'
 
   // Sửa '/app/home' (không tồn tại trong routes) thành route mặc định hợp lệ của ứng dụng
   return '/app/labs'

@@ -1,9 +1,18 @@
 import { Routes } from '@angular/router'
 import { authGuard, guestGuard, landingGuard, roleGuard } from './core/auth/auth.guard'
 import { AppLayoutComponent } from './shared/layout/app-layout'
-import {PublicLayoutComponent} from './shared/layout/public-layout/public-layout.component'
+import { PublicLayoutComponent } from './shared/layout/public-layout/public-layout.component'
 
 export const routes: Routes = [
+  {
+    path: 'auth',
+    component: PublicLayoutComponent,
+    children: [
+      { path: 'login', pathMatch: 'full', redirectTo: '/login' },
+      { path: 'forgot-password', pathMatch: 'full', redirectTo: '/forgot-password' },
+      { path: 'reset-password', pathMatch: 'full', redirectTo: '/reset-password' },
+    ],
+  },
   {
     path: '',
     component: PublicLayoutComponent,
