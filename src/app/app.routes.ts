@@ -62,6 +62,13 @@ export const routes: Routes = [
         loadComponent: () => import('./features/system/blank.page').then((m) => m.BlankPage),
       },
       {
+        path: 'home',
+        canActivate: [roleGuard(['Requester'])],
+        title: 'Trang chủ · Shared Lab',
+        loadComponent: () =>
+          import('./features/home/requester-home.page').then((m) => m.RequesterHomePage),
+      },
+      {
         path: 'dashboard',
         canActivate: [roleGuard(['Admin'])],
         title: 'Dashboard · Shared Lab',

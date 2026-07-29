@@ -241,24 +241,93 @@ interface NavGroup {
             }
           </a>
 
-          <a
-            routerLink="/app/profile"
-            class="hidden items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-cyan-50/50 md:flex"
-          >
-            @if (store.user(); as user) {
-              <div class="text-right">
-                <p class="text-sm font-black text-slate-800">{{ user.fullName }}</p>
-                <p class="mt-0.5 text-[10px] font-bold text-slate-500">
-                  {{ 'roles.' + user.roleName | t }}
-                </p>
-              </div>
+          <!-- Top Right User Avatar Dropdown Select -->
+          <div class="relative hidden md:block">
+            <button
+              type="button"
+              class="flex items-center gap-2.5 rounded-2xl border border-cyan-100 bg-white p-1.5 pr-3 shadow-sm transition hover:border-cyan-300 hover:shadow-md"
+              (click)="toggleUserMenu()"
+            >
+              @if (store.user(); as user) {
+                <div
+                  class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-xs font-black text-white shadow-sm"
+                >
+                  {{ initials(user.fullName) }}
+                </div>
+                <span class="text-xs font-black text-slate-800">{{ user.fullName }}</span>
+                <app-icon
+                  name="chevron-down"
+                  [size]="16"
+                  class="text-slate-400 transition-transform duration-200"
+                  [ngClass]="userMenuOpen() ? 'rotate-180' : ''"
+                />
+              }
+            </button>
+
+            @if (userMenuOpen()) {
+              <div class="fixed inset-0 z-30" (click)="userMenuOpen.set(false)"></div>
+
               <div
-                class="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-400 to-sky-400 text-sm font-black text-white shadow-sm shadow-cyan-500/20"
+                class="absolute right-0 top-full z-40 mt-2 w-64 rounded-3xl border border-slate-100 bg-white p-4 shadow-2xl shadow-slate-900/15 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
               >
-                {{ initials(user.fullName) }}
+                @if (store.user(); as user) {
+                  <div class="px-2 pb-3">
+                    <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
+                    <p class="truncate text-xs font-medium text-slate-400 mt-0.5">{{ user.email }}</p>
+                  </div>
+
+                  <div class="my-1 border-t border-slate-100"></div>
+
+                  <nav class="space-y-1 py-1">
+                    <a
+                      routerLink="/app/profile"
+                      class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                      (click)="userMenuOpen.set(false)"
+                    >
+                      <app-icon name="user" [size]="17" class="text-slate-400" />
+                      <span>Profile</span>
+                    </a>
+
+                    <a
+                      routerLink="/app/notifications"
+                      class="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                      (click)="userMenuOpen.set(false)"
+                    >
+                      <div class="flex items-center gap-3">
+                        <app-icon name="bell" [size]="17" class="text-slate-400" />
+                        <span>Notifications</span>
+                      </div>
+                      @if (badge.count() > 0) {
+                        <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white">
+                          {{ badge.count() > 99 ? '99+' : badge.count() }}
+                        </span>
+                      }
+                    </a>
+
+                    <button
+                      type="button"
+                      class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                      (click)="onSupportClick()"
+                    >
+                      <app-icon name="help-circle" [size]="17" class="text-slate-400" />
+                      <span>Support</span>
+                    </button>
+                  </nav>
+
+                  <div class="my-1 border-t border-slate-100"></div>
+
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-extrabold text-rose-600 transition hover:bg-rose-50"
+                    (click)="logout()"
+                  >
+                    <app-icon name="logout" [size]="17" class="text-rose-500" />
+                    <span>Log out</span>
+                  </button>
+                }
               </div>
             }
-          </a>
+          </div>
         </header>
 
         <main class="mx-auto w-full max-w-[1580px] p-4 sm:p-6 lg:p-8"><router-outlet /></main>
@@ -308,14 +377,24 @@ export class AppLayoutComponent implements OnInit {
   private readonly toast = inject(ToastService)
   protected readonly mobileOpen = signal(false)
   protected readonly pendingCheckoutOpen = signal(false)
+  protected readonly userMenuOpen = signal(false)
   protected pendingBooking: BookingResponse | null = null
   protected pendingLog: UsageLogResponse | null = null
+
+  protected toggleUserMenu(): void {
+    this.userMenuOpen.update((v) => !v)
+  }
+
+  protected onSupportClick(): void {
+    this.userMenuOpen.set(false)
+    this.toast.info('Trung tâm hỗ trợ', 'Liên hệ Admin qua email admin@sharedlab.vn hoặc hotline 1900-xxxx.')
+  }
 
   private readonly groups: readonly NavGroup[] = [
     {
       labelKey: 'nav.groups.overview',
       items: [
-        { labelKey: 'nav.items.home', icon: 'home', route: '/app/labs', roles: ['Requester'] },
+        { labelKey: 'nav.items.home', icon: 'home', route: '/app/home', roles: ['Requester'] },
         {
           labelKey: 'nav.items.dashboard',
           icon: 'dashboard',

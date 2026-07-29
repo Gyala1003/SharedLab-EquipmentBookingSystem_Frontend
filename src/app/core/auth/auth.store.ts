@@ -25,9 +25,18 @@ export class AuthStore {
   readonly roles = computed(() =>
     this._user()?.roleName ? [this._user()!.roleName as UserRole] : [],
   )
-  readonly isRequester = computed(() => this.role().toLowerCase() === 'requester')
-  readonly isManager = computed(() => this.role().toLowerCase() === 'labmanager')
-  readonly isAdmin = computed(() => this.role().toLowerCase() === 'admin')
+  readonly isRequester = computed(() => {
+    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
+    return r === 'requester' || r === 'student' || r === 'user'
+  })
+  readonly isManager = computed(() => {
+    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
+    return r === 'labmanager' || r === 'manager'
+  })
+  readonly isAdmin = computed(() => {
+    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
+    return r === 'admin' || r === 'administrator'
+  })
   readonly logoutStatus = this._logoutStatus.asReadonly()
 
   /** Trả về AuthUser để trang Login điều hướng theo role ngay sau khi đăng nhập. */
@@ -72,8 +81,16 @@ export class AuthStore {
   }
 
   hasRole(roles: readonly UserRole[]): boolean {
-    const userRole = this.role().trim().toLowerCase()
-    return roles.some((role) => role.trim().toLowerCase() === userRole)
+    const rawRole = this.role().trim().toLowerCase().replace(/[\s_]+/g, '')
+    if (!rawRole) return false
+    return roles.some((r) => {
+      const target = r.trim().toLowerCase().replace(/[\s_]+/g, '')
+      if (target === rawRole) return true
+      if (target === 'admin' && (rawRole === 'admin' || rawRole === 'administrator')) return true
+      if (target === 'labmanager' && (rawRole === 'labmanager' || rawRole === 'manager')) return true
+      if (target === 'requester' && (rawRole === 'requester' || rawRole === 'student' || rawRole === 'user')) return true
+      return false
+    })
   }
 
   clear(): void {

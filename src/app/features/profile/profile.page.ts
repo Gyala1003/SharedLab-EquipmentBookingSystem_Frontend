@@ -144,7 +144,6 @@ import { labelOf } from '../../shared/utils/presentation'
             </article>
           </div>
         </div>
-
         <app-modal [open]="editOpen()" title="Chỉnh sửa thông tin cá nhân" subtitle="Một số trường quan trọng có thể cần Admin duyệt lại." (close)="editOpen.set(false)">
           <form class="grid gap-4" (ngSubmit)="saveProfile()">
             <div><label class="field-label">Họ và tên *</label><input class="input-shell" [(ngModel)]="editForm.fullName" name="fullName" required /></div>
@@ -191,7 +190,6 @@ export class ProfilePage {
       error: () => { this.saving.set(false); this.editOpen.set(false); this.toast.error('Không thể tự cập nhật hồ sơ', 'Tài khoản của bạn có thể chưa được cấp quyền tự sửa thông tin, vui lòng liên hệ Admin.') },
     })
   }
-
   protected async logout(): Promise<void> {
     await this.store.logout()
     void this.router.navigate(['/login'])
