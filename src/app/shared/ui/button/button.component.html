@@ -1,0 +1,11 @@
+<button
+  [type]="type()"
+  [disabled]="disabled()"
+  [class]="
+    variant() === 'primary'
+      ? 'rounded-md bg-sky-600 px-4 py-2 text-white transition hover:bg-sky-700 disabled:opacity-50'
+      : 'rounded-md border border-slate-300 px-4 py-2 transition hover:bg-slate-100 disabled:opacity-50'
+  "
+>
+  <ng-content />
+</button>

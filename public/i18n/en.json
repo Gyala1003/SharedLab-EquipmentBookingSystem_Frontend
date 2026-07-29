@@ -1,0 +1,197 @@
+{
+  "app": { "name": "Lab & Equipment Booking" },
+  "nav": { "users": "Users", "login": "Log in", "logout": "Log out" },
+  "header": {
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "feature": "Features",
+      "workflow": "How it works",
+      "statistics": "Statistics",
+      "contact": "Contact"
+    },
+    "login": "Log in",
+    "access": "Access System"
+  },
+  "footer": {
+    "description": "A Shared Lab and Equipment Booking System that helps optimize operations and improve resource utilization efficiency across your organization.",
+    "quickLinks": "Quick Links",
+    "contact": "Contact Information",
+    "address": "Science and Technology Building, 268 Ly Thuong Kiet, District 10, Ho Chi Minh City",
+    "phone": "(028) 3865 1234",
+    "email": "support@labbooking.edu.vn",
+    "copyright": "All rights reserved."
+  },
+  "home": {
+    "title": "Welcome",
+    "subtitle": "Manage lab room and equipment bookings.",
+    "hero": {
+      "badge": "SHARED LAB & EQUIPMENT BOOKING SYSTEM",
+      "title": "Book shared labs and equipment without the scheduling conflicts",
+      "description": "Manage lab room and equipment bookings across your entire organization. Reduce scheduling conflicts, track equipment status in real time, and keep every operation transparent.",
+      "ctaPrimary": "Log in now",
+      "ctaSecondary": "Learn more",
+      "mockup": {
+        "title": "Today's schedule",
+        "today": "Wednesday, today",
+        "selected": "6 items selected",
+        "book": "Book",
+        "availableTitle": "Available",
+        "availableRoom": "Lab Room 3 · Floor 2",
+        "maintenanceTime": "Maintenance 09:00 - 11:00",
+        "maintenanceEquipment": "Electron Microscope",
+        "utilization": "Utilization",
+        "equipment": {
+          "centrifuge": "Centrifuge",
+          "incubator": "CO2 Incubator",
+          "autoclave": "Autoclave",
+          "microscope": "Electron Microscope",
+          "spectrophotometer": "Spectrophotometer"
+        }
+      }
+    },
+    "about": {
+      "eyebrow": "ABOUT THE SYSTEM",
+      "title": "One platform for every shared lab and piece of equipment",
+      "description": "Built to serve every audience across an educational and research organization, from students running experiments to administrators overseeing operations, unifying the booking process and resource oversight on a single platform.",
+      "audience": {
+        "student": "Student",
+        "lecturer": "Lecturer",
+        "labManager": "Laboratory Manager",
+        "technician": "Technician",
+        "administrator": "Administrator"
+      },
+      "highlight": {
+        "availability": "Available anytime",
+        "platform": "Unified platform",
+        "roleTitle": "Role-based access",
+        "roleDescription": "Each role is granted the right level of access, keeping data and actions tightly controlled."
+      }
+    },
+    "feature": {
+      "eyebrow": "FEATURES",
+      "title": "Every tool needed to run a lab",
+      "subtitle": "From booking to reporting, all in one unified system.",
+      "room": { "title": "Room booking", "description": "Book lab room usage by time slot, avoiding overlaps and conflicts." },
+      "equipment": { "title": "Equipment booking", "description": "Reserve shared equipment with real-time status updates." },
+      "schedule": { "title": "Schedule management", "description": "Track every room and equipment booking on one central view." },
+      "notification": { "title": "Notifications", "description": "Get confirmations, reminders, and booking status updates." },
+      "users": { "title": "User management", "description": "Role-based access for Students, Lecturers, Lab Managers, and Technicians." },
+      "report": { "title": "Reports", "description": "Usage frequency and performance statistics for labs and equipment over time." }
+    },
+    "workflow": {
+      "eyebrow": "HOW IT WORKS",
+      "title": "Book in 5 simple steps",
+      "subtitle": "A clear, transparent process from login to confirmation.",
+      "login": { "title": "Log in", "description": "Sign in with the account issued in the system." },
+      "selectRoom": { "title": "Select room", "description": "Choose the lab room that fits your needs." },
+      "selectEquipment": { "title": "Select equipment", "description": "Choose the shared equipment you need for the session." },
+      "booking": { "title": "Book", "description": "Pick a time slot and confirm the booking details." },
+      "confirmation": { "title": "Get confirmation", "description": "Receive a booking confirmation through the system." }
+    },
+    "statistics": {
+      "labs": "Laboratories",
+      "equipment": "Equipment",
+      "bookings": "Bookings",
+      "users": "Users"
+    },
+    "preview": {
+      "eyebrow": "EQUIPMENT",
+      "title": "Featured shared equipment",
+      "subtitle": "A quick look at the usage status of some equipment in the system.",
+      "status": { "available": "Available", "booked": "Booked", "maintenance": "Maintenance" },
+      "items": {
+        "microscope": { "name": "Electron Microscope", "type": "Optical Equipment" },
+        "centrifuge": { "name": "Centrifuge", "type": "Sample Processing" },
+        "incubator": { "name": "CO2 Incubator", "type": "Culture Equipment" },
+        "spectrophotometer": { "name": "Spectrophotometer", "type": "Analysis Equipment" }
+      }
+    },
+    "cta": {
+      "title": "Ready to streamline your lab operations?",
+      "subtitle": "Log in now to start managing shared lab room and equipment bookings.",
+      "login": "Log in now",
+      "learnMore": "Learn more"
+    }
+  },
+  "auth": {
+    "loginTitle": "Sign In",
+    "loginSubtitle": "Please log in to use the system",
+    "email": "Email Address",
+    "password": "Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "submit": "Log in",
+    "loginBtn": "Login",
+    "forgotPassword": "Forgot password?",
+    "rememberMe": "Remember me",
+    "cancel": "Cancel",
+    "forgotPasswordTitle": "Forgot Password",
+    "resetPasswordTitle": "Reset Password",
+    "sendResetLinkBtn": "Send Password Reset Link",
+    "changePasswordBtn": "Change Password",
+    "backToLogin": "Back to Login",
+    "invalidLink": "Invalid or missing verification link parameters",
+    "passwordPolicyHint": "Password must be more than 8 characters, with uppercase, lowercase, number, and special character",
+    "passwordRules": {
+      "minLength": "More than 8 characters (min. 9)",
+      "uppercase": "At least 1 uppercase letter",
+      "lowercase": "At least 1 lowercase letter",
+      "digit": "At least 1 number",
+      "special": "At least 1 special character (@$!%*?&...)"
+    },
+    "validation": {
+      "emailRequired": "Please enter your email",
+      "emailInvalid": "Invalid email format",
+      "passwordRequired": "Please enter your password",
+      "passwordMinLength": "Password must be more than 5 characters"
+    },
+    "error": {
+      "invalidCredentials": "Invalid email or password.",
+      "serverError": "System error. Please try again later.",
+      "required": "This field is required",
+      "invalidEmail": "Invalid email address format",
+      "passwordMismatch": "Confirm password does not match",
+      "weakPassword": "Password does not meet security requirements",
+      "invalidToken": "Password reset link is invalid or has expired. Please request a new one",
+      "tooManyRequests": "Too many requests. Please try again later"
+    },
+    "success": {
+      "login": "Login successful! Redirecting...",
+      "resetEmailSent": "Password reset link sent! Please check your email inbox.",
+      "resetPassword": "Password changed successfully! Redirecting to login page..."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome,"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "back": "Back to home"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "message": "A technical error occurred. Please try again or return to the homepage.",
+    "retry": "Retry",
+    "backHome": "Back to homepage",
+    "loginAgain": "Log in again"
+  },
+  "users": {
+    "title": "Users",
+    "add": "Add user",
+    "name": "Full name",
+    "email": "Email",
+    "role": "Role",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "empty": "No users yet.",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "common": {
+    "error": "Something went wrong",
+    "retry": "Retry"
+  }
+}
