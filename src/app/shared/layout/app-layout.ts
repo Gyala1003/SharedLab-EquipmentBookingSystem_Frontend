@@ -41,7 +41,7 @@ interface NavGroup {
   ],
   template: `
     <div
-      class="min-h-screen bg-gradient-to-br from-slate-50 via-[#f0fdfa]/40 to-slate-50 text-slate-900"
+      class="min-h-screen bg-gradient-to-br from-slate-50 via-[#eff6ff]/30 to-slate-50 text-slate-900"
     >
       @if (mobileOpen()) {
         <button
@@ -53,26 +53,26 @@ interface NavGroup {
       }
 
       <aside
-        class="fixed inset-y-0 left-0 z-40 flex w-[292px] flex-col border-r border-cyan-100/90 bg-gradient-to-b from-[#f0fdfa] via-white to-[#f0f9ff] text-slate-800 shadow-2xl shadow-cyan-950/5 transition-transform duration-300 lg:translate-x-0"
+        class="fixed inset-y-0 left-0 z-40 flex w-[292px] flex-col border-r border-blue-100/90 bg-gradient-to-b from-[#f4f7fc] via-white to-[#eff6ff] text-slate-800 shadow-2xl shadow-blue-950/5 transition-transform duration-300 lg:translate-x-0"
         [ngClass]="mobileOpen() ? 'translate-x-0' : '-translate-x-full'"
       >
         <div
-          class="flex h-20 shrink-0 items-center gap-3 border-b border-cyan-100/80 bg-white/60 px-5 backdrop-blur-md"
+          class="flex h-20 shrink-0 items-center gap-3 border-b border-blue-100/80 bg-white/60 px-5 backdrop-blur-md"
         >
           <div
-            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-400 to-sky-400 text-white shadow-lg shadow-cyan-500/25"
+            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white shadow-lg shadow-blue-600/30"
           >
             <app-icon name="flask" [size]="24" />
           </div>
           <div class="min-w-0">
-            <p class="text-[10px] font-black tracking-[0.24em] text-cyan-700 uppercase">
+            <p class="text-[10px] font-black tracking-[0.24em] text-blue-700 uppercase">
               {{ 'app.name' | t }}
             </p>
             <p class="mt-1 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
           </div>
           <button
             type="button"
-            class="ml-auto rounded-xl p-2 text-slate-400 hover:bg-cyan-50 hover:text-cyan-700 lg:hidden"
+            class="ml-auto rounded-xl p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-700 lg:hidden"
             (click)="mobileOpen.set(false)"
           >
             <app-icon name="x" [size]="20" />
@@ -80,10 +80,10 @@ interface NavGroup {
         </div>
 
         @if (store.isRequester()) {
-          <div class="border-b border-cyan-100/80 px-4 py-4">
+          <div class="border-b border-blue-100/80 px-4 py-4">
             <a
               routerLink="/app/bookings/new"
-              class="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/25 transition hover:-translate-y-0.5 hover:shadow-cyan-500/35"
+              class="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/30 transition hover:-translate-y-0.5 hover:shadow-blue-600/40"
               (click)="mobileOpen.set(false)"
             >
               <app-icon name="calendar-plus" [size]="18" /> {{ 'sidebar.quickBooking' | t }}
@@ -92,24 +92,24 @@ interface NavGroup {
         }
 
         <div
-          class="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(6,182,212,.2)_transparent] overflow-y-auto px-3 py-4"
+          class="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(37,99,235,.2)_transparent] overflow-y-auto px-3 py-4"
         >
           @for (group of visibleGroups(); track group.labelKey) {
             <div class="mb-5">
-              <p class="px-3 text-[9px] font-black tracking-[0.22em] text-cyan-800/60 uppercase">
+              <p class="px-3 text-[9px] font-black tracking-[0.22em] text-blue-800/60 uppercase">
                 {{ group.labelKey | t }}
               </p>
               <nav class="mt-2 space-y-1">
                 @for (item of group.items; track item.route) {
                   <a
                     [routerLink]="item.route"
-                    routerLinkActive="bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 !text-white shadow-md shadow-cyan-500/25 font-black [&_.icon-box]:bg-white/20 [&_.icon-box]:!text-white"
+                    routerLinkActive="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-600 !text-white shadow-md shadow-blue-600/30 font-black [&_.icon-box]:bg-white/20 [&_.icon-box]:!text-white"
                     [routerLinkActiveOptions]="{ exact: true }"
-                    class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-slate-600 transition hover:bg-cyan-50/90 hover:text-cyan-700"
+                    class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-slate-600 transition hover:bg-blue-50/90 hover:text-blue-700"
                     (click)="mobileOpen.set(false)"
                   >
                     <span
-                      class="icon-box flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100/80 text-slate-500 transition group-hover:bg-cyan-100/80 group-hover:text-cyan-700"
+                      class="icon-box flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100/80 text-slate-500 transition group-hover:bg-blue-100/80 group-hover:text-blue-700"
                     >
                       <app-icon [name]="item.icon" [size]="17" />
                     </span>
@@ -128,18 +128,18 @@ interface NavGroup {
           }
         </div>
 
-        <div class="shrink-0 border-t border-cyan-100/80 bg-white/40 p-3 backdrop-blur-sm">
+        <div class="shrink-0 border-t border-blue-100/80 bg-white/40 p-3 backdrop-blur-sm">
           @if (store.user(); as user) {
             <div
-              class="rounded-[22px] border border-cyan-100 bg-white/90 p-3.5 shadow-md shadow-cyan-950/5 backdrop-blur-md"
+              class="rounded-[22px] border border-blue-100 bg-white/90 p-3.5 shadow-md shadow-blue-950/5 backdrop-blur-md"
             >
               <a
                 routerLink="/app/profile"
-                class="flex items-center gap-3 rounded-xl transition hover:bg-cyan-50/60"
+                class="flex items-center gap-3 rounded-xl transition hover:bg-blue-50/60"
                 (click)="mobileOpen.set(false)"
               >
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-400 to-sky-400 text-xs font-black text-white shadow-md shadow-cyan-500/20"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-xs font-black text-white shadow-md shadow-blue-600/25"
                 >
                   {{ initials(user.fullName) }}
                 </div>
@@ -151,8 +151,8 @@ interface NavGroup {
                 </div>
                 <app-icon name="chevron-right" [size]="15" class="text-slate-400" />
               </a>
-              <div class="mt-3 flex items-center justify-between border-t border-cyan-100/80 pt-3">
-                <span class="inline-flex items-center gap-2 text-[10px] font-bold text-teal-700">
+              <div class="mt-3 flex items-center justify-between border-t border-blue-100/80 pt-3">
+                <span class="inline-flex items-center gap-2 text-[10px] font-bold text-blue-700">
                   <span
                     class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,.18)]"
                   ></span>
@@ -174,17 +174,17 @@ interface NavGroup {
 
       <div class="min-h-screen lg:pl-[292px]">
         <header
-          class="sticky top-0 z-20 flex h-20 items-center gap-3 border-b border-cyan-100/80 bg-white/85 px-4 shadow-sm shadow-cyan-950/[0.02] backdrop-blur-xl sm:px-6 lg:px-8"
+          class="sticky top-0 z-20 flex h-20 items-center gap-3 border-b border-blue-100/80 bg-white/85 px-4 shadow-sm shadow-blue-950/[0.02] backdrop-blur-xl sm:px-6 lg:px-8"
         >
           <button
             type="button"
-            class="rounded-xl border border-cyan-100 p-2.5 text-slate-600 shadow-sm hover:bg-cyan-50 hover:text-cyan-700 lg:hidden"
+            class="rounded-xl border border-blue-100 p-2.5 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 lg:hidden"
             (click)="mobileOpen.set(true)"
           >
             <app-icon name="menu" [size]="20" />
           </button>
           <div class="min-w-0 flex-1">
-            <p class="text-[10px] font-black tracking-[0.2em] text-cyan-700 uppercase">
+            <p class="text-[10px] font-black tracking-[0.2em] text-blue-700 uppercase">
               {{ 'header.workspace' | t }}
             </p>
             <p class="mt-1 truncate text-sm font-bold text-slate-600">
@@ -193,15 +193,15 @@ interface NavGroup {
           </div>
 
           <div
-            class="hidden items-center gap-1 rounded-full border border-cyan-100 bg-cyan-50/50 p-1 sm:flex"
+            class="hidden items-center gap-1 rounded-full border border-blue-100 bg-blue-50/50 p-1 sm:flex"
           >
             <button
               type="button"
               class="rounded-full px-2.5 py-1 text-xs font-black transition"
               [ngClass]="
                 languageStore.lang() === 'vi'
-                  ? 'bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-cyan-700'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-blue-700'
               "
               (click)="languageStore.setLang('vi')"
             >
@@ -212,8 +212,8 @@ interface NavGroup {
               class="rounded-full px-2.5 py-1 text-xs font-black transition"
               [ngClass]="
                 languageStore.lang() === 'en'
-                  ? 'bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-cyan-700'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-blue-700'
               "
               (click)="languageStore.setLang('en')"
             >
@@ -223,14 +223,14 @@ interface NavGroup {
 
           <a
             routerLink="/app/calendar"
-            class="hidden h-11 items-center gap-2 rounded-2xl border border-cyan-100 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-cyan-50/40 hover:text-cyan-700 sm:flex"
+            class="hidden h-11 items-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/40 hover:text-blue-700 sm:flex"
           >
             <app-icon name="calendar" [size]="18" /> {{ 'header.viewCalendar' | t }}
           </a>
 
           <a
             routerLink="/app/notifications"
-            class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-100 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-700 hover:shadow-md"
+            class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700 hover:shadow-md"
             aria-label="{{ 'header.notifications' | t }}"
           >
             <app-icon name="bell" [size]="20" />
@@ -245,7 +245,7 @@ interface NavGroup {
           <div class="relative hidden md:block">
             <button
               type="button"
-              class="flex items-center gap-2.5 rounded-2xl border border-cyan-100 bg-white p-1.5 pr-3 shadow-sm transition hover:border-cyan-300 hover:shadow-md"
+              class="flex items-center gap-2.5 rounded-2xl border border-blue-100 bg-white p-1.5 pr-3 shadow-sm transition hover:border-blue-300 hover:shadow-md"
               (click)="toggleUserMenu()"
             >
               @if (store.user(); as user) {
