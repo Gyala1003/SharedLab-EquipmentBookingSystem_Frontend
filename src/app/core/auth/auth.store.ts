@@ -27,7 +27,7 @@ export class AuthStore {
   )
   readonly isRequester = computed(() => {
     const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
-    return r === 'requester' || r === 'student' || r === 'user'
+    return r === 'requester' || r === 'student'
   })
   readonly isManager = computed(() => {
     const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
@@ -91,7 +91,7 @@ export class AuthStore {
       if (target === rawRole) return true
       if (target === 'admin' && (rawRole === 'admin' || rawRole === 'administrator')) return true
       if (target === 'labmanager' && (rawRole === 'labmanager' || rawRole === 'manager')) return true
-      if (target === 'requester' && (rawRole === 'requester' || rawRole === 'student' || rawRole === 'user')) return true
+      if (target === 'requester' && (rawRole === 'requester' || rawRole === 'student')) return true
       return false
     })
   }
