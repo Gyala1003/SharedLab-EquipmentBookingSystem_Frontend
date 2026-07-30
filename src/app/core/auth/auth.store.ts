@@ -58,7 +58,10 @@ export class AuthStore {
   }
 
   async hydrate(): Promise<void> {
-    if (!this.tokens.access) return
+    if (!this.tokens.access && !this.tokens.refresh) {
+      this.clear()
+      return
+    }
     try {
       const user = await firstValueFrom(this.auth.me())
       this.setUser(user, this.tokens.isPersistent)
@@ -95,11 +98,15 @@ export class AuthStore {
 
   clear(): void {
     this.tokens.clear()
-    localStorage.removeItem(USER_KEY)
-    sessionStorage.removeItem(USER_KEY)
+    this.clearStorage()
     this._user.set(null)
     this._status.set('idle')
     this._error.set(null)
+  }
+
+  private clearStorage(): void {
+    localStorage.removeItem(USER_KEY)
+    sessionStorage.removeItem(USER_KEY)
   }
 
   private setUser(user: AuthUser, persistent: boolean): void {
@@ -111,13 +118,16 @@ export class AuthStore {
   }
 
   private restore(): AuthUser | null {
+    if (!this.tokens?.access && !this.tokens?.refresh) {
+      this.clearStorage()
+      return null
+    }
     const raw = localStorage.getItem(USER_KEY) ?? sessionStorage.getItem(USER_KEY)
     if (!raw || raw === 'undefined' || raw === 'null') return null
     try {
       return JSON.parse(raw) as AuthUser
     } catch {
-      localStorage.removeItem(USER_KEY)
-      sessionStorage.removeItem(USER_KEY)
+      this.clearStorage()
       return null
     }
   }
