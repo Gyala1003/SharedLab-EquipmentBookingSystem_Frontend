@@ -1,18 +1,26 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-brand-50: #ecfeff;
-  --color-brand-100: #cffafe;
-  --color-brand-500: #06b6d4;
-  --color-brand-600: #0891b2;
-  --color-brand-700: #0e7490;
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #d9e6ff;
+  --color-brand-300: #8fb3ff;
+  --color-brand-500: #3366ff;
+  --color-brand-600: #274fd6;
+  --color-brand-700: #1d3aa8;
+  --color-brand-900: #101f57;
+
+  --color-surface: #0f1420;
+  --color-surface-light: #f7f8fb;
+
   --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  --radius-card: 0.75rem;
 }
 
 :root {
   color-scheme: light;
   font-family: var(--font-sans);
-  background: #f4f8fb;
+  background: var(--color-surface-light);
 }
 
 html {
@@ -26,10 +34,9 @@ body {
 
 body {
   margin: 0;
-  background: #f4f8fb;
+  background: var(--color-surface-light);
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -95,21 +102,25 @@ textarea:focus-visible {
 
 .btn-primary {
   display: inline-flex;
-  min-height: 44px;
+  min-height: 40px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0891b2, #0d9488);
+  border-radius: 12px;
+  background: var(--color-brand-500);
   padding: 0 16px;
   color: white;
   font-size: 13px;
-  font-weight: 800;
-  box-shadow: 0 10px 24px rgba(8, 145, 178, .26);
-  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(51, 102, 255, 0.25);
+  transition: all 160ms ease;
 }
 
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(8, 145, 178, .34); }
+.btn-primary:hover {
+  background: var(--color-brand-600);
+  box-shadow: 0 6px 20px rgba(51, 102, 255, 0.35);
+  transform: translateY(-1px);
+}
 .btn-primary:disabled { cursor: not-allowed; opacity: .55; transform: none; }
 
 .btn-secondary {

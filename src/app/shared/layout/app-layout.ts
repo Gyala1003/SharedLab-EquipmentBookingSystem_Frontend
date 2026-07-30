@@ -9,6 +9,7 @@ import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
+import { HeaderComponent } from './header/header.component'
 import { IconComponent } from '../ui/icon'
 import { ModalComponent } from '../ui/modal'
 import { ToastService } from '../ui/toast.service'
@@ -29,20 +30,21 @@ interface NavGroup {
 
 @Component({
   selector: 'app-layout',
+  standalone: true,
   imports: [
     DatePipe,
     NgClass,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    HeaderComponent,
     IconComponent,
     ModalComponent,
     TranslatePipe,
   ],
   template: `
-    <div
-      class="min-h-screen bg-gradient-to-br from-slate-50 via-[#f0fdfa]/40 to-slate-50 text-slate-900"
-    >
+    <div class="min-h-screen bg-slate-50 text-slate-900">
+      <!-- Overlay Mobile -->
       @if (mobileOpen()) {
         <button
           type="button"
@@ -52,38 +54,39 @@ interface NavGroup {
         ></button>
       }
 
+      <!-- Sidebar -->
       <aside
-        class="fixed inset-y-0 left-0 z-40 flex w-[292px] flex-col border-r border-cyan-100/90 bg-gradient-to-b from-[#f0fdfa] via-white to-[#f0f9ff] text-slate-800 shadow-2xl shadow-cyan-950/5 transition-transform duration-300 lg:translate-x-0"
+        class="fixed inset-y-0 left-0 z-40 flex w-[292px] flex-col border-r border-slate-200/80 bg-white shadow-xl shadow-slate-900/5 transition-transform duration-300 lg:translate-x-0"
         [ngClass]="mobileOpen() ? 'translate-x-0' : '-translate-x-full'"
       >
-        <div
-          class="flex h-20 shrink-0 items-center gap-3 border-b border-cyan-100/80 bg-white/60 px-5 backdrop-blur-md"
-        >
+        <!-- Sidebar Brand Logo -->
+        <div class="flex h-20 shrink-0 items-center gap-3 border-b border-slate-100 bg-white px-5">
           <div
-            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-400 to-sky-400 text-white shadow-lg shadow-cyan-500/25"
+            class="bg-brand-500 shadow-brand-500/25 flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-lg"
           >
             <app-icon name="flask" [size]="24" />
           </div>
           <div class="min-w-0">
-            <p class="text-[10px] font-black tracking-[0.24em] text-cyan-700 uppercase">
+            <p class="text-brand-600 text-[10px] font-black tracking-[0.24em] uppercase">
               {{ 'app.name' | t }}
             </p>
-            <p class="mt-1 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
+            <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
           </div>
           <button
             type="button"
-            class="ml-auto rounded-xl p-2 text-slate-400 hover:bg-cyan-50 hover:text-cyan-700 lg:hidden"
+            class="ml-auto rounded-xl p-2 text-slate-400 hover:bg-slate-100 lg:hidden"
             (click)="mobileOpen.set(false)"
           >
             <app-icon name="x" [size]="20" />
           </button>
         </div>
 
+        <!-- Sidebar Quick CTA -->
         @if (store.isRequester()) {
-          <div class="border-b border-cyan-100/80 px-4 py-4">
+          <div class="border-b border-slate-100 px-4 py-4">
             <a
               routerLink="/app/bookings/new"
-              class="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/25 transition hover:-translate-y-0.5 hover:shadow-cyan-500/35"
+              class="bg-brand-500 shadow-brand-500/25 hover:bg-brand-600 hover:shadow-brand-500/35 flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-lg transition"
               (click)="mobileOpen.set(false)"
             >
               <app-icon name="calendar-plus" [size]="18" /> {{ 'sidebar.quickBooking' | t }}
@@ -91,25 +94,26 @@ interface NavGroup {
           </div>
         }
 
+        <!-- Sidebar Nav Groups -->
         <div
-          class="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(6,182,212,.2)_transparent] overflow-y-auto px-3 py-4"
+          class="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(51,102,255,.2)_transparent] overflow-y-auto px-3 py-4"
         >
           @for (group of visibleGroups(); track group.labelKey) {
             <div class="mb-5">
-              <p class="px-3 text-[9px] font-black tracking-[0.22em] text-cyan-800/60 uppercase">
+              <p class="px-3 text-[9px] font-black tracking-[0.22em] text-slate-400 uppercase">
                 {{ group.labelKey | t }}
               </p>
               <nav class="mt-2 space-y-1">
                 @for (item of group.items; track item.route) {
                   <a
                     [routerLink]="item.route"
-                    routerLinkActive="bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 !text-white shadow-md shadow-cyan-500/25 font-black [&_.icon-box]:bg-white/20 [&_.icon-box]:!text-white"
+                    routerLinkActive="!bg-brand-500 !text-white shadow-md shadow-brand-500/20 font-bold [&_.icon-box]:!bg-white/20 [&_.icon-box]:!text-white"
                     [routerLinkActiveOptions]="{ exact: true }"
-                    class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-slate-600 transition hover:bg-cyan-50/90 hover:text-cyan-700"
+                    class="group hover:bg-brand-50/80 hover:text-brand-600 flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-medium text-slate-600 transition"
                     (click)="mobileOpen.set(false)"
                   >
                     <span
-                      class="icon-box flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100/80 text-slate-500 transition group-hover:bg-cyan-100/80 group-hover:text-cyan-700"
+                      class="icon-box group-hover:bg-brand-100 group-hover:text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition"
                     >
                       <app-icon [name]="item.icon" [size]="17" />
                     </span>
@@ -128,31 +132,30 @@ interface NavGroup {
           }
         </div>
 
-        <div class="shrink-0 border-t border-cyan-100/80 bg-white/40 p-3 backdrop-blur-sm">
+        <!-- Sidebar User Footer -->
+        <div class="shrink-0 border-t border-slate-100 bg-slate-50/50 p-3">
           @if (store.user(); as user) {
-            <div
-              class="rounded-[22px] border border-cyan-100 bg-white/90 p-3.5 shadow-md shadow-cyan-950/5 backdrop-blur-md"
-            >
+            <div class="rounded-[22px] border border-slate-200/80 bg-white p-3.5 shadow-sm">
               <a
                 routerLink="/app/profile"
-                class="flex items-center gap-3 rounded-xl transition hover:bg-cyan-50/60"
+                class="flex items-center gap-3 rounded-xl transition hover:bg-slate-50"
                 (click)="mobileOpen.set(false)"
               >
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-400 to-sky-400 text-xs font-black text-white shadow-md shadow-cyan-500/20"
+                  class="bg-brand-500 shadow-brand-500/20 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-xs font-black text-white shadow-md"
                 >
                   {{ initials(user.fullName) }}
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
-                  <p class="mt-0.5 truncate text-[10px] font-semibold text-slate-500">
+                  <p class="truncate text-sm font-bold text-slate-900">{{ user.fullName }}</p>
+                  <p class="mt-0.5 truncate text-[10px] font-medium text-slate-500">
                     {{ 'roles.' + user.roleName | t }}
                   </p>
                 </div>
                 <app-icon name="chevron-right" [size]="15" class="text-slate-400" />
               </a>
-              <div class="mt-3 flex items-center justify-between border-t border-cyan-100/80 pt-3">
-                <span class="inline-flex items-center gap-2 text-[10px] font-bold text-teal-700">
+              <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                <span class="inline-flex items-center gap-2 text-[10px] font-bold text-emerald-600">
                   <span
                     class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,.18)]"
                   ></span>
@@ -172,167 +175,16 @@ interface NavGroup {
         </div>
       </aside>
 
+      <!-- Main Container & Header -->
       <div class="min-h-screen lg:pl-[292px]">
-        <header
-          class="sticky top-0 z-20 flex h-20 items-center gap-3 border-b border-cyan-100/80 bg-white/85 px-4 shadow-sm shadow-cyan-950/[0.02] backdrop-blur-xl sm:px-6 lg:px-8"
-        >
-          <button
-            type="button"
-            class="rounded-xl border border-cyan-100 p-2.5 text-slate-600 shadow-sm hover:bg-cyan-50 hover:text-cyan-700 lg:hidden"
-            (click)="mobileOpen.set(true)"
-          >
-            <app-icon name="menu" [size]="20" />
-          </button>
-          <div class="min-w-0 flex-1">
-            <p class="text-[10px] font-black tracking-[0.2em] text-cyan-700 uppercase">
-              {{ 'header.workspace' | t }}
-            </p>
-            <p class="mt-1 truncate text-sm font-bold text-slate-600">
-              {{ 'header.subtitle' | t }}
-            </p>
-          </div>
+        <app-header (toggleSidebar)="mobileOpen.set(true)" />
 
-          <div
-            class="hidden items-center gap-1 rounded-full border border-cyan-100 bg-cyan-50/50 p-1 sm:flex"
-          >
-            <button
-              type="button"
-              class="rounded-full px-2.5 py-1 text-xs font-black transition"
-              [ngClass]="
-                languageStore.lang() === 'vi'
-                  ? 'bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-cyan-700'
-              "
-              (click)="languageStore.setLang('vi')"
-            >
-              🇻🇳 VN
-            </button>
-            <button
-              type="button"
-              class="rounded-full px-2.5 py-1 text-xs font-black transition"
-              [ngClass]="
-                languageStore.lang() === 'en'
-                  ? 'bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-cyan-700'
-              "
-              (click)="languageStore.setLang('en')"
-            >
-              🇬🇧 EN
-            </button>
-          </div>
-
-          <a
-            routerLink="/app/calendar"
-            class="hidden h-11 items-center gap-2 rounded-2xl border border-cyan-100 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-cyan-50/40 hover:text-cyan-700 sm:flex"
-          >
-            <app-icon name="calendar" [size]="18" /> {{ 'header.viewCalendar' | t }}
-          </a>
-
-          <a
-            routerLink="/app/notifications"
-            class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-100 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-700 hover:shadow-md"
-            aria-label="{{ 'header.notifications' | t }}"
-          >
-            <app-icon name="bell" [size]="20" />
-            @if (badge.count() > 0) {
-              <span
-                class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500"
-              ></span>
-            }
-          </a>
-
-          <!-- Top Right User Avatar Dropdown Select -->
-          <div class="relative hidden md:block">
-            <button
-              type="button"
-              class="flex items-center gap-2.5 rounded-2xl border border-cyan-100 bg-white p-1.5 pr-3 shadow-sm transition hover:border-cyan-300 hover:shadow-md"
-              (click)="toggleUserMenu()"
-            >
-              @if (store.user(); as user) {
-                <div
-                  class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-xs font-black text-white shadow-sm"
-                >
-                  {{ initials(user.fullName) }}
-                </div>
-                <span class="text-xs font-black text-slate-800">{{ user.fullName }}</span>
-                <app-icon
-                  name="chevron-down"
-                  [size]="16"
-                  class="text-slate-400 transition-transform duration-200"
-                  [ngClass]="userMenuOpen() ? 'rotate-180' : ''"
-                />
-              }
-            </button>
-
-            @if (userMenuOpen()) {
-              <div class="fixed inset-0 z-30" (click)="userMenuOpen.set(false)"></div>
-
-              <div
-                class="absolute right-0 top-full z-40 mt-2 w-64 rounded-3xl border border-slate-100 bg-white p-4 shadow-2xl shadow-slate-900/15 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
-              >
-                @if (store.user(); as user) {
-                  <div class="px-2 pb-3">
-                    <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
-                    <p class="truncate text-xs font-medium text-slate-400 mt-0.5">{{ user.email }}</p>
-                  </div>
-
-                  <div class="my-1 border-t border-slate-100"></div>
-
-                  <nav class="space-y-1 py-1">
-                    <a
-                      routerLink="/app/profile"
-                      class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
-                      (click)="userMenuOpen.set(false)"
-                    >
-                      <app-icon name="user" [size]="17" class="text-slate-400" />
-                      <span>Profile</span>
-                    </a>
-
-                    <a
-                      routerLink="/app/notifications"
-                      class="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
-                      (click)="userMenuOpen.set(false)"
-                    >
-                      <div class="flex items-center gap-3">
-                        <app-icon name="bell" [size]="17" class="text-slate-400" />
-                        <span>Notifications</span>
-                      </div>
-                      @if (badge.count() > 0) {
-                        <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white">
-                          {{ badge.count() > 99 ? '99+' : badge.count() }}
-                        </span>
-                      }
-                    </a>
-
-                    <button
-                      type="button"
-                      class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
-                      (click)="onSupportClick()"
-                    >
-                      <app-icon name="help-circle" [size]="17" class="text-slate-400" />
-                      <span>Support</span>
-                    </button>
-                  </nav>
-
-                  <div class="my-1 border-t border-slate-100"></div>
-
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-extrabold text-rose-600 transition hover:bg-rose-50"
-                    (click)="logout()"
-                  >
-                    <app-icon name="logout" [size]="17" class="text-rose-500" />
-                    <span>Log out</span>
-                  </button>
-                }
-              </div>
-            }
-          </div>
-        </header>
-
-        <main class="mx-auto w-full max-w-[1580px] p-4 sm:p-6 lg:p-8"><router-outlet /></main>
+        <main class="mx-auto w-full max-w-[1580px] p-4 sm:p-6 lg:p-8">
+          <router-outlet />
+        </main>
       </div>
 
+      <!-- Pending Checkout Modal -->
       <app-modal
         [open]="pendingCheckoutOpen()"
         title="{{ 'checkout.modalTitle' | t }}"
@@ -343,7 +195,7 @@ interface NavGroup {
           <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
             <div class="flex justify-between">
               <span class="text-slate-400">Booking</span>
-              <span class="font-black text-slate-800"
+              <span class="font-bold text-slate-800"
                 >#BK-{{ booking.bookingId.toString().padStart(5, '0') }}</span
               >
             </div>
@@ -375,20 +227,11 @@ export class AppLayoutComponent implements OnInit {
   private readonly router = inject(Router)
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+
   protected readonly mobileOpen = signal(false)
   protected readonly pendingCheckoutOpen = signal(false)
-  protected readonly userMenuOpen = signal(false)
   protected pendingBooking: BookingResponse | null = null
   protected pendingLog: UsageLogResponse | null = null
-
-  protected toggleUserMenu(): void {
-    this.userMenuOpen.update((v) => !v)
-  }
-
-  protected onSupportClick(): void {
-    this.userMenuOpen.set(false)
-    this.toast.info('Trung tâm hỗ trợ', 'Liên hệ Admin qua email admin@sharedlab.vn hoặc hotline 1900-xxxx.')
-  }
 
   private readonly groups: readonly NavGroup[] = [
     {
