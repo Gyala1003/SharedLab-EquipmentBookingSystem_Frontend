@@ -3,85 +3,195 @@
   [class]="
     isScrolled()
       ? 'bg-white/90 border-b border-slate-200/80 shadow-sm'
-      : 'bg-white/60 border-b border-transparent'
+      : 'bg-white/85 border-b border-blue-100/80 shadow-sm shadow-blue-950/[0.02]'
   "
 >
   <div class="mx-auto flex h-20 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
-    <!-- LEFT: Logo & Sidebar Toggle -->
-    <div class="flex items-center gap-3">
+    <!-- LEFT: Logo (Chưa đăng nhập) HOẶC Sidebar Toggle + Workspace Info (Đã đăng nhập) -->
+    <div class="flex items-center gap-3 min-w-0 flex-1">
       @if (store.isAuthenticated()) {
+        <!-- ĐÃ ĐĂNG NHẬP: Hiện nút Sidebar Toggle và thông tin Workspace (Ẩn Logo) -->
         <button
           type="button"
-          class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 lg:hidden"
+          class="rounded-xl border border-blue-100 p-2.5 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 lg:hidden"
           (click)="onToggleSidebar()"
         >
           <app-icon name="menu" [size]="20" />
         </button>
-      }
 
-      <a routerLink="/" class="flex items-center gap-3">
-        <div
-          class="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-lg shadow-brand-500/25"
-        >
-          <app-icon name="flask" [size]="24" />
-        </div>
-        <div class="min-w-0">
-          <p class="text-[10px] font-black tracking-[0.24em] text-brand-600 uppercase">
-            {{ 'app.name' | t }}
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] font-black tracking-[0.2em] text-blue-700 uppercase">
+            {{ 'header.workspace' | t }}
           </p>
-          <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
+          <p class="mt-1 truncate text-sm font-bold text-slate-600">
+            {{ 'header.subtitle' | t }}
+          </p>
         </div>
-      </a>
+      } @else {
+        <!-- CHƯA ĐĂNG NHẬP (Trang Home): Hiện Logo & Tên App (Ẩn nút Toggle) -->
+        <a routerLink="/" class="flex items-center gap-3">
+          <div
+            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white shadow-lg shadow-blue-600/30"
+          >
+            <app-icon name="flask" [size]="24" />
+          </div>
+          <div class="min-w-0">
+            <p class="text-[10px] font-black tracking-[0.24em] text-blue-700 uppercase">
+              {{ 'app.name' | t }}
+            </p>
+            <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
+          </div>
+        </a>
+      }
     </div>
 
-    <!-- RIGHT: Actions & Dynamic Menu -->
-    <div class="flex items-center gap-3">
+    <!-- RIGHT: Language Switcher, Actions & Profile Menu -->
+    <div class="flex items-center gap-3 shrink-0">
       <!-- Language Switcher -->
       <div
-        class="hidden items-center gap-1 rounded-full border border-slate-200 bg-slate-100/80 p-1 sm:flex"
+        class="hidden items-center gap-1 rounded-full border border-blue-100 bg-blue-50/50 p-1 sm:flex"
       >
-        @for (item of languages; track item.code) {
-          <button
-            type="button"
-            class="rounded-full px-3 py-1 text-xs font-bold transition-all duration-200"
-            [class]="
-              item.code === currentLang()
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-slate-600 hover:text-brand-600'
-            "
-            (click)="changeLanguage(item.code)"
-          >
-            {{ item.flag }} {{ item.label }}
-          </button>
-        }
+        <button
+          type="button"
+          class="rounded-full px-2.5 py-1 text-xs font-black transition"
+          [ngClass]="
+            currentLang() === 'vi'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+              : 'text-slate-500 hover:text-blue-700'
+          "
+          (click)="changeLanguage('vi')"
+        >
+          🇻🇳 VN
+        </button>
+        <button
+          type="button"
+          class="rounded-full px-2.5 py-1 text-xs font-black transition"
+          [ngClass]="
+            currentLang() === 'en'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+              : 'text-slate-500 hover:text-blue-700'
+          "
+          (click)="changeLanguage('en')"
+        >
+          🇬🇧 EN
+        </button>
       </div>
 
-      <!-- User Actions (Auth vs Guest) -->
+      <!-- Actions theo trạng thái Đăng nhập -->
       @if (store.isAuthenticated()) {
         <a
           routerLink="/app/calendar"
-          class="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-600 sm:flex"
+          class="hidden h-11 items-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/40 hover:text-blue-700 sm:flex"
         >
-          <app-icon name="calendar" [size]="18" class="text-slate-500" />
+          <app-icon name="calendar" [size]="18" />
           <span>{{ 'header.viewCalendar' | t }}</span>
         </a>
 
         <a
           routerLink="/app/notifications"
-          class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-brand-300 hover:text-brand-600"
-          aria-label="Notifications"
+          class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700 hover:shadow-md"
+          aria-label="{{ 'header.notifications' | t }}"
         >
           <app-icon name="bell" [size]="20" />
           @if (badge.count() > 0) {
             <span
-              class="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white"
+              class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500"
             ></span>
           }
         </a>
 
-        <app-user-menu />
+        <!-- User Profile Dropdown -->
+        <div class="relative hidden md:block">
+          <button
+            type="button"
+            class="flex items-center gap-2.5 rounded-2xl border border-blue-100 bg-white p-1.5 pr-3 shadow-sm transition hover:border-blue-300 hover:shadow-md"
+            (click)="toggleUserMenu()"
+          >
+            @if (store.user(); as user) {
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-xs font-black text-white shadow-sm"
+              >
+                {{ initials(user.fullName) }}
+              </div>
+              <span class="text-xs font-black text-slate-800">{{ user.fullName }}</span>
+              <app-icon
+                name="chevron-down"
+                [size]="16"
+                class="text-slate-400 transition-transform duration-200"
+                [ngClass]="userMenuOpen() ? 'rotate-180' : ''"
+              />
+            }
+          </button>
+
+          @if (userMenuOpen()) {
+            <div class="fixed inset-0 z-30" (click)="userMenuOpen.set(false)"></div>
+
+            <div
+              class="absolute right-0 top-full z-40 mt-2 w-64 rounded-3xl border border-slate-100 bg-white p-4 shadow-2xl shadow-slate-900/15 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+            >
+              @if (store.user(); as user) {
+                <div class="px-2 pb-3">
+                  <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
+                  <p class="truncate text-xs font-medium text-slate-400 mt-0.5">{{ user.email }}</p>
+                </div>
+
+                <div class="my-1 border-t border-slate-100"></div>
+
+                <nav class="space-y-1 py-1">
+                  <a
+                    routerLink="/app/profile"
+                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                    (click)="userMenuOpen.set(false)"
+                  >
+                    <app-icon name="user" [size]="17" class="text-slate-400" />
+                    <span>Profile</span>
+                  </a>
+
+                  <a
+                    routerLink="/app/notifications"
+                    class="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                    (click)="userMenuOpen.set(false)"
+                  >
+                    <div class="flex items-center gap-3">
+                      <app-icon name="bell" [size]="17" class="text-slate-400" />
+                      <span>Notifications</span>
+                    </div>
+                    @if (badge.count() > 0) {
+                      <span
+                        class="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white"
+                      >
+                        {{ badge.count() > 99 ? '99+' : badge.count() }}
+                      </span>
+                    }
+                  </a>
+
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                    (click)="onSupportClick()"
+                  >
+                    <app-icon name="help-circle" [size]="17" class="text-slate-400" />
+                    <span>Support</span>
+                  </button>
+                </nav>
+
+                <div class="my-1 border-t border-slate-100"></div>
+
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-extrabold text-rose-600 transition hover:bg-rose-50"
+                  (click)="logout()"
+                >
+                  <app-icon name="logout" [size]="17" class="text-rose-500" />
+                  <span>Log out</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
       } @else {
-        <a routerLink="/auth/login" class="btn-primary !h-11 !px-5 !text-xs font-bold">
+        <!-- Nút Đăng nhập cho khách -->
+        <a routerLink="/auth/login" class="flex h-11 items-center justify-center rounded-xl bg-blue-600 px-5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700">
           {{ 'header.login' | t }}
         </a>
       }
