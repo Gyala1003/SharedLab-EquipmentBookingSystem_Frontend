@@ -294,29 +294,6 @@ export class AppLayoutComponent implements OnInit {
       ],
     },
     {
-      labelKey: 'nav.groups.personal',
-      items: [
-        {
-          labelKey: 'nav.items.myBookings',
-          icon: 'calendar',
-          route: '/app/bookings/my',
-          roles: ['Requester'],
-        },
-        {
-          labelKey: 'nav.items.myWaitlist',
-          icon: 'clock',
-          route: '/app/waitlists/my',
-          roles: ['Requester'],
-        },
-        {
-          labelKey: 'nav.items.violations',
-          icon: 'alert',
-          route: '/app/violations/my',
-          roles: ['Requester'],
-        },
-      ],
-    },
-    {
       labelKey: 'nav.groups.systemAdmin',
       roles: ['Admin'],
       items: [
