@@ -706,33 +706,15 @@ export class RequesterHomePage implements OnInit {
   protected readonly displayUpcomingBookings = computed(() => {
     const list = this.upcomingBookings()
     const lang = this.languageStore.lang()
-    if (list.length > 0) {
-      return list.map((b) => ({
-        id: b.bookingId,
-        monthStr: new Date(b.startTime)
-          .toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN', { month: 'short' })
-          .toUpperCase(),
-        dayStr: new Date(b.startTime).getDate().toString().padStart(2, '0'),
-        title: this.purposeLabel(b.purposeType) || (lang === 'en' ? 'Research Project' : 'Dự án nghiên cứu'),
-        timeStr: `${new Date(b.startTime).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(b.endTime).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date(b.startTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'vi-VN')}`,
-      }))
-    }
-    return [
-      {
-        id: 101,
-        monthStr: 'AUG',
-        dayStr: '05',
-        title: lang === 'en' ? 'Self Study' : 'Tự học',
-        timeStr: '03:17 - 05:17, 05/08/2025',
-      },
-      {
-        id: 102,
-        monthStr: 'JAN',
-        dayStr: '15',
-        title: lang === 'en' ? 'Research Project' : 'Dự án nghiên cứu',
-        timeStr: '08:00 - 10:00, 15/01/2030',
-      },
-    ]
+    return list.map((b) => ({
+      id: b.bookingId,
+      monthStr: new Date(b.startTime)
+        .toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN', { month: 'short' })
+        .toUpperCase(),
+      dayStr: new Date(b.startTime).getDate().toString().padStart(2, '0'),
+      title: this.purposeLabel(b.purposeType) || (lang === 'en' ? 'Research Project' : 'Dự án nghiên cứu'),
+      timeStr: `${new Date(b.startTime).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(b.endTime).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date(b.startTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'vi-VN')}`,
+    }))
   })
 
   protected readonly pendingBookings = computed(() =>
@@ -769,8 +751,7 @@ export class RequesterHomePage implements OnInit {
   )
 
   protected readonly displayHealthScore = computed(() => {
-    const score = this.healthScore()
-    return score < 100 ? score : 70
+    return this.healthScore()
   })
 
   protected readonly healthRing = computed(
@@ -805,9 +786,7 @@ export class RequesterHomePage implements OnInit {
         ? `You have ${this.violationSummary().activeViolationCount} active violation(s). Please review to avoid account restrictions.`
         : `Bạn đang có ${this.violationSummary().activeViolationCount} vi phạm hoạt động. Hãy kiểm tra để tránh bị hạn chế tài khoản.`
     }
-    return isEn
-      ? 'You have 1 active violation. Please review to avoid account restrictions.'
-      : 'Bạn đang có 1 vi phạm hoạt động. Hãy kiểm tra để tránh bị hạn chế tài khoản.'
+    return null
   })
 
   protected readonly kpiCards = computed(() => {
@@ -815,28 +794,28 @@ export class RequesterHomePage implements OnInit {
     return [
       {
         label: this.languageStore.t('home.pendingApproval'),
-        value: this.pendingBookings() || 2,
+        value: this.pendingBookings(),
         note: this.languageStore.t('home.pendingNote'),
         icon: 'clock',
         tone: 'amber',
       },
       {
         label: this.languageStore.t('home.upcomingBookings'),
-        value: this.upcomingBookings().length || 2,
+        value: this.upcomingBookings().length,
         note: this.languageStore.t('home.approvedNote'),
         icon: 'calendar',
         tone: 'indigo',
       },
       {
         label: this.languageStore.t('home.activeWaitlist'),
-        value: this.activeWaitlists().length || 1,
+        value: this.activeWaitlists().length,
         note: this.languageStore.t('home.waitlistNote'),
         icon: 'activity',
         tone: 'cyan',
       },
       {
         label: this.languageStore.t('home.unreadNotifications'),
-        value: this.unreadCount() || 1,
+        value: this.unreadCount(),
         note: this.languageStore.t('home.unreadNote'),
         icon: 'bell',
         tone: 'rose',
