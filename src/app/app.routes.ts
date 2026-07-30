@@ -76,6 +76,19 @@ export const routes: Routes = [
         loadComponent: () => import('./features/profile/profile.page').then((m) => m.ProfilePage),
       },
       {
+        path: 'profile/reset-password',
+        title: 'Đặt lại mật khẩu',
+        loadComponent: () =>
+          import('./features/profile/request-password-reset.page').then(
+            (m) => m.RequestPasswordResetPage,
+          ),
+      },
+      {
+        path: 'request-password-reset',
+        redirectTo: 'profile/reset-password',
+        pathMatch: 'full',
+      },
+      {
         path: 'notifications',
         title: 'Trung tâm thông báo',
         loadComponent: () =>

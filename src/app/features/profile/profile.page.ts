@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { Router } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { SystemService } from '../../core/api/system.service'
 import { AuthService } from '../../core/auth/auth.service'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -14,7 +14,7 @@ import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-profile-page',
-  imports: [FormsModule, IconComponent, ModalComponent, StatusBadgeComponent, TranslatePipe],
+  imports: [FormsModule, RouterLink, IconComponent, ModalComponent, StatusBadgeComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       @if (store.user(); as user) {
@@ -72,10 +72,10 @@ import { labelOf } from '../../shared/utils/presentation'
               <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-cyan-300"><app-icon name="shield" [size]="21" /></div>
               <h3 class="mt-5 text-lg font-bold">Bảo mật tài khoản</h3>
               <p class="mt-2 text-sm leading-6 text-white/55">Gửi liên kết đặt lại mật khẩu an toàn trực tiếp về email đăng ký của bạn.</p>
-              <button type="button" class="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-[#111a3a] hover:bg-cyan-50 disabled:opacity-60" [disabled]="sendingReset()" (click)="requestPasswordReset()">
-                {{ sendingReset() ? 'Đang gửi email...' : 'Đặt lại mật khẩu' }}
+              <a routerLink="/app/profile/reset-password" class="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-[#111a3a] hover:bg-cyan-50">
+                Đặt lại mật khẩu
                 <app-icon name="arrow-right" [size]="16" />
-              </button>
+              </a>
             </article>
           </aside>
 
