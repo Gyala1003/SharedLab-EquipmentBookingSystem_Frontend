@@ -5,7 +5,6 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { AuthService } from '../../core/auth/auth.service'
 import { ApiError } from '../../core/http/api-error'
-import { LogoComponent } from '../../shared/ui/logo/logo.component'
 
 import {
   createResetPasswordPolicy,
@@ -18,7 +17,8 @@ type ResetErrorKind = 'invalidToken' | 'tooManyRequests' | 'generic' | null
 
 @Component({
   selector: 'app-reset-password-page',
-  imports: [ReactiveFormsModule, RouterLink, LogoComponent, TranslatePipe],
+  standalone: true,
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
   templateUrl: './reset-password.page.html',
 })
 export class ResetPasswordPage {

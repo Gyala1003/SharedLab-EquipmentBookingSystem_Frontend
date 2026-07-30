@@ -1,12 +1,12 @@
 import { Component, ElementRef, HostListener, computed, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
-import { TranslatePipe } from '@ngx-translate/core'
 import { AuthStore } from '../../../core/auth/auth.store'
+import { TranslatePipe } from '../../../core/i18n/translate.pipe'
 import { LetterAvatarComponent } from '../letter-avatar/letter-avatar.component'
 
-/** Avatar + account dropdown shown in the header when the user is authenticated. */
 @Component({
   selector: 'app-user-menu',
+  standalone: true,
   imports: [TranslatePipe, LetterAvatarComponent],
   templateUrl: './user-menu.component.html',
 })
@@ -46,10 +46,10 @@ export class UserMenuComponent {
     try {
       await this.store.logout()
       this.close()
-      void this.router.navigateByUrl('/')
+      void this.router.navigateByUrl('/login')
     } catch {
       this.close()
-      void this.router.navigateByUrl('/error')
+      void this.router.navigateByUrl('/login')
     } finally {
       this.isLoggingOut.set(false)
     }

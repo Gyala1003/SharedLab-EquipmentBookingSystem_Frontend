@@ -1,165 +1,90 @@
 <header
-  class="fixed top-0 right-0 left-0 z-50 border-b transition-all duration-300"
-  [class]="{
-    'bg-white': isScrolled(),
-    'shadow-sm': isScrolled(),
-    'border-gray-200': isScrolled(),
-    'bg-white/80': !isScrolled(),
-    'border-transparent': !isScrolled(),
-  }"
+  class="sticky top-0 z-30 transition-all duration-300 backdrop-blur-md"
+  [class]="
+    isScrolled()
+      ? 'bg-white/90 border-b border-slate-200/80 shadow-sm'
+      : 'bg-white/60 border-b border-transparent'
+  "
 >
-  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-    <a routerLink="/" fragment="hero" class="flex items-center gap-2" (click)="closeMobileMenu()">
-      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
-        <svg
-          class="h-5 w-5 text-white"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M9 3H15M12 3V8M12 8L6.5 17.5C5.8 18.7 6.6 20 8 20H16C17.4 20 18.2 18.7 17.5 17.5L12 8Z"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path d="M7.5 15H16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </svg>
-      </span>
-      <span class="text-lg font-bold tracking-tight text-gray-900">LabBooking</span>
-    </a>
-
-    <div class="hidden lg:flex lg:items-center lg:gap-3">
-      <!-- Nút chọn ngôn ngữ -->
-      <div class="relative">
+  <div class="mx-auto flex h-20 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
+    <!-- LEFT: Logo & Sidebar Toggle -->
+    <div class="flex items-center gap-3">
+      @if (store.isAuthenticated()) {
         <button
           type="button"
-          class="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900"
-          (click)="toggleLangMenu()"
+          class="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 lg:hidden"
+          (click)="onToggleSidebar()"
         >
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
-            <path
-              d="M3 12H21M12 3C14.5 5.7 15.8 9 15.8 12C15.8 15 14.5 18.3 12 21C9.5 18.3 8.2 15 8.2 12C8.2 9 9.5 5.7 12 3Z"
-              stroke="currentColor"
-              stroke-width="1.6"
-            />
-          </svg>
-          {{ currentLanguageLabel() }}
-          <svg
-            class="h-3.5 w-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M6 9L12 15L18 9"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+          <app-icon name="menu" [size]="20" />
         </button>
+      }
 
-        @if (isLangMenuOpen()) {
-          <div
-            class="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+      <a routerLink="/" class="flex items-center gap-3">
+        <div
+          class="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-lg shadow-brand-500/25"
+        >
+          <app-icon name="flask" [size]="24" />
+        </div>
+        <div class="min-w-0">
+          <p class="text-[10px] font-black tracking-[0.24em] text-brand-600 uppercase">
+            {{ 'app.name' | t }}
+          </p>
+          <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- RIGHT: Actions & Dynamic Menu -->
+    <div class="flex items-center gap-3">
+      <!-- Language Switcher -->
+      <div
+        class="hidden items-center gap-1 rounded-full border border-slate-200 bg-slate-100/80 p-1 sm:flex"
+      >
+        @for (item of languages; track item.code) {
+          <button
+            type="button"
+            class="rounded-full px-3 py-1 text-xs font-bold transition-all duration-200"
+            [class]="
+              item.code === currentLang()
+                ? 'bg-brand-500 text-white shadow-sm'
+                : 'text-slate-600 hover:text-brand-600'
+            "
+            (click)="changeLanguage(item.code)"
           >
-            @for (langItem of languages; track langItem.code) {
-              <button
-                type="button"
-                class="flex w-full items-center px-4 py-2 text-sm hover:bg-gray-50"
-                [class.text-blue-600]="langItem.code === lang.lang()"
-                [class.font-semibold]="langItem.code === lang.lang()"
-                [class.text-gray-700]="langItem.code !== lang.lang()"
-                (click)="changeLanguage(langItem.code)"
-              >
-                {{ langItem.label }}
-              </button>
-            }
-          </div>
+            {{ item.flag }} {{ item.label }}
+          </button>
         }
       </div>
 
+      <!-- User Actions (Auth vs Guest) -->
       @if (store.isAuthenticated()) {
+        <a
+          routerLink="/app/calendar"
+          class="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-600 sm:flex"
+        >
+          <app-icon name="calendar" [size]="18" class="text-slate-500" />
+          <span>{{ 'header.viewCalendar' | t }}</span>
+        </a>
+
+        <a
+          routerLink="/app/notifications"
+          class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-brand-300 hover:text-brand-600"
+          aria-label="Notifications"
+        >
+          <app-icon name="bell" [size]="20" />
+          @if (badge.count() > 0) {
+            <span
+              class="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white"
+            ></span>
+          }
+        </a>
+
         <app-user-menu />
       } @else {
-        <a
-          routerLink="/auth/login"
-          class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
-        >
+        <a routerLink="/auth/login" class="btn-primary !h-11 !px-5 !text-xs font-bold">
           {{ 'header.login' | t }}
         </a>
       }
     </div>
-
-    <!-- Toggle Mobile Menu -->
-    <button
-      type="button"
-      class="flex h-10 w-10 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 lg:hidden"
-      (click)="toggleMobileMenu()"
-    >
-      @if (!isMobileMenuOpen()) {
-        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M4 6H20M4 12H20M4 18H20"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-        </svg>
-      } @else {
-        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M6 6L18 18M6 18L18 6"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-        </svg>
-      }
-    </button>
   </div>
-
-  <!-- Mobile Menu Dropdown -->
-  @if (isMobileMenuOpen()) {
-    <div class="border-t border-gray-200 bg-white px-4 pt-4 pb-6 lg:hidden">
-      <div class="mt-4 flex flex-col gap-2 border-t border-gray-200 pt-4">
-        <div class="flex items-center gap-2">
-          @for (lang of languages; track lang.code) {
-            <button
-              type="button"
-              class="rounded-md border px-3 py-1.5 text-sm font-medium"
-              [class.border-blue-600]="lang.code === currentLang()"
-              [class.text-blue-600]="lang.code === currentLang()"
-              [class.border-gray-200]="lang.code !== currentLang()"
-              [class.text-gray-600]="lang.code !== currentLang()"
-              (click)="changeLanguage(lang.code)"
-            >
-              {{ lang.label }}
-            </button>
-          }
-        </div>
-
-        @if (store.isAuthenticated()) {
-          <div class="mt-2 flex items-center gap-3 rounded-md border border-gray-200 px-3 py-2.5">
-            <span class="text-sm font-medium text-gray-900">{{ store.user()?.fullName }}</span>
-          </div>
-          <app-user-menu />
-        } @else {
-          <a
-            routerLink="/auth/login"
-            class="mt-2 rounded-md bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white"
-            (click)="closeMobileMenu()"
-          >
-            {{ 'header.login' | t }}
-          </a>
-        }
-      </div>
-    </div>
-  }
 </header>
-
-<div class="h-16"></div>

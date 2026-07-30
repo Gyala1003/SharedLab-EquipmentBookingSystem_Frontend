@@ -4,14 +4,14 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { AuthService } from '../../core/auth/auth.service'
 import { ApiError } from '../../core/http/api-error'
-import { LogoComponent } from '../../shared/ui/logo/logo.component'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 
 type ForgotErrorKind = 'tooManyRequests' | 'generic' | null
 
 @Component({
   selector: 'app-forgot-password-page',
-  imports: [ReactiveFormsModule, RouterLink, LogoComponent, TranslatePipe],
+  standalone: true,
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
   templateUrl: './forgot-password.page.html',
 })
 export class ForgotPasswordPage {
