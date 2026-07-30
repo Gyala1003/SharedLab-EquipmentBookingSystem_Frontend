@@ -21,13 +21,33 @@ import { ToastService } from '../../shared/ui/toast.service'
         <form class="card-surface overflow-hidden" (ngSubmit)="submit()">
           <div class="border-b border-slate-100 bg-gradient-to-r from-violet-50/80 to-cyan-50/60 px-6 py-5"><h2 class="font-black text-slate-950">Thông tin tài khoản</h2><p class="mt-1 text-xs leading-5 text-slate-500">Các trường có dấu * là bắt buộc. Username và email phải duy nhất.</p></div>
           <div class="grid gap-5 p-6 md:grid-cols-2">
-            <div class="md:col-span-2"><label class="field-label">Họ và tên *</label><input class="input-shell" required minlength="2" [(ngModel)]="form.fullName" name="fullName" placeholder="Nguyễn Văn An" autocomplete="name" /></div>
-            <div><label class="field-label">Username *</label><input class="input-shell" required minlength="3" [(ngModel)]="form.username" name="username" placeholder="nguyenvanan" autocomplete="username" /></div>
-            <div><label class="field-label">Email *</label><input class="input-shell" required type="email" [(ngModel)]="form.email" name="email" placeholder="an@example.edu.vn" autocomplete="email" /></div>
-            <div><label class="field-label">Vai trò *</label><select class="input-shell" required [(ngModel)]="form.role" name="role"><option [ngValue]="null">Chọn vai trò</option>@for (role of roles(); track role.roleId) { <option [ngValue]="role.roleId">{{ roleLabel(role.roleName) }}</option> }</select></div>
-            <div><label class="field-label">Khoa/phòng ban *</label><select class="input-shell" required [(ngModel)]="form.departmentId" name="departmentId"><option [ngValue]="null">Chọn đơn vị</option>@for (department of departments(); track department.departmentId) { <option [ngValue]="department.departmentId">{{ department.departmentName }}</option> }</select></div>
-            <div class="md:col-span-2"><label class="field-label">Mật khẩu ban đầu *</label><div class="relative"><input class="input-shell pr-12" required minlength="8" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="form.password" name="password" placeholder="Tối thiểu 8 ký tự" autocomplete="new-password" /><button type="button" class="absolute right-3 top-3 rounded-lg p-1 text-slate-400 hover:bg-slate-100" (click)="showPassword.update((value) => !value)"><app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="18" /></button></div>
-              <div class="mt-3 flex gap-1.5">@for (level of [1,2,3,4]; track level) { <span class="h-1.5 flex-1 rounded-full" [ngClass]="passwordScore() >= level ? scoreClass() : 'bg-slate-100'"></span> }</div><p class="mt-2 text-xs font-bold" [ngClass]="passwordScore() >= 3 ? 'text-emerald-600' : 'text-slate-400'">{{ passwordMessage() }}</p>
+            <div class="md:col-span-2"><label class="field-label">Họ và tên *</label><input class="input-shell" required minlength="2" [(ngModel)]="fullName" name="fullName" placeholder="Nguyễn Văn An" autocomplete="name" /></div>
+            <div><label class="field-label">Username *</label><input class="input-shell" required minlength="3" [(ngModel)]="username" name="username" placeholder="nguyenvanan" autocomplete="username" /></div>
+            <div><label class="field-label">Email *</label><input class="input-shell" required type="email" [(ngModel)]="email" name="email" placeholder="an@example.edu.vn" autocomplete="email" /></div>
+            <div><label class="field-label">Vai trò *</label><select class="input-shell" required [(ngModel)]="role" name="role"><option [ngValue]="null">Chọn vai trò</option>@for (role of roles(); track role.roleId) { <option [ngValue]="role.roleId">{{ roleLabel(role.roleName) }}</option> }</select></div>
+            <div><label class="field-label">Khoa/phòng ban *</label><select class="input-shell" required [(ngModel)]="departmentId" name="departmentId"><option [ngValue]="null">Chọn đơn vị</option>@for (department of departments(); track department.departmentId) { <option [ngValue]="department.departmentId">{{ department.departmentName }}</option> }</select></div>
+            <div class="md:col-span-2">
+              <label class="field-label">Mật khẩu ban đầu *</label>
+              <div class="relative">
+                <input class="input-shell pr-12" required minlength="8" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password" placeholder="Tối thiểu 8 ký tự (chữ hoa, chữ thường, số)" autocomplete="new-password" />
+                <button type="button" class="absolute right-3 top-3 rounded-lg p-1 text-slate-400 hover:bg-slate-100" (click)="showPassword.update((value) => !value)"><app-icon [name]="showPassword() ? 'eye-off' : 'eye'" [size]="18" /></button>
+              </div>
+              <div class="mt-3 flex gap-1.5">@for (level of [1,2,3,4]; track level) { <span class="h-1.5 flex-1 rounded-full" [ngClass]="passwordScore() >= level ? scoreClass() : 'bg-slate-100'"></span> }</div>
+              <p class="mt-2 text-xs font-bold" [ngClass]="passwordScore() >= 3 ? 'text-emerald-600' : 'text-slate-400'">{{ passwordMessage() }}</p>
+
+              <div class="mt-3.5 rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5">
+                <p class="text-xs font-bold text-slate-700">Yêu cầu về mật khẩu:</p>
+                <div class="mt-2.5 grid gap-2 sm:grid-cols-2">
+                  @for (rule of passwordRules(); track rule.key) {
+                    <div class="flex items-center gap-2 text-xs font-medium" [ngClass]="rule.ok ? 'text-emerald-700' : 'text-slate-500'">
+                      <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full" [ngClass]="rule.ok ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-400'">
+                        <app-icon [name]="rule.ok ? 'check' : 'x'" [size]="11" />
+                      </span>
+                      <span>{{ rule.label }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
             </div>
           </div>
           <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-5"><a routerLink="/app/admin/users" class="btn-secondary">Hủy</a><button class="btn-primary" [disabled]="saving() || !isValid()"><app-icon name="user-plus" [size]="17" /> {{ saving() ? 'Đang tạo...' : 'Tạo tài khoản' }}</button></div>
@@ -49,18 +69,40 @@ export class CreateUserPage implements OnInit {
   protected readonly roles = signal<RoleResponse[]>([])
   protected readonly saving = signal(false)
   protected readonly showPassword = signal(false)
-  protected form = { fullName: '', username: '', email: '', password: '', departmentId: null as number | null, role: null as number | null }
+  protected readonly fullName = signal('')
+  protected readonly username = signal('')
+  protected readonly email = signal('')
+  protected readonly password = signal('')
+  protected readonly departmentId = signal<number | null>(null)
+  protected readonly role = signal<number | null>(null)
+
+  protected readonly passwordRules = computed(() => {
+    const pwd = this.password()
+    return [
+      { key: 'minLength', label: 'Tối thiểu 8 ký tự', ok: pwd.length >= 8 },
+      { key: 'uppercase', label: 'Chữ cái viết hoa (A-Z)', ok: /[A-Z]/.test(pwd) },
+      { key: 'lowercase', label: 'Chữ cái viết thường (a-z)', ok: /[a-z]/.test(pwd) },
+      { key: 'digit', label: 'Chữ số (0-9)', ok: /\d/.test(pwd) },
+    ]
+  })
+  protected readonly isPasswordValid = computed(() => this.passwordRules().every((rule) => rule.ok))
 
   protected readonly passwordScore = computed(() => {
-    const password = this.form.password
-    return Number(password.length >= 8) + Number(/[A-Z]/.test(password) && /[a-z]/.test(password)) + Number(/\d/.test(password)) + Number(/[^A-Za-z0-9]/.test(password))
+    const pwd = this.password()
+    if (!pwd) return 0
+    let score = 0
+    if (pwd.length >= 8) score++
+    if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++
+    if (/\d/.test(pwd)) score++
+    if (/[^A-Za-z0-9]/.test(pwd)) score++
+    return score
   })
   protected readonly passwordMessage = computed(() => ['Nhập mật khẩu để kiểm tra', 'Mật khẩu còn yếu', 'Mật khẩu trung bình', 'Mật khẩu tốt', 'Mật khẩu mạnh'][this.passwordScore()])
   protected readonly checklist = computed(() => [
-    { label: 'Họ tên và username hợp lệ', ok: this.form.fullName.trim().length >= 2 && this.form.username.trim().length >= 3 },
-    { label: 'Email đúng định dạng', ok: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.email) },
-    { label: 'Đã chọn vai trò và đơn vị', ok: this.form.role !== null && this.form.departmentId !== null },
-    { label: 'Mật khẩu có ít nhất 8 ký tự', ok: this.form.password.length >= 8 },
+    { label: 'Họ tên và username hợp lệ', ok: this.fullName().trim().length >= 2 && this.username().trim().length >= 3 },
+    { label: 'Email đúng định dạng', ok: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email().trim()) },
+    { label: 'Đã chọn vai trò và đơn vị', ok: this.role() !== null && this.departmentId() !== null },
+    { label: 'Mật khẩu đủ 8 ký tự (chữ hoa, chữ thường, số)', ok: this.isPasswordValid() },
   ])
 
   ngOnInit(): void {
@@ -73,11 +115,15 @@ export class CreateUserPage implements OnInit {
   protected isValid(): boolean { return this.checklist().every((item) => item.ok) }
 
   protected submit(): void {
-    if (!this.isValid() || this.form.departmentId === null || this.form.role === null) { this.toast.info('Vui lòng hoàn thiện đầy đủ thông tin'); return }
+    if (!this.isValid() || this.departmentId() === null || this.role() === null) { this.toast.info('Vui lòng hoàn thiện đầy đủ thông tin'); return }
     this.saving.set(true)
-    this.api.createUser({ fullName: this.form.fullName.trim(), username: this.form.username.trim(), email: this.form.email.trim(), password: this.form.password, departmentId: this.form.departmentId, role: this.form.role }).subscribe({
+    this.api.createUser({ fullName: this.fullName().trim(), username: this.username().trim(), email: this.email().trim(), password: this.password(), departmentId: this.departmentId()!, role: this.role()! }).subscribe({
       next: () => { this.saving.set(false); this.toast.success('Đã tạo tài khoản mới'); void this.router.navigate(['/app/admin/users']) },
-      error: () => { this.saving.set(false); this.toast.error('Không thể tạo tài khoản', 'Username hoặc email có thể đã được sử dụng.') },
+      error: (err: any) => {
+        this.saving.set(false)
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Username hoặc email có thể đã được sử dụng.'
+        this.toast.error('Không thể tạo tài khoản', msg)
+      },
     })
   }
 }

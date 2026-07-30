@@ -304,6 +304,13 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'profile.noRestrictionDesc': { vi: 'Tài khoản hiện không lưu RestrictionUntil.', en: 'Account currently has no RestrictionUntil set.' },
   'profile.needUpdateTitle': { vi: 'Cần cập nhật thông tin?', en: 'Need to update profile info?' },
   'profile.needUpdateSub': { vi: 'Hiện chưa có API tự sửa hồ sơ. Hãy liên hệ Admin để thay đổi họ tên, email, khoa/phòng ban hoặc vai trò.', en: 'Self-edit profile API is not available yet. Please contact Admin to change name, email, department, or role.' },
+  'profile.verified': { vi: 'Đã xác thực', en: 'Verified' },
+  'profile.legitScore': { vi: 'Điểm uy tín', en: 'Reputation Score' },
+  'profile.penaltyPoints': { vi: 'Điểm phạt', en: 'Penalty Points' },
+  'profile.normal': { vi: 'Bình thường', en: 'Normal' },
+  'profile.restricted': { vi: 'Bị hạn chế', en: 'Restricted' },
+  'profile.restrictedUntil': { vi: 'Hạn chế đến', en: 'Restricted Until' },
+  'profile.restrictionDetail': { vi: 'Tài khoản bị hạn chế một số quyền lợi đặt lịch do đạt ngưỡng điểm phạt.', en: 'Account booking privileges restricted due to penalty threshold.' },
 
   // Maintenances Page
   'maintenances.title': { vi: 'Lịch bảo trì', en: 'Maintenance Schedule' },

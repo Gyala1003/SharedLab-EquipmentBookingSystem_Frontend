@@ -25,7 +25,7 @@ import { ToastService } from '../../shared/ui/toast.service'
       } @else {
         <app-page-header [title]="lab()!.labName" [subtitle]="lab()!.roomCode + ' · ' + lab()!.location">
           <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab()!.labId }" class="btn-primary"><app-icon name="calendar-plus" [size]="17" /> Đặt cả phòng</a>
-          @if (store.isAdmin() || store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> Lên lịch bảo trì</a> }
+          @if (store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> Lên lịch bảo trì</a> }
           @if (store.isAdmin()) { <button class="btn-secondary" (click)="openEdit()"><app-icon name="edit" [size]="17" /> Chỉnh sửa</button> }
         </app-page-header>
 

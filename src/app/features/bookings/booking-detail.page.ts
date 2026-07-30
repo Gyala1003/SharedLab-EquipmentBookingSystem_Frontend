@@ -77,9 +77,9 @@ export class BookingDetailPage implements OnInit {
   ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('bookingId')); this.load() }
   // Quyền duyệt/từ chối booking chuyển hẳn cho LabManager theo yêu cầu nghiệp vụ mới, Admin không còn thao tác này
   protected canApprove(): boolean { return Boolean(this.store.isManager() && this.booking()?.status === 'Pending') }
-  protected canCancel(): boolean { const item = this.booking(); return Boolean(item && ['Pending','Approved'].includes(item.status) && (item.userId === this.store.user()?.userId || this.store.isAdmin() || this.store.isManager())) }
+  protected canCancel(): boolean { const item = this.booking(); return Boolean(item && ['Pending','Approved'].includes(item.status) && (item.userId === this.store.user()?.userId || this.store.isManager())) }
   protected canCheckIn(): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; const now = Date.now(); return now >= +new Date(item.startTime)-15*60_000 && now <= +new Date(item.endTime) }
-  protected canManageConcluded(): boolean { return Boolean((this.store.isAdmin() || this.store.isManager()) && this.booking()?.status === 'Approved') }
+  protected canManageConcluded(): boolean { return Boolean(this.store.isManager() && this.booking()?.status === 'Approved') }
   protected isMissedNoShow(itemId: number): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; return Date.now() > +new Date(item.endTime) && !this.logFor(itemId) }
   protected checkoutLateMinutes(): number { const item = this.booking(); if (!item) return 0; const deadline = +new Date(item.endTime) + 15*60_000; return Math.max(0, Math.round((Date.now()-deadline)/60_000)) }
   protected logFor(itemId: number): UsageLogResponse | undefined { return this.logs().find((log) => log.bookingItemId === itemId) }

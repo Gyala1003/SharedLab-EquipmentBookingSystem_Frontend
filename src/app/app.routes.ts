@@ -24,23 +24,18 @@ export const routes: Routes = [
       },
       {
         path: 'login',
-        canActivate: [guestGuard],
-        title: 'Đăng nhập · Shared Lab',
+        title: 'Đăng nhập',
         loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
       },
       {
         path: 'forgot-password',
-        canActivate: [guestGuard],
-        title: 'Quên mật khẩu · Shared Lab',
-        loadComponent: () =>
-          import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
+        title: 'Quên mật khẩu',
+        loadComponent: () => import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
       },
       {
         path: 'reset-password',
-        canActivate: [guestGuard],
-        title: 'Đặt lại mật khẩu · Shared Lab',
-        loadComponent: () =>
-          import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
+        title: 'Đặt lại mật khẩu',
+        loadComponent: () => import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
       },
     ],
   },
@@ -152,14 +147,14 @@ export const routes: Routes = [
       },
       {
         path: 'management/bookings/pending',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Booking cần duyệt',
         loadComponent: () =>
           import('./features/management/pending-bookings.page').then((m) => m.PendingBookingsPage),
       },
       {
         path: 'management/bookings',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Quản lý booking',
         loadComponent: () =>
           import('./features/management/bookings-management.page').then(
@@ -196,21 +191,21 @@ export const routes: Routes = [
       },
       {
         path: 'management/usage-logs',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Nhật ký sử dụng',
         loadComponent: () =>
           import('./features/management/usage-logs.page').then((m) => m.UsageLogsPage),
       },
       {
         path: 'management/incidents',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Duyệt sự cố',
         loadComponent: () =>
           import('./features/management/incidents.page').then((m) => m.IncidentsPage),
       },
       {
         path: 'management/waitlists',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Quản lý hàng chờ',
         loadComponent: () =>
           import('./features/management/waitlists-management.page').then(
@@ -219,7 +214,7 @@ export const routes: Routes = [
       },
       {
         path: 'management/violations',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Quản lý vi phạm',
         loadComponent: () =>
           import('./features/management/violations-management.page').then(
@@ -228,7 +223,7 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Trung tâm báo cáo',
         loadComponent: () => import('./features/reports/reports.page').then((m) => m.ReportsPage),
       },

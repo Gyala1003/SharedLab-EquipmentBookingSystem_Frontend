@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse } from '../../core/api/system.models'
+import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
@@ -76,6 +77,7 @@ import { labelOf } from '../../shared/utils/presentation'
 export class PendingBookingsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   protected readonly items = signal<BookingResponse[]>([])
   protected readonly loading = signal(true)

@@ -139,7 +139,8 @@ export class SystemService {
   }
 
   calendar(from: string, to: string, labId?: number, equipmentId?: number): Observable<CalendarEventResponse[]> {
-    return this.http.get<CalendarEventResponse[]>(`${this.base}/Bookings/calendar`, { params: this.params({ from, to, labId, equipmentId }) })
+    const finalLabId = equipmentId ? undefined : labId
+    return this.http.get<CalendarEventResponse[]>(`${this.base}/Bookings/calendar`, { params: this.params({ from, to, labId: finalLabId, equipmentId }) })
   }
 
   bookings(): Observable<BookingResponse[]> {

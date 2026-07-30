@@ -431,7 +431,11 @@ export class AppLayoutComponent implements OnInit {
           icon: 'calendar',
           route: '/app/management/bookings',
         },
-        { labelKey: 'nav.items.incidents', icon: 'alert', route: '/app/management/incidents' },
+        {
+          labelKey: 'nav.items.incidents',
+          icon: 'alert',
+          route: '/app/management/incidents',
+        },
         {
           labelKey: 'nav.items.manageWaitlists',
           icon: 'users',
@@ -465,13 +469,6 @@ export class AppLayoutComponent implements OnInit {
           route: '/app/violations/my',
           roles: ['Requester'],
         },
-        {
-          labelKey: 'nav.items.notifications',
-          icon: 'bell',
-          route: '/app/notifications',
-          badge: 'notifications',
-        },
-        { labelKey: 'nav.items.profile', icon: 'user', route: '/app/profile' },
       ],
     },
     {

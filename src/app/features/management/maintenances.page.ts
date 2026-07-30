@@ -27,7 +27,7 @@ export class MaintenancesPage implements OnInit{
   private readonly api=inject(SystemService);private readonly toast=inject(ToastService);protected readonly store=inject(AuthStore)
   protected readonly items=signal<MaintenanceResponse[]>([]);protected readonly labs=signal<LabRoomResponse[]>([]);protected readonly equipments=signal<EquipmentResponse[]>([]);protected readonly loading=signal(true);protected readonly view=signal<'table'|'cards'>('table')
   protected labId:number|null=null;protected equipmentId:number|null=null;protected status='';protected from='';protected readonly labelOf=labelOf
-  protected readonly canManage=computed(()=>this.store.isAdmin()||this.store.isManager())
+  protected readonly canManage=computed(()=>this.store.isManager())
   protected readonly filteredEquipmentOptions=computed(()=>this.labId?this.equipments().filter(x=>x.labId===this.labId):this.equipments())
   protected readonly filtered=computed(()=>this.items().filter(item=>(!this.labId||item.labId===this.labId||this.equipments().some(eq=>eq.equipmentId===item.equipmentId&&eq.labId===this.labId))&&(!this.equipmentId||item.equipmentId===this.equipmentId)&&(!this.status||item.status===this.status)&&(!this.from||toDateInput(new Date(item.startTime))>=this.from)).sort((a,b)=>+new Date(b.startTime)-+new Date(a.startTime)))
   ngOnInit():void{this.api.labs().subscribe(x=>this.labs.set(x));this.api.equipments().subscribe(x=>this.equipments.set(x));this.load()}

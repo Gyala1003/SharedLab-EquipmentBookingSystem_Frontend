@@ -27,8 +27,8 @@ interface CalendarDay {
   template: `
     <section class="space-y-6">
       <app-page-header [title]="'calendar.title' | t" [subtitle]="'calendar.subtitle' | t">
-        <a routerLink="/app/bookings/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-primary"><app-icon name="plus" [size]="17" /> {{ 'calendar.createBooking' | t }}</a>
-        @if (store.isAdmin() || store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> {{ 'calendar.scheduleMaintenance' | t }}</a> }
+        @if (!store.isAdmin() && !store.isManager()) { <a routerLink="/app/bookings/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-primary"><app-icon name="plus" [size]="17" /> {{ 'calendar.createBooking' | t }}</a> }
+        @if (store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: labId, equipmentId: equipmentId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> {{ 'calendar.scheduleMaintenance' | t }}</a> }
       </app-page-header>
 
       <div class="filter-bar lg:grid-cols-[1fr_1fr_1fr_auto]">
@@ -135,7 +135,7 @@ export class CalendarPage implements OnInit {
     const focus = this.focus()
     const from = new Date(focus.getFullYear(), focus.getMonth(), 1)
     const to = new Date(focus.getFullYear(), focus.getMonth() + 1, 1)
-    this.api.calendar(from.toISOString(), to.toISOString(), this.labId ?? undefined, this.equipmentId ?? undefined).subscribe({ next: (items) => { this.events.set(items); this.loading.set(false) }, error: () => { this.events.set([]); this.loading.set(false); this.toast.error('Không tải được lịch', 'Kiểm tra backend hoặc quyền truy cập.') } })
+    this.api.calendar(from.toISOString(), to.toISOString(), this.equipmentId ? undefined : (this.labId ?? undefined), this.equipmentId ?? undefined).subscribe({ next: (items) => { this.events.set(items); this.loading.set(false) }, error: () => { this.events.set([]); this.loading.set(false); this.toast.error('Không tải được lịch', 'Kiểm tra backend hoặc quyền truy cập.') } })
   }
 
   protected onLabChange(): void { this.equipmentId = null; this.load() }
