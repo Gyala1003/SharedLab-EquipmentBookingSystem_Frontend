@@ -41,6 +41,7 @@ export interface CalendarResourceResponse {
   resourceType: string
   resourceId: number
   labId: number
+  equipmentId?: number
   resourceName: string
 }
 
@@ -76,6 +77,7 @@ export interface BookingItemResponse {
 export interface BookingResponse {
   bookingId: number
   userId: number
+  userName?: string | null
   priorityRuleId: number | null
   priorityLevel: number | null
   purposeType: string

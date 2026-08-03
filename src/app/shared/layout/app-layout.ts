@@ -1,4 +1,4 @@
-import { NgClass } from '@angular/common'
+import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { catchError, forkJoin, of } from 'rxjs'
@@ -9,6 +9,7 @@ import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
+import { HeaderComponent } from './header/header.component'
 import { IconComponent } from '../ui/icon'
 import { ModalComponent } from '../ui/modal'
 import { ToastService } from '../ui/toast.service'
@@ -29,19 +30,21 @@ interface NavGroup {
 
 @Component({
   selector: 'app-layout',
+  standalone: true,
   imports: [
+    DatePipe,
     NgClass,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+    HeaderComponent,
     IconComponent,
     ModalComponent,
     TranslatePipe,
   ],
   template: `
-    <div
-      class="min-h-screen bg-gradient-to-br from-slate-50 via-[#f0fdfa]/40 to-slate-50 text-slate-900"
-    >
+    <div class="min-h-screen bg-slate-50 text-slate-900">
+      <!-- Overlay Mobile -->
       @if (mobileOpen()) {
         <button
           type="button"
@@ -51,38 +54,40 @@ interface NavGroup {
         ></button>
       }
 
+      <!-- Sidebar -->
       <aside
-        class="fixed inset-y-0 left-0 z-40 flex w-[292px] flex-col border-r border-cyan-100/90 bg-gradient-to-b from-[#f0fdfa] via-white to-[#f0f9ff] text-slate-800 shadow-2xl shadow-cyan-950/5 transition-transform duration-300 lg:translate-x-0"
+        class="fixed inset-y-0 left-0 z-40 flex w-[292px] flex-col border-r border-blue-100/90 bg-gradient-to-b from-[#f4f7fc] via-white to-[#eff6ff] text-slate-800 shadow-2xl shadow-blue-950/5 transition-transform duration-300 lg:translate-x-0"
         [ngClass]="mobileOpen() ? 'translate-x-0' : '-translate-x-full'"
       >
         <div
-          class="flex h-20 shrink-0 items-center gap-3 border-b border-cyan-100/80 bg-white/60 px-5 backdrop-blur-md"
+          class="flex h-20 shrink-0 items-center gap-3 border-b border-blue-100/80 bg-white/60 px-5 backdrop-blur-md"
         >
           <div
-            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-400 to-sky-400 text-white shadow-lg shadow-cyan-500/25"
+            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white shadow-lg shadow-blue-600/30"
           >
             <app-icon name="flask" [size]="24" />
           </div>
           <div class="min-w-0">
-            <p class="text-[10px] font-black tracking-[0.24em] text-cyan-700 uppercase">
+            <p class="text-[10px] font-black tracking-[0.24em] text-blue-700 uppercase">
               {{ 'app.name' | t }}
             </p>
-            <p class="mt-1 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
+            <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
           </div>
           <button
             type="button"
-            class="ml-auto rounded-xl p-2 text-slate-400 hover:bg-cyan-50 hover:text-cyan-700 lg:hidden"
+            class="ml-auto rounded-xl p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-700 lg:hidden"
             (click)="mobileOpen.set(false)"
           >
             <app-icon name="x" [size]="20" />
           </button>
         </div>
 
+        <!-- Sidebar Quick CTA -->
         @if (store.isRequester()) {
-          <div class="border-b border-cyan-100/80 px-4 py-4">
+          <div class="border-b border-blue-100/80 px-4 py-4">
             <a
               routerLink="/app/bookings/new"
-              class="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/25 transition hover:-translate-y-0.5 hover:shadow-cyan-500/35"
+              class="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-600/30 transition hover:-translate-y-0.5 hover:shadow-blue-600/40"
               (click)="mobileOpen.set(false)"
             >
               <app-icon name="calendar-plus" [size]="18" /> {{ 'sidebar.quickBooking' | t }}
@@ -90,25 +95,26 @@ interface NavGroup {
           </div>
         }
 
+        <!-- Sidebar Nav Groups -->
         <div
-          class="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(6,182,212,.2)_transparent] overflow-y-auto px-3 py-4"
+          class="min-h-0 flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(37,99,235,.2)_transparent] overflow-y-auto px-3 py-4"
         >
           @for (group of visibleGroups(); track group.labelKey) {
             <div class="mb-5">
-              <p class="px-3 text-[9px] font-black tracking-[0.22em] text-cyan-800/60 uppercase">
+              <p class="px-3 text-[9px] font-black tracking-[0.22em] text-blue-800/60 uppercase">
                 {{ group.labelKey | t }}
               </p>
               <nav class="mt-2 space-y-1">
                 @for (item of group.items; track item.route) {
                   <a
                     [routerLink]="item.route"
-                    routerLinkActive="bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 !text-white shadow-md shadow-cyan-500/25 font-black [&_.icon-box]:bg-white/20 [&_.icon-box]:!text-white"
+                    routerLinkActive="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-600 !text-white shadow-md shadow-blue-600/30 font-black [&_.icon-box]:bg-white/20 [&_.icon-box]:!text-white"
                     [routerLinkActiveOptions]="{ exact: true }"
-                    class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-slate-600 transition hover:bg-cyan-50/90 hover:text-cyan-700"
+                    class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-slate-600 transition hover:bg-blue-50/90 hover:text-blue-700"
                     (click)="mobileOpen.set(false)"
                   >
                     <span
-                      class="icon-box flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100/80 text-slate-500 transition group-hover:bg-cyan-100/80 group-hover:text-cyan-700"
+                      class="icon-box flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100/80 text-slate-500 transition group-hover:bg-blue-100/80 group-hover:text-blue-700"
                     >
                       <app-icon [name]="item.icon" [size]="17" />
                     </span>
@@ -127,31 +133,31 @@ interface NavGroup {
           }
         </div>
 
-        <div class="shrink-0 border-t border-cyan-100/80 bg-white/40 p-3 backdrop-blur-sm">
+        <div class="shrink-0 border-t border-blue-100/80 bg-white/40 p-3 backdrop-blur-sm">
           @if (store.user(); as user) {
             <div
-              class="rounded-[22px] border border-cyan-100 bg-white/90 p-3.5 shadow-md shadow-cyan-950/5 backdrop-blur-md"
+              class="rounded-[22px] border border-blue-100 bg-white/90 p-3.5 shadow-md shadow-blue-950/5 backdrop-blur-md"
             >
               <a
                 routerLink="/app/profile"
-                class="flex items-center gap-3 rounded-xl transition hover:bg-cyan-50/60"
+                class="flex items-center gap-3 rounded-xl transition hover:bg-blue-50/60"
                 (click)="mobileOpen.set(false)"
               >
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500 via-teal-400 to-sky-400 text-xs font-black text-white shadow-md shadow-cyan-500/20"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-xs font-black text-white shadow-md shadow-blue-600/25"
                 >
                   {{ initials(user.fullName) }}
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
-                  <p class="mt-0.5 truncate text-[10px] font-semibold text-slate-500">
+                  <p class="truncate text-sm font-bold text-slate-900">{{ user.fullName }}</p>
+                  <p class="mt-0.5 truncate text-[10px] font-medium text-slate-500">
                     {{ 'roles.' + user.roleName | t }}
                   </p>
                 </div>
                 <app-icon name="chevron-right" [size]="15" class="text-slate-400" />
               </a>
-              <div class="mt-3 flex items-center justify-between border-t border-cyan-100/80 pt-3">
-                <span class="inline-flex items-center gap-2 text-[10px] font-bold text-teal-700">
+              <div class="mt-3 flex items-center justify-between border-t border-blue-100/80 pt-3">
+                <span class="inline-flex items-center gap-2 text-[10px] font-bold text-blue-700">
                   <span
                     class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,.18)]"
                   ></span>
@@ -171,212 +177,46 @@ interface NavGroup {
         </div>
       </aside>
 
+      <!-- Main Container & Header -->
       <div class="min-h-screen lg:pl-[292px]">
-        <header
-          class="sticky top-0 z-20 flex h-20 items-center gap-3 border-b border-cyan-100/80 bg-white/85 px-4 shadow-sm shadow-cyan-950/[0.02] backdrop-blur-xl sm:px-6 lg:px-8"
-        >
-          <button
-            type="button"
-            class="rounded-xl border border-cyan-100 p-2.5 text-slate-600 shadow-sm hover:bg-cyan-50 hover:text-cyan-700 lg:hidden"
-            (click)="mobileOpen.set(true)"
-          >
-            <app-icon name="menu" [size]="20" />
-          </button>
-          <div class="min-w-0 flex-1">
-            <p class="text-[10px] font-black tracking-[0.2em] text-cyan-700 uppercase">
-              {{ 'header.workspace' | t }}
-            </p>
-            <p class="mt-1 truncate text-sm font-bold text-slate-600">
-              {{ 'header.subtitle' | t }}
-            </p>
-          </div>
+        <app-header (toggleSidebar)="mobileOpen.set(true)" />
 
-          <div
-            class="hidden items-center gap-1 rounded-full border border-cyan-100 bg-cyan-50/50 p-1 sm:flex"
-          >
-            <button
-              type="button"
-              class="rounded-full px-2.5 py-1 text-xs font-black transition"
-              [ngClass]="
-                languageStore.lang() === 'vi'
-                  ? 'bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-cyan-700'
-              "
-              (click)="languageStore.setLang('vi')"
-            >
-              🇻🇳 VN
-            </button>
-            <button
-              type="button"
-              class="rounded-full px-2.5 py-1 text-xs font-black transition"
-              [ngClass]="
-                languageStore.lang() === 'en'
-                  ? 'bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-cyan-700'
-              "
-              (click)="languageStore.setLang('en')"
-            >
-              🇬🇧 EN
-            </button>
-          </div>
-
-          <a
-            routerLink="/app/calendar"
-            class="hidden h-11 items-center gap-2 rounded-2xl border border-cyan-100 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-cyan-50/40 hover:text-cyan-700 sm:flex"
-          >
-            <app-icon name="calendar" [size]="18" /> {{ 'header.viewCalendar' | t }}
-          </a>
-
-          <a
-            routerLink="/app/notifications"
-            class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-100 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-700 hover:shadow-md"
-            aria-label="{{ 'header.notifications' | t }}"
-          >
-            <app-icon name="bell" [size]="20" />
-            @if (badge.count() > 0) {
-              <span
-                class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500"
-              ></span>
-            }
-          </a>
-
-          <div class="relative">
-            @if (store.user(); as user) {
-              <button
-                type="button"
-                class="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-1.5 pr-3 shadow-sm transition hover:border-cyan-300 hover:shadow-md"
-                (click)="userMenuOpen.set(!userMenuOpen())"
-              >
-                <div
-                  class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-sm font-black text-white shadow-sm"
-                >
-                  {{ initials(user.fullName) }}
-                </div>
-                <span class="hidden text-xs font-bold text-slate-700 sm:inline">{{
-                  user.fullName
-                }}</span>
-                <app-icon
-                  name="chevron-right"
-                  [size]="14"
-                  class="text-slate-400 transition-transform duration-200"
-                  [ngClass]="{ 'rotate-90': userMenuOpen() }"
-                />
-              </button>
-
-              @if (userMenuOpen()) {
-                <div class="fixed inset-0 z-40" (click)="userMenuOpen.set(false)"></div>
-                <div
-                  class="absolute top-full right-0 z-50 mt-2 w-56 rounded-2xl border border-slate-100 bg-white py-2 shadow-2xl shadow-slate-900/15"
-                >
-                  <div class="border-b border-slate-100 px-4 py-2.5">
-                    <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
-                    <p class="truncate text-xs font-semibold text-slate-400">{{ user.email }}</p>
-                  </div>
-
-                  <a
-                    routerLink="/app/profile"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
-                    (click)="userMenuOpen.set(false)"
-                  >
-                    <app-icon name="user" [size]="17" class="text-slate-400" />
-                    Profile
-                  </a>
-
-                  <a
-                    routerLink="/app/notifications"
-                    class="flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
-                    (click)="userMenuOpen.set(false)"
-                  >
-                    <div class="flex items-center gap-3">
-                      <app-icon name="bell" [size]="17" class="text-slate-400" />
-                      Notifications
-                    </div>
-                    @if (badge.count() > 0) {
-                      <span
-                        class="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white"
-                      >
-                        {{ badge.count() }}
-                      </span>
-                    }
-                  </a>
-
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
-                    (click)="userMenuOpen.set(false); supportModalOpen.set(true)"
-                  >
-                    <app-icon name="help-circle" [size]="17" class="text-slate-400" />
-                    Support
-                  </button>
-
-                  <div class="my-1 border-t border-slate-100"></div>
-
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-bold text-rose-600 transition hover:bg-rose-50"
-                    (click)="userMenuOpen.set(false); logout()"
-                  >
-                    <app-icon name="logout" [size]="17" class="text-rose-500" />
-                    Log out
-                  </button>
-                </div>
-              }
-            }
-          </div>
-        </header>
-
-        <main class="mx-auto w-full max-w-[1580px] p-4 sm:p-6 lg:p-8"><router-outlet /></main>
+        <main class="mx-auto w-full max-w-[1580px] p-4 sm:p-6 lg:p-8">
+          <router-outlet />
+        </main>
       </div>
 
+      <!-- Pending Checkout Modal -->
       <app-modal
-        [open]="supportModalOpen()"
-        title="Hỗ trợ & Trợ giúp (Support Center)"
-        subtitle="Thông tin liên hệ kỹ thuật và hướng dẫn sử dụng hệ thống Shared Lab"
-        (close)="supportModalOpen.set(false)"
+        [open]="pendingCheckoutOpen()"
+        title="{{ 'checkout.modalTitle' | t }}"
+        subtitle="{{ 'checkout.modalSubtitle' | t }}"
+        (close)="pendingCheckoutOpen.set(false)"
       >
-        <div class="space-y-4 text-sm text-slate-700">
-          <div class="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
-            <h4 class="font-bold text-cyan-950">Tổng đài hỗ trợ kỹ thuật phòng Lab</h4>
-            <p class="mt-1 text-xs font-medium text-cyan-800">
-              Hotline: <strong class="font-bold text-cyan-950">1900-6868</strong> (Thứ 2 - Thứ 6:
-              08:00 - 17:00)
-            </p>
-            <p class="text-xs font-medium text-cyan-800">
-              Email support:
-              <strong class="font-bold text-cyan-950">support.lab&#64;sharedlab.edu.vn</strong>
-            </p>
-          </div>
-          <div class="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-            <h5 class="font-bold text-slate-900">Hướng dẫn nhanh & FAQ</h5>
-            <div class="border-b border-slate-100 pb-2">
-              <p class="font-semibold text-slate-800">1. Đăng ký mượn thiết bị hoặc phòng lab?</p>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Vào mục <strong>Tài nguyên &rarr; Thiết bị / Phòng Lab</strong> hoặc bấm nút
-                <strong class="text-indigo-600">+ Tạo booking nhanh</strong> ở góc phải.
-              </p>
+        @if (pendingBooking; as booking) {
+          <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Booking</span>
+              <span class="font-bold text-slate-800"
+                >#BK-{{ booking.bookingId.toString().padStart(5, '0') }}</span
+              >
             </div>
-            <div class="border-b border-slate-100 pb-2">
-              <p class="font-semibold text-slate-800">2. Làm thế nào khi tài khoản bị hạn chế?</p>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Kiểm tra danh sách vi phạm tại <strong>Cá nhân &rarr; Vi phạm & điểm phạt</strong>.
-                Nếu cần gỡ điểm phạt, vui lòng liên hệ Admin hoặc Quản lý phòng lab.
-              </p>
-            </div>
-            <div>
-              <p class="font-semibold text-slate-800">
-                3. Xuất lịch đặt ra Google Calendar / iCal?
-              </p>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                Tại Trang chủ Requester, bạn có thể chọn nút
-                <strong>Xuất lịch đặt ra lịch bên ngoài</strong> bên dưới bảng lịch để tải file
-                .ics.
-              </p>
+            <div class="flex justify-between">
+              <span class="text-slate-400">{{ 'checkout.endTime' | t }}</span>
+              <span class="font-bold text-slate-700">{{
+                booking.endTime | date: 'HH:mm dd/MM/yyyy'
+              }}</span>
             </div>
           </div>
-        </div>
-        <div class="mt-5 flex justify-end">
-          <button class="btn-secondary" (click)="supportModalOpen.set(false)">Đóng</button>
-        </div>
+          <div class="mt-5 flex flex-wrap justify-end gap-2">
+            <button class="btn-secondary" (click)="snoozePendingCheckout()">
+              {{ 'checkout.continue' | t }}
+            </button>
+            <button class="btn-primary" (click)="confirmPendingCheckout()">
+              <app-icon name="logout" [size]="16" /> {{ 'checkout.confirm' | t }}
+            </button>
+          </div>
+        }
       </app-modal>
     </div>
   `,
@@ -389,9 +229,8 @@ export class AppLayoutComponent implements OnInit {
   private readonly router = inject(Router)
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+
   protected readonly mobileOpen = signal(false)
-  protected readonly userMenuOpen = signal(false)
-  protected readonly supportModalOpen = signal(false)
   protected readonly pendingCheckoutOpen = signal(false)
   protected pendingBooking: BookingResponse | null = null
   protected pendingLog: UsageLogResponse | null = null
@@ -401,13 +240,17 @@ export class AppLayoutComponent implements OnInit {
       labelKey: 'nav.groups.overview',
       items: [
         { labelKey: 'nav.items.home', icon: 'home', route: '/app/home', roles: ['Requester'] },
-        {
-          labelKey: 'nav.items.dashboard',
-          icon: 'dashboard',
-          route: '/app/dashboard',
-          roles: ['Admin'],
-        },
+        { labelKey: 'nav.items.dashboard', icon: 'dashboard', route: '/app/dashboard', roles: ['Admin'] },
         { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar' },
+      ],
+    },
+    {
+      labelKey: 'nav.groups.personal',
+      roles: ['Requester'],
+      items: [
+        { labelKey: 'nav.items.myBookings', icon: 'calendar', route: '/app/bookings/my', roles: ['Requester'] },
+        { labelKey: 'nav.items.myWaitlist', icon: 'clock', route: '/app/waitlists/my', roles: ['Requester'] },
+        { labelKey: 'nav.items.violations', icon: 'shield', route: '/app/violations/my', roles: ['Requester'] },
       ],
     },
     {
@@ -416,9 +259,16 @@ export class AppLayoutComponent implements OnInit {
         { labelKey: 'nav.items.labs', icon: 'building', route: '/app/labs' },
         { labelKey: 'nav.items.equipments', icon: 'microscope', route: '/app/equipments' },
         {
+          labelKey: 'nav.items.allBookings',
+          icon: 'calendar-plus',
+          route: '/app/management/bookings',
+          roles: ['LabManager', 'Admin'],
+        },
+        {
           labelKey: 'nav.items.maintenances',
           icon: 'wrench',
           route: '/app/management/maintenances',
+          roles: ['LabManager', 'Admin'],
         },
         { labelKey: 'nav.items.policy', icon: 'file-text', route: '/app/policy' },
       ],
@@ -433,11 +283,10 @@ export class AppLayoutComponent implements OnInit {
           route: '/app/management/bookings/pending',
         },
         {
-          labelKey: 'nav.items.manageBookings',
-          icon: 'calendar',
-          route: '/app/management/bookings',
+          labelKey: 'nav.items.incidents',
+          icon: 'alert',
+          route: '/app/management/incidents',
         },
-        { labelKey: 'nav.items.incidents', icon: 'alert', route: '/app/management/incidents' },
         {
           labelKey: 'nav.items.manageWaitlists',
           icon: 'users',
@@ -451,53 +300,40 @@ export class AppLayoutComponent implements OnInit {
       ],
     },
     {
-      labelKey: 'nav.groups.personal',
-      items: [
-        {
-          labelKey: 'nav.items.myBookings',
-          icon: 'calendar',
-          route: '/app/bookings/my',
-          roles: ['Requester'],
-        },
-        {
-          labelKey: 'nav.items.myWaitlist',
-          icon: 'clock',
-          route: '/app/waitlists/my',
-          roles: ['Requester'],
-        },
-        {
-          labelKey: 'nav.items.violations',
-          icon: 'alert',
-          route: '/app/violations/my',
-          roles: ['Requester'],
-        },
-        {
-          labelKey: 'nav.items.notifications',
-          icon: 'bell',
-          route: '/app/notifications',
-          badge: 'notifications',
-        },
-        { labelKey: 'nav.items.profile', icon: 'user', route: '/app/profile' },
-      ],
-    },
-    {
       labelKey: 'nav.groups.systemAdmin',
       roles: ['Admin'],
       items: [
         { labelKey: 'nav.items.users', icon: 'users', route: '/app/admin/users' },
         { labelKey: 'nav.items.departments', icon: 'building', route: '/app/admin/departments' },
+        { labelKey: 'nav.items.systemMaintenance', icon: 'wrench', route: '/app/admin/system-maintenance' },
       ],
     },
   ]
 
   protected readonly visibleGroups = computed(() => {
     this.languageStore.lang()
-    const role = this.store.role()
+    const user = this.store.user()
+    const isManager = this.store.isManager()
+    const isAdmin = this.store.isAdmin()
+
     return this.groups
-      .filter((group) => !group.roles || group.roles.includes(role))
+      .filter((group) => {
+        if (group.labelKey === 'nav.groups.personal' && (isManager || isAdmin)) {
+          return false
+        }
+        if (group.roles && !this.store.hasRole(group.roles as readonly any[])) {
+          return false
+        }
+        return true
+      })
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => !item.roles || item.roles.includes(role)),
+        items: group.items.filter((item) => {
+          if (item.roles && !this.store.hasRole(item.roles as readonly any[])) {
+            return false
+          }
+          return true
+        }),
       }))
       .filter((group) => group.items.length > 0)
   })
@@ -571,7 +407,7 @@ export class AppLayoutComponent implements OnInit {
     if (!booking || !log) return
     const actualCheckoutIso = new Date().toISOString()
     this.pendingCheckoutOpen.set(false)
-    this.api.checkOut(log.logId, actualCheckoutIso).subscribe({
+    this.api.checkOut(log.logId).subscribe({
       next: () => {
         this.toast.success(
           this.languageStore.t('pendingCheckout.checkoutSuccess') || 'Check-out thành công',

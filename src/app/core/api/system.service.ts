@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import type { Observable } from 'rxjs'
+import { Observable, of } from 'rxjs'
+import { catchError } from 'rxjs/operators'
 import { env } from '../config/env'
 import type {
   AuditLogResponse,
@@ -87,39 +88,18 @@ export class SystemService {
   }
 
   searchLabs(query: LabSearch): Observable<PagedResponse<LabRoomResponse>> {
-    return this.http.get<PagedResponse<LabRoomResponse>>(`${this.base}/LabRooms/search`, {
-      params: this.params(query),
-    })
+    return this.http.get<PagedResponse<LabRoomResponse>>(`${this.base}/LabRooms/search`, { params: this.params(query) })
   }
 
   lab(id: number): Observable<LabRoomDetailResponse> {
     return this.http.get<LabRoomDetailResponse>(`${this.base}/LabRooms/${id}`)
   }
 
-  createLab(payload: {
-    labName: string
-    roomCode: string
-    location: string
-    capacity: number
-    description: string | null
-    imageUrl: string | null
-    usageGuideline: string | null
-    managerId: number
-  }): Observable<LabRoomDetailResponse> {
+  createLab(payload: { labName: string; roomCode: string; location: string; capacity: number; description: string | null; imageUrl: string | null; usageGuideline: string | null; managerId: number }): Observable<LabRoomDetailResponse> {
     return this.http.post<LabRoomDetailResponse>(`${this.base}/LabRooms`, payload)
   }
 
-  updateLab(
-    id: number,
-    payload: {
-      labName: string
-      location: string
-      capacity: number
-      description: string | null
-      imageUrl: string | null
-      usageGuideline: string | null
-    },
-  ): Observable<void> {
+  updateLab(id: number, payload: { labName: string; location: string; capacity: number; description: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<void> {
     return this.http.put<void>(`${this.base}/LabRooms/${id}`, payload)
   }
 
@@ -136,9 +116,7 @@ export class SystemService {
   }
 
   searchEquipments(query: EquipmentSearch): Observable<PagedResponse<EquipmentResponse>> {
-    return this.http.get<PagedResponse<EquipmentResponse>>(`${this.base}/Equipments/search`, {
-      params: this.params(query),
-    })
+    return this.http.get<PagedResponse<EquipmentResponse>>(`${this.base}/Equipments/search`, { params: this.params(query) })
   }
 
   equipment(id: number): Observable<EquipmentDetailResponse> {
@@ -149,26 +127,11 @@ export class SystemService {
     return this.http.get<EquipmentResponse[]>(`${this.base}/Equipments/lab/${labId}`)
   }
 
-  createEquipment(payload: {
-    labId: number
-    equipmentName: string
-    modelSpecs: string | null
-    imageUrl: string | null
-    usageGuideline: string | null
-  }): Observable<EquipmentDetailResponse> {
+  createEquipment(payload: { labId: number; equipmentName: string; modelSpecs: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<EquipmentDetailResponse> {
     return this.http.post<EquipmentDetailResponse>(`${this.base}/Equipments`, payload)
   }
 
-  updateEquipment(
-    id: number,
-    payload: {
-      labId: number
-      equipmentName: string
-      modelSpecs: string | null
-      imageUrl: string | null
-      usageGuideline: string | null
-    },
-  ): Observable<void> {
+  updateEquipment(id: number, payload: { labId: number; equipmentName: string; modelSpecs: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<void> {
     return this.http.put<void>(`${this.base}/Equipments/${id}`, payload)
   }
 
@@ -176,15 +139,9 @@ export class SystemService {
     return this.http.delete<void>(`${this.base}/Equipments/${id}`)
   }
 
-  calendar(
-    from: string,
-    to: string,
-    labId?: number,
-    equipmentId?: number,
-  ): Observable<CalendarEventResponse[]> {
-    return this.http.get<CalendarEventResponse[]>(`${this.base}/Bookings/calendar`, {
-      params: this.params({ from, to, labId, equipmentId }),
-    })
+  calendar(from: string, to: string, labId?: number, equipmentId?: number): Observable<CalendarEventResponse[]> {
+    const finalLabId = equipmentId ? undefined : labId
+    return this.http.get<CalendarEventResponse[]>(`${this.base}/Bookings/calendar`, { params: this.params({ from, to, labId: finalLabId, equipmentId }) })
   }
 
   bookings(): Observable<BookingResponse[]> {
@@ -211,14 +168,7 @@ export class SystemService {
     return this.http.put<void>(`${this.base}/Bookings/${id}`, payload)
   }
 
-  suggestSlots(payload: {
-    startTime: string
-    endTime: string
-    items: BookingItemRequest[]
-    maxSuggestions: number
-    searchDays: number
-    stepMinutes: number
-  }): Observable<SuggestedSlotResponse[]> {
+  suggestSlots(payload: { startTime: string; endTime: string; items: BookingItemRequest[]; maxSuggestions: number; searchDays: number; stepMinutes: number }): Observable<SuggestedSlotResponse[]> {
     return this.http.post<SuggestedSlotResponse[]>(`${this.base}/Bookings/suggested-slots`, payload)
   }
 
@@ -295,41 +245,22 @@ export class SystemService {
   }
 
   incidentLogs(from?: string, to?: string): Observable<UsageLogResponse[]> {
-    return this.http.get<UsageLogResponse[]>(`${this.base}/UsageLogs/incidents`, {
-      params: this.params({ from, to }),
-    })
+    return this.http.get<UsageLogResponse[]>(`${this.base}/UsageLogs/incidents`, { params: this.params({ from, to }) })
   }
 
-  checkIn(
-    bookingItemId: number,
-    actualCheckin: string | null = null,
-  ): Observable<UsageLogResponse> {
-    return this.http.post<UsageLogResponse>(`${this.base}/UsageLogs/check-in`, {
-      bookingItemId,
-      actualCheckin,
-    })
+  checkIn(bookingItemId: number, actualCheckin: string | null = null): Observable<UsageLogResponse> {
+    return this.http.post<UsageLogResponse>(`${this.base}/UsageLogs/check-in`, { bookingItemId, actualCheckin })
   }
 
   checkOut(id: number, actualCheckout: string | null = null): Observable<void> {
     return this.http.post<void>(`${this.base}/UsageLogs/${id}/check-out`, { actualCheckout })
   }
 
-  reportIncident(
-    id: number,
-    payload: {
-      incidentStatus: number
-      incidentDescription: string
-      affectedEquipmentId: number | null
-    },
-  ): Observable<void> {
+  reportIncident(id: number, payload: { incidentStatus: number; incidentDescription: string; affectedEquipmentId: number | null }): Observable<void> {
     return this.http.post<void>(`${this.base}/UsageLogs/${id}/incident`, payload)
   }
 
-  reviewIncident(
-    id: number,
-    action: 'confirm' | 'reject',
-    reviewNote: string | null,
-  ): Observable<void> {
+  reviewIncident(id: number, action: 'confirm' | 'reject', reviewNote: string | null): Observable<void> {
     return this.http.post<void>(`${this.base}/UsageLogs/${id}/incident/${action}`, { reviewNote })
   }
 
@@ -345,32 +276,15 @@ export class SystemService {
     return this.http.get<WaitlistResponse[]>(`${this.base}/Waitlists/user/${userId}`)
   }
 
-  waitlistQueue(query: {
-    labId?: number
-    equipmentId?: number
-    requestedStart: string
-    requestedEnd: string
-  }): Observable<WaitlistResponse[]> {
-    return this.http.get<WaitlistResponse[]>(`${this.base}/Waitlists/queue`, {
-      params: this.params(query),
-    })
+  waitlistQueue(query: { labId?: number; equipmentId?: number; requestedStart: string; requestedEnd: string }): Observable<WaitlistResponse[]> {
+    return this.http.get<WaitlistResponse[]>(`${this.base}/Waitlists/queue`, { params: this.params(query) })
   }
 
-  createWaitlist(payload: {
-    labId: number | null
-    equipmentId: number | null
-    requestedStart: string
-    requestedEnd: string
-  }): Observable<WaitlistResponse> {
+  createWaitlist(payload: { labId: number | null; equipmentId: number | null; requestedStart: string; requestedEnd: string }): Observable<WaitlistResponse> {
     return this.http.post<WaitlistResponse>(`${this.base}/Waitlists`, payload)
   }
 
-  notifyNextWaitlist(payload: {
-    labId: number | null
-    equipmentId: number | null
-    requestedStart: string
-    requestedEnd: string
-  }): Observable<WaitlistResponse> {
+  notifyNextWaitlist(payload: { labId: number | null; equipmentId: number | null; requestedStart: string; requestedEnd: string }): Observable<WaitlistResponse> {
     return this.http.post<WaitlistResponse>(`${this.base}/Waitlists/notify-next`, payload)
   }
 
@@ -403,20 +317,14 @@ export class SystemService {
   }
 
   violationSummary(userId: number): Observable<UserViolationSummaryResponse> {
-    return this.http.get<UserViolationSummaryResponse>(
-      `${this.base}/Violations/user/${userId}/summary`,
-    )
+    return this.http.get<UserViolationSummaryResponse>(`${this.base}/Violations/user/${userId}/summary`)
   }
 
   violationsByBooking(bookingId: number): Observable<ViolationResponse[]> {
     return this.http.get<ViolationResponse[]>(`${this.base}/Violations/booking/${bookingId}`)
   }
 
-  createViolation(payload: {
-    userId: number
-    bookingId: number
-    violationType: number
-  }): Observable<ViolationResponse> {
+  createViolation(payload: { userId: number; bookingId: number; violationType: number }): Observable<ViolationResponse> {
     return this.http.post<ViolationResponse>(`${this.base}/Violations`, payload)
   }
 
@@ -429,22 +337,14 @@ export class SystemService {
   }
 
   departments(activeOnly = false): Observable<DepartmentResponse[]> {
-    return this.http.get<DepartmentResponse[]>(`${this.base}/Departments`, {
-      params: this.params({ activeOnly }),
-    })
+    return this.http.get<DepartmentResponse[]>(`${this.base}/Departments`, { params: this.params({ activeOnly }) })
   }
 
-  createDepartment(payload: {
-    departmentName: string
-    description: string | null
-  }): Observable<DepartmentResponse> {
+  createDepartment(payload: { departmentName: string; description: string | null }): Observable<DepartmentResponse> {
     return this.http.post<DepartmentResponse>(`${this.base}/Departments`, payload)
   }
 
-  updateDepartment(
-    id: number,
-    payload: { departmentName: string; description: string | null },
-  ): Observable<DepartmentResponse> {
+  updateDepartment(id: number, payload: { departmentName: string; description: string | null }): Observable<DepartmentResponse> {
     return this.http.put<DepartmentResponse>(`${this.base}/Departments/${id}`, payload)
   }
 
@@ -456,27 +356,15 @@ export class SystemService {
     return this.http.post<DepartmentResponse>(`${this.base}/Departments/${id}/activate`, {})
   }
 
-  users(query: {
-    keyword?: string
-    roleName?: string | number
-    departmentId?: number
-    status?: number
-    pageNumber?: number
-    pageSize?: number
-  }): Observable<PagedResponse<UserManagementResponse>> {
-    return this.http.get<PagedResponse<UserManagementResponse>>(`${this.base}/Users`, {
-      params: this.params(query),
-    })
+  users(query: { keyword?: string; roleName?: string | number; departmentId?: number; status?: number; pageNumber?: number; pageSize?: number }): Observable<PagedResponse<UserManagementResponse>> {
+    return this.http.get<PagedResponse<UserManagementResponse>>(`${this.base}/Users`, { params: this.params(query) })
   }
 
   user(id: number): Observable<UserManagementResponse> {
     return this.http.get<UserManagementResponse>(`${this.base}/Users/${id}`)
   }
 
-  updateUser(
-    id: number,
-    payload: { fullName: string; username: string; email: string },
-  ): Observable<void> {
+  updateUser(id: number, payload: { fullName: string; username: string; email: string }): Observable<void> {
     return this.http.put<void>(`${this.base}/Users/${id}`, payload)
   }
 
@@ -500,36 +388,20 @@ export class SystemService {
     return this.http.get<UserPenaltyResponse>(`${this.base}/Users/${id}/penalty`)
   }
 
-  createUser(payload: {
-    fullName: string
-    username: string
-    email: string
-    password: string
-    departmentId: number
-    role: number
-  }): Observable<UserManagementResponse> {
+  createUser(payload: { fullName: string; username: string; email: string; password: string; departmentId: number; role: number }): Observable<UserManagementResponse> {
     return this.http.post<UserManagementResponse>(`${this.base}/Auth/create-user`, payload)
   }
 
   priorityRules(activeOnly = false): Observable<PriorityRuleResponse[]> {
     const path = activeOnly ? 'active' : ''
-    return this.http.get<PriorityRuleResponse[]>(
-      `${this.base}/PriorityRules${path ? `/${path}` : ''}`,
-    )
+    return this.http.get<PriorityRuleResponse[]>(`${this.base}/PriorityRules${path ? `/${path}` : ''}`)
   }
 
-  createPriorityRule(payload: {
-    purposeType: number
-    priorityLevel: number
-    description: string | null
-  }): Observable<PriorityRuleResponse> {
+  createPriorityRule(payload: { purposeType: number; priorityLevel: number; description: string | null }): Observable<PriorityRuleResponse> {
     return this.http.post<PriorityRuleResponse>(`${this.base}/PriorityRules`, payload)
   }
 
-  updatePriorityRule(
-    id: number,
-    payload: { priorityLevel: number; description: string | null },
-  ): Observable<void> {
+  updatePriorityRule(id: number, payload: { priorityLevel: number; description: string | null }): Observable<void> {
     return this.http.put<void>(`${this.base}/PriorityRules/${id}`, payload)
   }
 
@@ -543,7 +415,18 @@ export class SystemService {
 
   // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
   getPolicy(): Observable<PolicyResponse> {
-    return this.http.get<PolicyResponse>(`${this.base}/Policies`)
+    return this.http.get<PolicyResponse>(`${this.base}/Policies`).pipe(
+      catchError(() =>
+        of({
+          generalRules: [
+            'Xác thực qua người duyệt: Mọi lượt Check-in (Nhận) và Check-out (Trả) đúng giờ chỉ được tính là hoàn thành sau khi có sự xác thực/phê duyệt trực tiếp từ Bộ phận Quản lý.',
+            'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo ngay hỏng hóc/sự cố có sẵn cho Bộ phận duyệt trong 5–10 phút đầu.',
+            'Quy định Check-out & Mất tài sản: Trả phòng/thiết bị đúng thời gian đã đăng ký. Check-out muộn quá 02 tuần sẽ tự động ghi nhận là LÀM MẤT TÀI SẢN và bị ĐÓNG BĂNG/KHÓA TÀI KHOẢN HOÀN TOÀN.',
+          ],
+          categories: [],
+        }),
+      ),
+    )
   }
 
   // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
@@ -551,19 +434,12 @@ export class SystemService {
     return this.http.put<void>(`${this.base}/Policies`, payload)
   }
 
-  sendNotification(payload: {
-    userId: number
-    title: string
-    message: string
-    notificationType: number
-  }): Observable<NotificationResponse> {
+  sendNotification(payload: { userId: number; title: string; message: string; notificationType: number }): Observable<NotificationResponse> {
     return this.http.post<NotificationResponse>(`${this.base}/Notifications/send`, payload)
   }
 
   auditLogs(query: object): Observable<PagedAuditLogResponse> {
-    return this.http.get<PagedAuditLogResponse>(`${this.base}/AuditLogs`, {
-      params: this.params(query),
-    })
+    return this.http.get<PagedAuditLogResponse>(`${this.base}/AuditLogs`, { params: this.params(query) })
   }
 
   auditLog(id: number): Observable<AuditLogResponse> {
@@ -582,10 +458,7 @@ export class SystemService {
     return this.report<CategoryCountResponse[]>('bookings/by-department', { from, to })
   }
 
-  reportDepartmentUtilization(
-    from: string,
-    to: string,
-  ): Observable<DepartmentUtilizationResponse[]> {
+  reportDepartmentUtilization(from: string, to: string): Observable<DepartmentUtilizationResponse[]> {
     return this.report<DepartmentUtilizationResponse[]>('department-utilization', { from, to })
   }
 
@@ -609,19 +482,11 @@ export class SystemService {
     return this.report<PagedMaintenanceHistoryResponse>('maintenance-history', query)
   }
 
-  reportMostUsedLabs(
-    from: string,
-    to: string,
-    top: number,
-  ): Observable<MostUsedResourceResponse[]> {
+  reportMostUsedLabs(from: string, to: string, top: number): Observable<MostUsedResourceResponse[]> {
     return this.report<MostUsedResourceResponse[]>('most-used/labs', { from, to, top })
   }
 
-  reportMostUsedEquipments(
-    from: string,
-    to: string,
-    top: number,
-  ): Observable<MostUsedResourceResponse[]> {
+  reportMostUsedEquipments(from: string, to: string, top: number): Observable<MostUsedResourceResponse[]> {
     return this.report<MostUsedResourceResponse[]>('most-used/equipments', { from, to, top })
   }
 
@@ -629,11 +494,7 @@ export class SystemService {
     return this.report<ViolationSummaryResponse>('violations', { from, to })
   }
 
-  reportPenaltyUsers(
-    from: string,
-    to: string,
-    top: number,
-  ): Observable<PenaltyUserReportResponse[]> {
+  reportPenaltyUsers(from: string, to: string, top: number): Observable<PenaltyUserReportResponse[]> {
     return this.report<PenaltyUserReportResponse[]>('penalty-users', { from, to, top })
   }
 
@@ -652,8 +513,7 @@ export class SystemService {
   private params(query: object): HttpParams {
     let params = new HttpParams()
     for (const [key, value] of Object.entries(query)) {
-      if (value !== null && value !== undefined && value !== '')
-        params = params.set(key, String(value))
+      if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value))
     }
     return params
   }

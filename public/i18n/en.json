@@ -170,6 +170,13 @@
     "title": "Page not found",
     "back": "Back to home"
   },
+  "errorPage": {
+    "title": "Something went wrong",
+    "message": "A technical error occurred. Please try again or return to the homepage.",
+    "retry": "Retry",
+    "backHome": "Back to homepage",
+    "loginAgain": "Log in again"
+  },
   "users": {
     "title": "Users",
     "add": "Add user",

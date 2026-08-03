@@ -22,7 +22,7 @@ import type { UpsertUserInput, User } from './users.types'
                 [(ngModel)]="form.fullName"
                 name="fullName"
                 required
-                class="rounded-card focus:border-brand-500 border border-slate-300 px-3 py-2 text-sm focus:outline-none"
+                class="rounded-card border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               />
             </label>
 
@@ -33,7 +33,7 @@ import type { UpsertUserInput, User } from './users.types'
                 name="email"
                 type="email"
                 required
-                class="rounded-card focus:border-brand-500 border border-slate-300 px-3 py-2 text-sm focus:outline-none"
+                class="rounded-card border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               />
             </label>
 
@@ -43,7 +43,7 @@ import type { UpsertUserInput, User } from './users.types'
                 [(ngModel)]="form.role"
                 name="role"
                 required
-                class="rounded-card focus:border-brand-500 border border-slate-300 px-3 py-2 text-sm focus:outline-none"
+                class="rounded-card border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               />
             </label>
 

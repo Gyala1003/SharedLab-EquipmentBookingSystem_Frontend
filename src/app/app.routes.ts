@@ -1,26 +1,57 @@
 import { Routes } from '@angular/router'
 import { authGuard, guestGuard, landingGuard, roleGuard } from './core/auth/auth.guard'
+import { systemMaintenanceGuard } from './core/auth/maintenance.guard'
 import { AppLayoutComponent } from './shared/layout/app-layout'
+import { PublicLayoutComponent } from './shared/layout/public-layout/public-layout.component'
 
 export const routes: Routes = [
   {
-    path: 'login',
-    canActivate: [guestGuard],
-    title: 'Đăng nhập · Shared Lab',
-    loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
+    path: 'system-maintenance',
+    title: 'Thông báo bảo trì hệ thống · Shared Lab',
+    loadComponent: () =>
+      import('./features/system/system-maintenance.page').then((m) => m.SystemMaintenancePage),
   },
   {
-    path: 'forgot-password',
-    title: 'Quên mật khẩu · Shared Lab',
-    loadComponent: () =>
-      import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
+    path: 'maintenance-notice',
+    redirectTo: 'system-maintenance',
+    pathMatch: 'full',
   },
   {
-    path: 'reset-password',
-    title: 'Đặt lại mật khẩu · Shared Lab',
-    loadComponent: () =>
-      import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
+    path: 'auth',
+    component: PublicLayoutComponent,
+    children: [
+      { path: 'login', pathMatch: 'full', redirectTo: '/login' },
+      { path: 'forgot-password', pathMatch: 'full', redirectTo: '/forgot-password' },
+      { path: 'reset-password', pathMatch: 'full', redirectTo: '/reset-password' },
+    ],
   },
+  {
+    path: '',
+    component: PublicLayoutComponent,
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () => import('./features/home/home.page').then((m) => m.HomePage),
+      },
+      {
+        path: 'login',
+        title: 'Đăng nhập',
+        loadComponent: () => import('./features/auth/login.page').then((m) => m.LoginPage),
+      },
+      {
+        path: 'forgot-password',
+        title: 'Quên mật khẩu',
+        loadComponent: () => import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
+      },
+      {
+        path: 'reset-password',
+        title: 'Đặt lại mật khẩu',
+        loadComponent: () => import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
+      },
+    ],
+  },
+
   {
     path: '403',
     title: 'Không có quyền truy cập',
@@ -29,7 +60,7 @@ export const routes: Routes = [
   {
     path: 'app',
     component: AppLayoutComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, systemMaintenanceGuard],
     children: [
       {
         path: '',
@@ -55,6 +86,19 @@ export const routes: Routes = [
         path: 'profile',
         title: 'Tài khoản cá nhân',
         loadComponent: () => import('./features/profile/profile.page').then((m) => m.ProfilePage),
+      },
+      {
+        path: 'profile/reset-password',
+        title: 'Đặt lại mật khẩu',
+        loadComponent: () =>
+          import('./features/profile/request-password-reset.page').then(
+            (m) => m.RequestPasswordResetPage,
+          ),
+      },
+      {
+        path: 'request-password-reset',
+        redirectTo: 'profile/reset-password',
+        pathMatch: 'full',
       },
       {
         path: 'notifications',
@@ -128,14 +172,14 @@ export const routes: Routes = [
       },
       {
         path: 'management/bookings/pending',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Booking cần duyệt',
         loadComponent: () =>
           import('./features/management/pending-bookings.page').then((m) => m.PendingBookingsPage),
       },
       {
         path: 'management/bookings',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Quản lý booking',
         loadComponent: () =>
           import('./features/management/bookings-management.page').then(
@@ -172,21 +216,21 @@ export const routes: Routes = [
       },
       {
         path: 'management/usage-logs',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Nhật ký sử dụng',
         loadComponent: () =>
           import('./features/management/usage-logs.page').then((m) => m.UsageLogsPage),
       },
       {
         path: 'management/incidents',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Duyệt sự cố',
         loadComponent: () =>
           import('./features/management/incidents.page').then((m) => m.IncidentsPage),
       },
       {
         path: 'management/waitlists',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Quản lý hàng chờ',
         loadComponent: () =>
           import('./features/management/waitlists-management.page').then(
@@ -195,7 +239,7 @@ export const routes: Routes = [
       },
       {
         path: 'management/violations',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Quản lý vi phạm',
         loadComponent: () =>
           import('./features/management/violations-management.page').then(
@@ -204,7 +248,7 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Trung tâm báo cáo',
         loadComponent: () => import('./features/reports/reports.page').then((m) => m.ReportsPage),
       },
@@ -262,12 +306,23 @@ export const routes: Routes = [
         title: 'Danh sách vai trò',
         loadComponent: () => import('./features/admin/roles.page').then((m) => m.RolesPage),
       },
+      {
+        path: 'admin/system-maintenance',
+        canActivate: [roleGuard(['Admin'])],
+        title: 'Bảo trì hệ thống',
+        loadComponent: () =>
+          import('./features/admin/system-maintenance-management.page').then(
+            (m) => m.AdminSystemMaintenancePage,
+          ),
+      },
     ],
   },
-  { path: '', pathMatch: 'full', redirectTo: 'app' },
+  {
+    path: 'error',
+    loadComponent: () => import('./features/error/error.page').then((m) => m.ErrorPage),
+  },
   {
     path: '**',
-    title: 'Không tìm thấy trang',
     loadComponent: () => import('./features/system/not-found.page').then((m) => m.NotFoundPage),
   },
 ]

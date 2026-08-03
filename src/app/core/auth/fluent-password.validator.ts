@@ -36,10 +36,7 @@ export class FluentPasswordPolicy {
   }
 
   specialChar(): this {
-    this.rules.push({
-      key: 'special',
-      test: (v) => /[!@#$%^&*(),.?":{}|<>_\-+=[\]/\\;'~`]/.test(v),
-    })
+    this.rules.push({ key: 'special', test: (v) => /[!@#$%^&*(),.?":{}|<>_\-+=[\]/\\;'~`]/.test(v) })
     return this
   }
 
@@ -69,7 +66,7 @@ export function createResetPasswordPolicy(): FluentPasswordPolicy {
   return new FluentPasswordPolicy().minLength(8).uppercase().lowercase().digit().specialChar()
 }
 
-/** Cross-field validator: sets/clears `passwordMismatch` directly on the confirm control. */
+/** Cross-field validator: sets/clears `passwordMismatch` directly on the confirmation control. */
 export function passwordMatchValidator(passwordKey: string, confirmKey: string): ValidatorFn {
   return (group: AbstractControl): ValidationErrors | null => {
     const passwordControl = group.get(passwordKey)
@@ -77,10 +74,7 @@ export function passwordMatchValidator(passwordKey: string, confirmKey: string):
     if (!passwordControl || !confirmControl) return null
 
     if (confirmControl.value && confirmControl.value !== passwordControl.value) {
-      confirmControl.setErrors(
-        { ...confirmControl.errors, passwordMismatch: true },
-        { emitEvent: false },
-      )
+      confirmControl.setErrors({ ...confirmControl.errors, passwordMismatch: true }, { emitEvent: false })
     } else if (confirmControl.hasError('passwordMismatch')) {
       const { passwordMismatch: _removed, ...rest } = confirmControl.errors ?? {}
       confirmControl.setErrors(Object.keys(rest).length ? rest : null, { emitEvent: false })

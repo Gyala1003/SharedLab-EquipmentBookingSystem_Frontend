@@ -21,9 +21,9 @@ export class AuthService {
   }
 
   me(): Observable<AuthUser> {
-    return this.http
-      .get<AuthUser>(`${this.baseUrl}/me`)
-      .pipe(map((user) => ({ ...user, status: normalizeUserStatus(user.status) })))
+    return this.http.get<AuthUser>(`${this.baseUrl}/me`).pipe(
+      map((user) => ({ ...user, status: normalizeUserStatus(user.status) })),
+    )
   }
 
   refresh(refreshToken: string): Observable<AuthTokens> {
@@ -31,33 +31,27 @@ export class AuthService {
   }
 
   logout(refreshToken: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.baseUrl}/logout`, { refreshToken })
+    return this.http.post<{ message: string }>(`${env.apiBaseUrl}/auth/logout`, { refreshToken })
   }
 
-  forgotPassword(
-    payload: ForgotPasswordPayload,
-  ): Observable<{ success: boolean; message: string }> {
+  forgotPassword(email: string, resetLink: string): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(
-      `${this.baseUrl}/forgot-password`,
-      payload,
+      `${env.apiBaseUrl}/auth/forgot-password`,
+      { email, resetLink },
     )
   }
 
   resetPassword(payload: ResetPasswordPayload): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.baseUrl}/reset-password`, payload)
+    return this.http.post<{ message: string }>(`${env.apiBaseUrl}/auth/reset-password`, payload)
   }
 }
 
 function normalizeUserStatus(value: UserStatus): Exclude<UserStatus, number> {
   if (typeof value === 'string') return value
-  return (
-    (
-      {
-        1: 'Active',
-        2: 'Inactive',
-        3: 'Restricted',
-        4: 'Locked',
-      } as Record<number, Exclude<UserStatus, number>>
-    )[value] ?? 'Inactive'
-  )
+  return ({
+    1: 'Active',
+    2: 'Inactive',
+    3: 'Restricted',
+    4: 'Locked',
+  } as Record<number, Exclude<UserStatus, number>>)[value] ?? 'Inactive'
 }

@@ -1,76 +1,77 @@
-import { Component, HostListener, inject, signal } from '@angular/core'
-import { CommonModule } from '@angular/common'
-import { TranslatePipe, TranslateService } from '@ngx-translate/core'
-import { RouterLink, RouterLinkActive } from '@angular/router'
-
-interface NavItem {
-  label: string
-  fragment: string
-}
-
-interface LanguageOption {
-  code: string
-  label: string
-}
+import {
+  Component,
+  HostListener,
+  Output,
+  EventEmitter,
+  inject,
+  signal,
+  computed,
+} from '@angular/core'
+import { NgClass } from '@angular/common'
+import { Router, RouterLink } from '@angular/router'
+import { AuthStore } from '../../../core/auth/auth.store'
+import { LanguageStore } from '../../../core/i18n/language.store'
+import { NotificationBadgeService } from '../../../core/api/notification-badge.service'
+import { TranslatePipe } from '../../../core/i18n/translate.pipe'
+import { IconComponent } from '../../ui/icon'
+import { ToastService } from '../../ui/toast.service'
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, TranslatePipe, RouterLink, RouterLinkActive],
+  imports: [NgClass, RouterLink, IconComponent, TranslatePipe],
   templateUrl: './header.component.html',
 })
 export class HeaderComponent {
-  private readonly translate = inject(TranslateService)
+  protected readonly store = inject(AuthStore)
+  protected readonly lang = inject(LanguageStore)
+  protected readonly badge = inject(NotificationBadgeService)
+  private readonly router = inject(Router)
+  private readonly toast = inject(ToastService)
 
-  isMobileMenuOpen = signal(false)
-  isLangMenuOpen = signal(false)
-  isScrolled = signal(false)
+  @Output() toggleSidebar = new EventEmitter<void>()
 
-  currentLang = signal(this.translate.currentLang() || this.translate.getFallbackLang() || 'vi')
-
-  navItems: NavItem[] = [
-    { label: 'header.nav.home', fragment: 'hero' },
-    { label: 'header.nav.about', fragment: 'about' },
-    { label: 'header.nav.feature', fragment: 'feature' },
-    { label: 'header.nav.workflow', fragment: 'workflow' },
-    { label: 'header.nav.statistics', fragment: 'statistics' },
-    { label: 'header.nav.contact', fragment: 'cta' },
-  ]
-
-  languages: LanguageOption[] = [
-    { code: 'vi', label: 'Tiếng Việt' },
-    { code: 'en', label: 'English' },
-  ]
+  protected isScrolled = signal(false)
+  protected userMenuOpen = signal(false)
+  protected currentLang = computed(() => this.lang.lang())
 
   @HostListener('window:scroll')
   onWindowScroll(): void {
     this.isScrolled.set(window.scrollY > 8)
   }
 
-  toggleMobileMenu(): void {
-    this.isMobileMenuOpen.update((value) => !value)
+  protected changeLanguage(code: 'vi' | 'en'): void {
+    this.lang.setLang(code)
   }
 
-  closeMobileMenu(): void {
-    this.isMobileMenuOpen.set(false)
+  protected onToggleSidebar(): void {
+    this.toggleSidebar.emit()
   }
 
-  toggleLangMenu(): void {
-    this.isLangMenuOpen.update((value) => !value)
+  protected toggleUserMenu(): void {
+    this.userMenuOpen.update((v) => !v)
   }
 
-  closeLangMenu(): void {
-    this.isLangMenuOpen.set(false)
+  protected initials(name: string): string {
+    return name
+      .trim()
+      .split(/\s+/)
+      .slice(-2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('')
   }
 
-  changeLanguage(code: string): void {
-    this.translate.use(code)
-    this.currentLang.set(code)
-    this.isLangMenuOpen.set(false)
+  protected onSupportClick(): void {
+    this.userMenuOpen.set(false)
+    this.toast.info(
+      'Trung tâm hỗ trợ',
+      'Liên hệ Admin qua email admin@sharedlab.vn hoặc hotline 1900-xxxx.',
+    )
   }
 
-  currentLanguageLabel(): string {
-    const found = this.languages.find((lang) => lang.code === this.currentLang())
-    return found ? found.label : ''
+  protected async logout(): Promise<void> {
+    this.userMenuOpen.set(false)
+    await this.store.logout()
+    void this.router.navigate(['/login'])
   }
 }

@@ -22,7 +22,8 @@ export const roleGuard =
   () => {
     const store = inject(AuthStore)
     const router = inject(Router)
-    return store.hasRole(roles) ? true : router.createUrlTree(['/403'])
+    if (store.hasRole(roles)) return true
+    return router.createUrlTree([landingPath(store.role())])
   }
 
 export const landingGuard: CanActivateFn = () => {
@@ -32,7 +33,10 @@ export const landingGuard: CanActivateFn = () => {
 }
 
 export function landingPath(role: string): string {
-  if (role === 'Admin') return '/app/dashboard'
-  if (role === 'LabManager') return '/app/management/bookings/pending'
+  const formattedRole = role?.trim().toLowerCase().replace(/[\s_]+/g, '')
+
+  if (formattedRole === 'admin' || formattedRole === 'administrator') return '/app/dashboard'
+  if (formattedRole === 'labmanager' || formattedRole === 'manager') return '/app/calendar'
+
   return '/app/home'
 }

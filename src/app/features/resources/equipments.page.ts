@@ -3,9 +3,8 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { SystemService } from '../../core/api/system.service'
-import type { EquipmentResponse, LabRoomResponse } from '../../core/api/system.models'
+import type { EquipmentResponse, EquipmentDetailResponse, LabRoomResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
-import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
@@ -16,137 +15,46 @@ import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-equipments-page',
-  imports: [
-    NgClass,
-    FormsModule,
-    RouterLink,
-    PageHeaderComponent,
-    IconComponent,
-    ModalComponent,
-    StatusBadgeComponent,
-    DataStateComponent,
-    TranslatePipe,
-  ],
+  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <app-page-header [title]="'equipments.title' | t" [subtitle]="'equipments.subtitle' | t">
-        <a routerLink="/app/calendar" class="btn-secondary"
-          ><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a
-        >
-        @if (store.isAdmin()) {
-          <button class="btn-primary" (click)="openCreate()">
-            <app-icon name="plus" [size]="17" /> {{ 'equipments.addEquipment' | t }}
-          </button>
-        }
+        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
+        @if (store.isAdmin()) { <button class="btn-primary" (click)="openCreate()"><app-icon name="plus" [size]="17" /> {{ 'equipments.addEquipment' | t }}</button> }
       </app-page-header>
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_auto]">
-        <div>
-          <label class="field-label">{{ 'common.search' | t }}</label>
-          <div class="relative">
-            <span class="absolute top-3.5 left-4 text-slate-400"
-              ><app-icon name="search" [size]="18" /></span
-            ><input
-              class="input-shell pl-11"
-              [(ngModel)]="keyword"
-              (keyup.enter)="load()"
-              placeholder="{{ 'equipments.searchPlaceholder' | t }}"
-            />
-          </div>
-        </div>
-        <div>
-          <label class="field-label">{{ 'calendar.labFilter' | t }}</label
-          ><select class="input-shell" [(ngModel)]="labId">
-            <option [ngValue]="null">{{ 'calendar.allLabs' | t }}</option>
-            @for (lab of labs(); track lab.labId) {
-              <option [ngValue]="lab.labId">{{ lab.labName }}</option>
-            }
-          </select>
-        </div>
-        <div>
-          <label class="field-label">{{ 'common.status' | t }}</label
-          ><select class="input-shell" [(ngModel)]="status">
-            <option value="">{{ 'common.all' | t }}</option>
-            <option [value]="1">{{ 'equipments.ready' | t }}</option>
-            <option [value]="2">{{ 'equipments.inUse' | t }}</option>
-            <option [value]="3">{{ 'labs.maintenance' | t }}</option>
-            <option [value]="4">{{ 'equipments.broken' | t }}</option>
-            <option [value]="5">{{ 'equipments.retired' | t }}</option>
-          </select>
-        </div>
-
-        <div class="flex items-end">
-          <button class="btn-primary w-full" (click)="load()">
-            <app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}
-          </button>
-        </div>
+        <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="{{ 'equipments.searchPlaceholder' | t }}" /></div></div>
+        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId"><option [ngValue]="null">{{ 'calendar.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }}</option> }</select></div>
+        <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">{{ 'equipments.ready' | t }}</option><option [value]="2">{{ 'equipments.inUse' | t }}</option><option [value]="3">{{ 'labs.maintenance' | t }}</option><option [value]="4">{{ 'equipments.broken' | t }}</option><option [value]="5">{{ 'equipments.retired' | t }}</option></select></div>
+        <div class="flex items-end"><button class="btn-primary w-full" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>
 
-      @if (loading()) {
-        <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
-            <div class="card-surface p-5">
-              <div class="skeleton h-36 rounded-2xl"></div>
-              <div class="skeleton mt-4 h-5 w-3/4 rounded"></div>
-              <div class="skeleton mt-3 h-4 rounded"></div>
-            </div>
-          }
-        </div>
-      } @else if (items().length === 0) {
-        <app-data-state
-          [title]="'common.noData' | t"
-          [message]="'common.noData' | t"
-          icon="microscope"
-        />
-      } @else {
+      @if (loading()) { <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">@for (i of [1,2,3,4,5,6,7,8]; track i) { <div class="card-surface p-5"><div class="skeleton h-36 rounded-2xl"></div><div class="skeleton mt-4 h-5 w-3/4 rounded"></div><div class="skeleton mt-3 h-4 rounded"></div></div> }</div> }
+      @else if (items().length === 0) { <app-data-state [title]="'common.noData' | t" [message]="'common.noData' | t" icon="microscope" /> }
+      @else {
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           @for (item of items(); track item.equipmentId; let index = $index) {
-            <article
-              class="group card-surface overflow-hidden transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,.1)]"
-            >
-              <div
-                class="relative flex h-40 items-center justify-center overflow-hidden"
-                [ngClass]="
-                  index % 4 === 0
-                    ? 'bg-indigo-950'
-                    : index % 4 === 1
-                      ? 'bg-cyan-950'
-                      : index % 4 === 2
-                        ? 'bg-violet-950'
-                        : 'bg-slate-900'
-                "
-              >
-                <div
-                  class="absolute inset-0 opacity-35"
-                  style="background-image: radial-gradient(circle at 20% 20%, #a78bfa, transparent 26%), radial-gradient(circle at 80% 80%, #22d3ee, transparent 28%)"
-                ></div>
-                <div
-                  class="relative flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/15 bg-white/10 text-white backdrop-blur"
-                >
-                  <app-icon name="microscope" [size]="38" />
-                </div>
-                <div class="absolute top-4 right-4">
-                  <app-status-badge [value]="item.status" domain="equipment" />
-                </div>
+            <article class="group card-surface overflow-hidden transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,.1)]">
+              <div class="relative flex h-40 items-center justify-center overflow-hidden" [ngClass]="index % 4 === 0 ? 'bg-indigo-950' : index % 4 === 1 ? 'bg-cyan-950' : index % 4 === 2 ? 'bg-violet-950' : 'bg-slate-900'">
+                <div class="absolute inset-0 opacity-35" style="background-image: radial-gradient(circle at 20% 20%, #a78bfa, transparent 26%), radial-gradient(circle at 80% 80%, #22d3ee, transparent 28%)"></div>
+                <div class="relative flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/15 bg-white/10 text-white backdrop-blur"><app-icon name="microscope" [size]="38" /></div>
+                <div class="absolute right-4 top-4"><app-status-badge [value]="item.status" domain="equipment" /></div>
+                @if (store.isAdmin()) {
+                  <div class="absolute left-3 top-3 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button type="button" class="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur hover:bg-white/25" title="Chỉnh sửa" (click)="openEdit(item); $event.stopPropagation()"><app-icon name="edit" [size]="14" /></button>
+                    <button type="button" class="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/80 text-white backdrop-blur hover:bg-rose-600/90" title="Ngừng sử dụng" (click)="removeItem(item); $event.stopPropagation()"><app-icon name="trash" [size]="14" /></button>
+                  </div>
+                }
               </div>
               <div class="p-5">
-                <p class="truncate text-base font-black text-slate-950">{{ item.equipmentName }}</p>
-                <p class="mt-2 flex items-center gap-2 truncate text-xs text-slate-400">
-                  <app-icon name="building" [size]="15" /> {{ labName(item.labId) }}
-                </p>
+                <p class="truncate text-base font-black text-slate-950">{{ item.equipmentName | t }}</p>
+                <p class="mt-2 flex items-center gap-2 truncate text-xs text-slate-400"><app-icon name="building" [size]="15" /> {{ labName(item.labId) | t }}</p>
                 <div class="mt-5 flex gap-2">
-                  <a
-                    [routerLink]="['/app/equipments', item.equipmentId]"
-                    class="btn-primary flex-1"
-                    >{{ 'common.details' | t }}</a
-                  >
-                  @if (!store.isAdmin() && !store.isManager()) {
-                    <a
-                      routerLink="/app/bookings/new"
-                      [queryParams]="{ equipmentId: item.equipmentId, labId: item.labId }"
-                      class="btn-secondary px-3"
-                      ><app-icon name="calendar-plus" [size]="18"
-                    /></a>
+                  <a [routerLink]="['/app/equipments', item.equipmentId]" class="btn-primary flex-1">{{ 'common.details' | t }}</a>
+                  @if (!store.isManager() && !store.isAdmin()) { <a routerLink="/app/bookings/new" [queryParams]="{ equipmentId: item.equipmentId, labId: item.labId }" class="btn-secondary px-3" title="{{ 'sidebar.quickBooking' | t }}"><app-icon name="calendar-plus" [size]="18" /></a> }
+                  @if (store.isAdmin()) {
+                    <button type="button" class="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100" title="{{ 'equipment.edit' | t }}" (click)="openEdit(item)"><app-icon name="edit" [size]="17" /></button>
                   }
                 </div>
               </div>
@@ -155,83 +63,31 @@ import { ToastService } from '../../shared/ui/toast.service'
         </div>
       }
 
-      @if (totalPages() > 1) {
-        <div class="flex justify-center gap-2">
-          <button
-            class="btn-secondary"
-            [disabled]="page() <= 1"
-            (click)="page.set(page() - 1); load()"
-          >
-            Trước</button
-          ><span class="rounded-xl bg-white px-4 py-3 text-xs font-black"
-            >{{ page() }}/{{ totalPages() }}</span
-          ><button
-            class="btn-secondary"
-            [disabled]="page() >= totalPages()"
-            (click)="page.set(page() + 1); load()"
-          >
-            Sau
-          </button>
-        </div>
-      }
+      @if (totalPages() > 1) { <div class="flex justify-center gap-2"><button class="btn-secondary" [disabled]="page() <= 1" (click)="page.set(page()-1); load()">{{ 'common.prev' | t }}</button><span class="rounded-xl bg-white px-4 py-3 text-xs font-black">{{ page() }}/{{ totalPages() }}</span><button class="btn-secondary" [disabled]="page() >= totalPages()" (click)="page.set(page()+1); load()">{{ 'common.next' | t }}</button></div> }
 
-      <app-modal
-        [open]="createOpen()"
-        title="Thêm thiết bị mới"
-        subtitle="Thiết bị phải thuộc một phòng lab đang tồn tại."
-        (close)="createOpen.set(false)"
-      >
+      <!-- Modal Tạo thiết bị -->
+      <app-modal [open]="createOpen()" title="Thêm thiết bị mới" subtitle="Thiết bị phải thuộc một phòng lab đang tồn tại." (close)="createOpen.set(false)">
         <form class="grid gap-4" (ngSubmit)="create()">
-          <div>
-            <label class="field-label">Phòng lab *</label
-            ><select class="input-shell" required [(ngModel)]="form.labId" name="labId">
-              <option [ngValue]="null">Chọn phòng lab</option>
-              @for (lab of labs(); track lab.labId) {
-                <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option>
-              }
-            </select>
-          </div>
-          <div>
-            <label class="field-label">Tên thiết bị *</label
-            ><input
-              class="input-shell"
-              required
-              [(ngModel)]="form.equipmentName"
-              name="equipmentName"
-              placeholder="Máy quang phổ FTIR"
-            />
-          </div>
-          <div>
-            <label class="field-label">Model / thông số</label
-            ><textarea
-              class="textarea-shell"
-              [(ngModel)]="form.modelSpecs"
-              name="modelSpecs"
-              placeholder="Hãng, model, dải đo..."
-            ></textarea>
-          </div>
-          <div>
-            <label class="field-label">URL ảnh</label
-            ><input
-              class="input-shell"
-              [(ngModel)]="form.imageUrl"
-              name="imageUrl"
-              placeholder="https://..."
-            />
-          </div>
-          <div>
-            <label class="field-label">Hướng dẫn sử dụng</label
-            ><textarea
-              class="textarea-shell"
-              [(ngModel)]="form.usageGuideline"
-              name="usageGuideline"
-            ></textarea>
-          </div>
-          <div class="flex justify-end gap-2">
-            <button type="button" class="btn-secondary" (click)="createOpen.set(false)">Hủy</button
-            ><button class="btn-primary" [disabled]="saving()">
-              {{ saving() ? 'Đang lưu...' : 'Tạo thiết bị' }}
-            </button>
+          <div><label class="field-label">Phòng lab *</label><select class="input-shell" required [(ngModel)]="form.labId" name="labId"><option [ngValue]="null">Chọn phòng lab</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option> }</select></div>
+          <div><label class="field-label">Tên thiết bị *</label><input class="input-shell" required [(ngModel)]="form.equipmentName" name="equipmentName" placeholder="Máy quang phổ FTIR" /></div>
+          <div><label class="field-label">Model / thông số</label><textarea class="textarea-shell" [(ngModel)]="form.modelSpecs" name="modelSpecs" placeholder="Hãng, model, dải đo..."></textarea></div>
+          <div><label class="field-label">URL ảnh</label><input class="input-shell" [(ngModel)]="form.imageUrl" name="imageUrl" placeholder="https://..." /></div>
+          <div><label class="field-label">Hướng dẫn sử dụng</label><textarea class="textarea-shell" [(ngModel)]="form.usageGuideline" name="usageGuideline"></textarea></div>
+          <div class="flex justify-end gap-2"><button type="button" class="btn-secondary" (click)="createOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Tạo thiết bị' }}</button></div>
+        </form>
+      </app-modal>
+
+      <!-- Modal Chỉnh sửa thiết bị -->
+      <app-modal [open]="editOpen()" [title]="'Chỉnh sửa: ' + editingItem()?.equipmentName" subtitle="Cập nhật thông tin kỹ thuật hoặc chuyển thiết bị sang phòng khác." (close)="editOpen.set(false)">
+        <form class="grid gap-4" (ngSubmit)="save()">
+          <div><label class="field-label">Tên thiết bị *</label><input class="input-shell" required [(ngModel)]="editForm.equipmentName" name="eequipmentName" /></div>
+          <div><label class="field-label">Phòng lab *</label><select class="input-shell" required [(ngModel)]="editForm.labId" name="elaborId"><option [ngValue]="null">Chọn phòng lab</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }}</option> }</select></div>
+          <div><label class="field-label">Model / thông số</label><textarea class="textarea-shell" [(ngModel)]="editForm.modelSpecs" name="emodelSpecs"></textarea></div>
+          <div><label class="field-label">URL ảnh</label><input class="input-shell" [(ngModel)]="editForm.imageUrl" name="eimageUrl" /></div>
+          <div><label class="field-label">Hướng dẫn sử dụng</label><textarea class="textarea-shell" [(ngModel)]="editForm.usageGuideline" name="eusageGuideline"></textarea></div>
+          <div class="flex justify-between gap-2">
+            <button type="button" class="btn-secondary btn-danger" (click)="removeItem(editingItem()!)"><app-icon name="trash" [size]="16" /> Ngừng sử dụng</button>
+            <div class="flex gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</button></div>
           </div>
         </form>
       </app-modal>
@@ -247,88 +103,66 @@ export class EquipmentsPage implements OnInit {
   protected readonly loading = signal(true)
   protected readonly saving = signal(false)
   protected readonly createOpen = signal(false)
+  protected readonly editOpen = signal(false)
+  protected readonly editingItem = signal<EquipmentResponse | null>(null)
   protected readonly page = signal(1)
   protected readonly totalPages = signal(1)
   protected keyword = ''
   protected labId: number | null = null
   protected status: string | number = ''
-  protected form = {
-    labId: null as number | null,
-    equipmentName: '',
-    modelSpecs: '',
-    imageUrl: '',
-    usageGuideline: '',
-  }
-  protected readonly labMap = computed(
-    () => new Map(this.labs().map((lab) => [lab.labId, lab.labName])),
-  )
+  protected form = { labId: null as number | null, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
+  protected editForm = { labId: null as number | null, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
+  protected readonly labMap = computed(() => new Map(this.labs().map((lab) => [lab.labId, lab.labName])))
 
-  ngOnInit(): void {
-    this.api.labs().subscribe({
-      next: (labs) => {
-        this.labs.set(labs)
-        this.load()
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được phòng lab')
-      },
-    })
-  }
+  ngOnInit(): void { this.api.labs().subscribe({ next: (labs) => { this.labs.set(labs); this.load() }, error: () => { this.loading.set(false); this.toast.error('Không tải được phòng lab') } }) }
+
   protected load(): void {
     this.loading.set(true)
-    this.api
-      .searchEquipments({
-        keyword: this.keyword || undefined,
-        labId: this.labId ?? undefined,
-        status: this.status || undefined,
-        pageNumber: this.page(),
-        pageSize: 16,
-      })
-      .subscribe({
-        next: (result) => {
-          this.items.set(result.items)
-          this.totalPages.set(result.totalPages || 1)
-          this.loading.set(false)
-        },
-        error: () => {
-          this.loading.set(false)
-          this.toast.error('Không tải được thiết bị')
-        },
-      })
+    this.api.searchEquipments({ keyword: this.keyword || undefined, labId: this.labId ?? undefined, status: this.status || undefined, pageNumber: this.page(), pageSize: 16 }).subscribe({
+      next: (result) => { this.items.set(result.items); this.totalPages.set(result.totalPages || 1); this.loading.set(false) },
+      error: () => { this.loading.set(false); this.toast.error('Không tải được thiết bị') }
+    })
   }
-  protected labName(id: number): string {
-    return this.labMap().get(id) ?? `Phòng #${id}`
-  }
-  protected openCreate(): void {
-    this.form = { labId: null, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
-    this.createOpen.set(true)
-  }
+
+  protected labName(id: number): string { return this.labMap().get(id) ?? `Phòng #${id}` }
+
+  protected openCreate(): void { this.form = { labId: null, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }; this.createOpen.set(true) }
+
   protected create(): void {
-    if (!this.form.labId) {
-      this.toast.info('Hãy chọn phòng lab')
-      return
-    }
+    if (!this.form.labId) { this.toast.info('Hãy chọn phòng lab'); return }
     this.saving.set(true)
-    this.api
-      .createEquipment({
-        labId: this.form.labId,
-        equipmentName: this.form.equipmentName,
-        modelSpecs: this.form.modelSpecs || null,
-        imageUrl: this.form.imageUrl || null,
-        usageGuideline: this.form.usageGuideline || null,
-      })
-      .subscribe({
-        next: () => {
-          this.saving.set(false)
-          this.createOpen.set(false)
-          this.toast.success('Đã thêm thiết bị')
-          this.load()
-        },
-        error: () => {
-          this.saving.set(false)
-          this.toast.error('Không thể thêm thiết bị')
-        },
-      })
+    this.api.createEquipment({ labId: this.form.labId, equipmentName: this.form.equipmentName, modelSpecs: this.form.modelSpecs || null, imageUrl: this.form.imageUrl || null, usageGuideline: this.form.usageGuideline || null }).subscribe({
+      next: () => { this.saving.set(false); this.createOpen.set(false); this.toast.success('Đã thêm thiết bị'); this.load() },
+      error: () => { this.saving.set(false); this.toast.error('Không thể thêm thiết bị') }
+    })
+  }
+
+  protected openEdit(item: EquipmentResponse): void {
+    this.editingItem.set(item)
+    this.editForm = { labId: item.labId, equipmentName: item.equipmentName, modelSpecs: '', imageUrl: '', usageGuideline: '' }
+    this.editOpen.set(true)
+    // Load detail to prefill optional fields
+    this.api.equipment(item.equipmentId).subscribe({
+      next: (detail) => { this.editForm.modelSpecs = detail.modelSpecs ?? ''; this.editForm.imageUrl = detail.imageUrl ?? ''; this.editForm.usageGuideline = detail.usageGuideline ?? '' },
+      error: () => {}
+    })
+  }
+
+  protected save(): void {
+    const item = this.editingItem()
+    if (!item || !this.editForm.labId) { this.toast.info('Hãy chọn phòng lab'); return }
+    this.saving.set(true)
+    this.api.updateEquipment(item.equipmentId, { labId: this.editForm.labId, equipmentName: this.editForm.equipmentName, modelSpecs: this.editForm.modelSpecs || null, imageUrl: this.editForm.imageUrl || null, usageGuideline: this.editForm.usageGuideline || null }).subscribe({
+      next: () => { this.saving.set(false); this.editOpen.set(false); this.toast.success('Đã cập nhật thiết bị'); this.load() },
+      error: () => { this.saving.set(false); this.toast.error('Không thể cập nhật thiết bị') }
+    })
+  }
+
+  protected removeItem(item: EquipmentResponse): void {
+    if (!confirm(`Ngừng sử dụng thiết bị "${item.equipmentName}"?`)) return
+    this.api.deleteEquipment(item.equipmentId).subscribe({
+      next: () => { this.toast.success('Đã ngừng sử dụng thiết bị'); this.editOpen.set(false); this.load() },
+      error: () => this.toast.error('Không thể ngừng sử dụng thiết bị')
+    })
   }
 }

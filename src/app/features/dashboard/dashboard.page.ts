@@ -1,11 +1,14 @@
 import { DecimalPipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import type {
   CategoryCountResponse,
   DashboardResponse,
   ResourceUtilizationResponse,
 } from '../../core/api/api.models'
+import { SystemService } from '../../core/api/system.service'
+import type { PolicyResponse } from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
@@ -14,6 +17,28 @@ import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
+
+const SEED_POLICY_VI: PolicyResponse = {
+  generalRules: [
+    'Xác thực qua người duyệt: Mọi lượt Check-in (Nhận) và Check-out (Trả) đúng giờ chỉ được tính là hoàn thành sau khi có sự xác thực/phê duyệt trực tiếp từ Bộ phận Quản lý.',
+    'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo ngay hỏng hóc/sự cố có sẵn cho Bộ phận duyệt trong 5–10 phút đầu.',
+    'Quy định Check-out & Mất tài sản: Trả phòng/thiết bị đúng thời gian đã đăng ký. Check-out muộn quá 02 tuần sẽ tự động ghi nhận là LÀM MẤT TÀI SẢN và bị ĐÓNG BĂNG/KHÓA TÀI KHOẢN HOÀN TOÀN.',
+    'Trách nhiệm bảo quản & Hỏng hóc: Người mượn chịu trách nhiệm toàn bộ đối với phòng học và thiết bị. Nếu bị hư hỏng mà không có chứng minh lý do khách quan, người mượn phải bồi thường toàn bộ chi phí.',
+    'Quản lý tài khoản & Nghiêm cấm tráo đổi: Nghiêm cấm tự ý tháo lắp, thay thế, tráo đổi linh kiện hoặc cho mượn/dùng chung tài khoản. Chủ tài khoản phải chịu trách nhiệm trước nhà trường.',
+  ],
+  categories: [],
+}
+
+const SEED_POLICY_EN: PolicyResponse = {
+  generalRules: [
+    '2-Step Verification: All Check-in (Receive) and Check-out (Return) entries are completed only upon direct verification/approval from Management.',
+    'Initial Inspection: Immediately inspect all room and equipment conditions upon Check-in. Report any pre-existing damage within 5–10 minutes.',
+    'Overdue & Lost Asset: Overdue Checkout >2 weeks is automatically logged as LOST ASSET, causing an immediate ACCOUNT FREEZE/LOCK until compensated.',
+    'Asset Care Responsibility: Borrowers bear full responsibility for room spaces and equipment, including full repair/replacement costs for unverified damage.',
+    'Account Integrity & Anti-Swapping: Component swapping and account sharing are strictly prohibited; account owners bear full institutional liability.',
+  ],
+  categories: [],
+}
 
 const EMPTY_DASHBOARD: DashboardResponse = {
   from: '',
@@ -37,72 +62,45 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [FormsModule, DecimalPipe, IconComponent, TranslatePipe],
+  imports: [FormsModule, DecimalPipe, RouterLink, IconComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
         <div>
           <div class="flex items-center gap-2 text-sm font-semibold text-cyan-700">
-            <span
-              class="h-2 w-2 rounded-full bg-teal-500 shadow-[0_0_0_4px_rgba(20,184,166,.18)]"
-            ></span>
+            <span class="h-2 w-2 rounded-full bg-teal-500 shadow-[0_0_0_4px_rgba(20,184,166,.18)]"></span>
             {{ 'dashboard.liveData' | t }}
           </div>
-          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">
-            {{ 'dashboard.title' | t }}
-          </h1>
+          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'dashboard.title' | t }}</h1>
           <p class="mt-2 text-sm text-slate-500">
-            {{ (store.isAdmin() ? 'dashboard.subtitleAdmin' : 'dashboard.subtitleManager') | t }} •
-            {{ 'common.from' | t }}...
+            {{ (store.isAdmin() ? 'dashboard.subtitleAdmin' : 'dashboard.subtitleManager') | t }} • {{ 'common.from' | t }}...
           </p>
         </div>
 
-        <div
-          class="flex flex-col gap-3 rounded-3xl border border-cyan-100/90 bg-white/90 p-3 shadow-sm shadow-cyan-950/5 sm:flex-row sm:items-center"
-        >
+        <div class="flex flex-col gap-3 rounded-3xl border border-cyan-100/90 bg-white/90 p-3 shadow-sm shadow-cyan-950/5 sm:flex-row sm:items-center">
           <div class="flex items-center gap-2">
             <label class="text-xs font-semibold text-slate-500">{{ 'common.from' | t }}</label>
-            <input
-              [(ngModel)]="fromDate"
-              type="date"
-              class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-cyan-500"
-            />
+            <input [(ngModel)]="fromDate" type="date" class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-cyan-500" />
           </div>
           <div class="hidden h-6 w-px bg-slate-200 sm:block"></div>
           <div class="flex items-center gap-2">
             <label class="text-xs font-semibold text-slate-500">{{ 'common.to' | t }}</label>
-            <input
-              [(ngModel)]="toDate"
-              type="date"
-              class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-cyan-500"
-            />
+            <input [(ngModel)]="toDate" type="date" class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 focus:border-cyan-500" />
           </div>
-          <button
-            type="button"
-            class="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 px-4 text-xs font-bold text-white shadow-md shadow-cyan-500/20 transition hover:from-cyan-700 hover:to-teal-600"
-            [disabled]="loading()"
-            (click)="load()"
-          >
+          <button type="button" class="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-500 to-cyan-500 px-4 text-xs font-bold text-white shadow-md shadow-cyan-500/20 hover:from-cyan-700 hover:to-teal-600 transition" [disabled]="loading()" (click)="load()">
             <app-icon name="refresh" [size]="16" />
             {{ 'common.apply' | t }}
           </button>
+          <a routerLink="/app/admin/system-maintenance" class="flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-md hover:bg-slate-800 transition">
+            <app-icon name="wrench" [size]="16" />
+            <span>{{ 'systemMaintenance.title' | t }}</span>
+          </a>
         </div>
       </header>
 
       <div class="flex flex-wrap gap-2">
         @for (preset of presets; track preset.days) {
-          <button
-            type="button"
-            class="rounded-full border px-3.5 py-2 text-xs font-semibold transition"
-            [class.border-cyan-300]="activePreset() === preset.days"
-            [class.bg-cyan-50]="activePreset() === preset.days"
-            [class.text-cyan-700]="activePreset() === preset.days"
-            [class.font-bold]="activePreset() === preset.days"
-            [class.border-slate-200]="activePreset() !== preset.days"
-            [class.bg-white]="activePreset() !== preset.days"
-            [class.text-slate-500]="activePreset() !== preset.days"
-            (click)="applyPreset(preset.days)"
-          >
+          <button type="button" class="rounded-full border px-3.5 py-2 text-xs font-semibold transition" [class.border-cyan-300]="activePreset() === preset.days" [class.bg-cyan-50]="activePreset() === preset.days" [class.text-cyan-700]="activePreset() === preset.days" [class.font-bold]="activePreset() === preset.days" [class.border-slate-200]="activePreset() !== preset.days" [class.bg-white]="activePreset() !== preset.days" [class.text-slate-500]="activePreset() !== preset.days" (click)="applyPreset(preset.days)">
             {{ preset.labelKey | t }}
           </button>
         }
@@ -110,9 +108,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
       @if (loading()) {
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-          @for (item of [1, 2, 3, 4, 5, 6]; track item) {
-            <div class="card-surface h-32 animate-pulse bg-slate-100"></div>
-          }
+          @for (item of [1, 2, 3, 4, 5, 6]; track item) { <div class="card-surface h-32 animate-pulse bg-slate-100"></div> }
         </div>
         <div class="grid gap-6 xl:grid-cols-2">
           <div class="card-surface h-96 animate-pulse bg-slate-100"></div>
@@ -121,33 +117,13 @@ const EMPTY_DASHBOARD: DashboardResponse = {
       } @else {
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           @for (card of metricCards(); track card.label) {
-            <article
-              class="card-surface group relative overflow-hidden p-5 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
-            >
-              <div
-                class="absolute -top-8 -right-8 h-24 w-24 rounded-full blur-2xl"
-                [class.bg-cyan-200]="card.tone === 'indigo' || card.tone === 'cyan'"
-                [class.bg-teal-200]="card.tone === 'violet' || card.tone === 'emerald'"
-                [class.bg-amber-200]="card.tone === 'amber'"
-                [class.bg-rose-200]="card.tone === 'rose'"
-              ></div>
+            <article class="card-surface group relative overflow-hidden p-5 transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl" [class.bg-cyan-200]="card.tone === 'indigo' || card.tone === 'cyan'" [class.bg-teal-200]="card.tone === 'violet' || card.tone === 'emerald'" [class.bg-amber-200]="card.tone === 'amber'" [class.bg-rose-200]="card.tone === 'rose'"></div>
               <div class="relative">
-                <div
-                  class="flex h-10 w-10 items-center justify-center rounded-2xl"
-                  [class.bg-cyan-50]="card.tone === 'indigo' || card.tone === 'cyan'"
-                  [class.text-cyan-600]="card.tone === 'indigo' || card.tone === 'cyan'"
-                  [class.bg-teal-50]="card.tone === 'violet' || card.tone === 'emerald'"
-                  [class.text-teal-600]="card.tone === 'violet' || card.tone === 'emerald'"
-                  [class.bg-amber-50]="card.tone === 'amber'"
-                  [class.text-amber-600]="card.tone === 'amber'"
-                  [class.bg-rose-50]="card.tone === 'rose'"
-                  [class.text-rose-600]="card.tone === 'rose'"
-                >
+                <div class="flex h-10 w-10 items-center justify-center rounded-2xl" [class.bg-cyan-50]="card.tone === 'indigo' || card.tone === 'cyan'" [class.text-cyan-600]="card.tone === 'indigo' || card.tone === 'cyan'" [class.bg-teal-50]="card.tone === 'violet' || card.tone === 'emerald'" [class.text-teal-600]="card.tone === 'violet' || card.tone === 'emerald'" [class.bg-amber-50]="card.tone === 'amber'" [class.text-amber-600]="card.tone === 'amber'" [class.bg-rose-50]="card.tone === 'rose'" [class.text-rose-600]="card.tone === 'rose'">
                   <app-icon [name]="card.icon" [size]="19" />
                 </div>
-                <p class="mt-5 text-2xl font-bold tracking-[-0.04em] text-slate-950">
-                  {{ card.value }}
-                </p>
+                <p class="mt-5 text-2xl font-bold tracking-[-0.04em] text-slate-950">{{ card.value }}</p>
                 <p class="mt-1 text-xs font-medium text-slate-500">{{ card.label }}</p>
               </div>
             </article>
@@ -155,166 +131,58 @@ const EMPTY_DASHBOARD: DashboardResponse = {
         </div>
 
         <!-- Quy định & Chính sách vận hành phòng Lab -->
-        <article
-          class="card-surface overflow-hidden border border-cyan-100/90 bg-gradient-to-r from-cyan-50/40 via-white to-teal-50/20 p-6 shadow-sm"
-        >
-          <div
-            class="flex flex-col gap-4 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between"
-          >
+        <article class="card-surface overflow-hidden border border-cyan-100/90 bg-gradient-to-r from-cyan-50/40 via-white to-teal-50/20 p-6 shadow-sm">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
             <div class="flex items-center gap-3">
-              <div
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white shadow-md shadow-cyan-500/20"
-              >
+              <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white shadow-md shadow-cyan-500/20">
                 <app-icon name="file-text" [size]="22" />
               </div>
               <div>
-                <h2 class="text-lg font-black text-slate-900">
-                  {{
-                    languageStore.lang() === 'en'
-                      ? 'General Rules & Lab Policy'
-                      : 'Nội quy & Quy định chung phòng Lab'
-                  }}
-                </h2>
-                <p class="text-xs font-medium text-slate-500">
-                  {{
-                    languageStore.lang() === 'en'
-                      ? 'General rules and violation handling guidelines applicable to all lab users.'
-                      : 'Khung pháp lý và quy định xử lý vi phạm áp dụng đối với toàn bộ người dùng.'
-                  }}
-                </p>
+                <h2 class="text-lg font-black text-slate-900">{{ languageStore.lang() === 'en' ? 'General Rules & Lab Policy' : 'Nội quy & Quy định chung phòng Lab' }}</h2>
+                <p class="text-xs font-medium text-slate-500">{{ languageStore.lang() === 'en' ? 'General rules and violation handling guidelines applicable to all lab users.' : 'Khung pháp lý và quy định xử lý vi phạm áp dụng đối với toàn bộ người dùng.' }}</p>
               </div>
             </div>
-            <a
-              routerLink="/app/policy"
-              class="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-md transition hover:bg-slate-800"
-            >
-              <span>{{
-                languageStore.lang() === 'en' ? 'View Full Policy' : 'Xem chi tiết quy định'
-              }}</span>
+            <a routerLink="/app/policy" class="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white transition hover:bg-slate-800 shadow-md">
+              <span>{{ languageStore.lang() === 'en' ? 'View Full Policy' : 'Xem chi tiết quy định' }}</span>
               <app-icon name="arrow-right" [size]="16" />
             </a>
           </div>
 
           <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-xs font-bold text-cyan-800">
-                1.
-                {{
-                  languageStore.lang() === 'en'
-                    ? '2-Step Verification'
-                    : 'Xác thực 2 bước (Check-in/out)'
-                }}
-              </p>
-              <p class="mt-1 text-xs leading-5 text-slate-600">
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Check-in/out is completed only upon direct approval by Management.'
-                    : 'Lượt Check-in/out chỉ được tính hoàn thành khi có phê duyệt trực tiếp từ Bộ phận Quản lý.'
-                }}
-              </p>
-            </div>
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-xs font-bold text-amber-800">
-                2.
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Initial Inspection (5-10m)'
-                    : 'Kiểm tra đầu giờ (5–10 phút)'
-                }}
-              </p>
-              <p class="mt-1 text-xs leading-5 text-slate-600">
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Inspect and report pre-existing damage within 5-10 mins after Check-in.'
-                    : 'Báo ngay sự cố/hỏng hóc có sẵn trong 5–10 phút đầu sau khi Check-in.'
-                }}
-              </p>
-            </div>
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-xs font-bold text-indigo-800">
-                3.
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Late >2 Weeks (Account Lock)'
-                    : 'Muộn >2 tuần (Khóa tài khoản)'
-                }}
-              </p>
-              <p class="mt-1 text-xs leading-5 text-slate-600">
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Check-out overdue >2 weeks auto-marks LOST ASSET and FREEZES/LOCKS account.'
-                    : 'Check-out muộn >2 tuần bị tự động tính LÀM MẤT TÀI SẢN & ĐÓNG BĂNG/KHÓA TÀI KHOẢN.'
-                }}
-              </p>
-            </div>
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-xs font-bold text-emerald-800">
-                4.
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Anti-Swapping & Account Security'
-                    : 'Cấm tráo đổi & Dùng chung tài khoản'
-                }}
-              </p>
-              <p class="mt-1 text-xs leading-5 text-slate-600">
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'No swapping components or lending accounts. Account owner bears full liability.'
-                    : 'Nghiêm cấm tháo lắp, tráo đổi thiết bị hoặc dùng chung tài khoản. Chủ tài khoản chịu trách nhiệm.'
-                }}
-              </p>
-            </div>
+            @for (rule of activePolicyRules().slice(0, 4); track $index) {
+              <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                <p class="text-xs font-bold text-cyan-800">{{ rule.title }}</p>
+                <p class="mt-1 text-xs text-slate-600 leading-5">{{ rule.desc }}</p>
+              </div>
+            }
           </div>
         </article>
 
         <div [class]="store.isAdmin() ? 'grid gap-6' : 'grid gap-6 xl:grid-cols-[1.22fr_.78fr]'">
           @if (!store.isAdmin()) {
             <article class="card-surface overflow-hidden">
-              <div
-                class="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-              >
+              <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div>
                   <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.usageTrend' | t }}</h2>
                   <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.usageTrendSub' | t }}</p>
                 </div>
                 <div class="flex items-center gap-4 text-xs text-slate-500">
-                  <span class="flex items-center gap-2"
-                    ><i class="h-2.5 w-2.5 rounded-full bg-cyan-500"></i
-                    >{{ 'dashboard.usageLog' | t }}</span
-                  >
-                  <span class="rounded-full bg-cyan-50 px-3 py-1.5 font-bold text-cyan-700"
-                    >{{ totalUsageHours() | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</span
-                  >
+                  <span class="flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-cyan-500"></i>{{ 'dashboard.usageLog' | t }}</span>
+                  <span class="rounded-full bg-cyan-50 px-3 py-1.5 font-bold text-cyan-700">{{ totalUsageHours() | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</span>
                 </div>
               </div>
               <div class="p-5 sm:p-6">
                 @if (dashboard().usageTrend.length === 0) {
                   <div class="flex h-72 flex-col items-center justify-center text-center">
-                    <div
-                      class="flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-500"
-                    >
-                      <app-icon name="chart" [size]="26" />
-                    </div>
-                    <p class="mt-4 text-sm font-semibold text-slate-700">
-                      {{ 'common.noData' | t }}
-                    </p>
+                    <div class="flex h-14 w-14 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-500"><app-icon name="chart" [size]="26" /></div>
+                    <p class="mt-4 text-sm font-semibold text-slate-700">{{ 'common.noData' | t }}</p>
                   </div>
                 } @else {
-                  <div
-                    class="relative h-72 overflow-hidden rounded-2xl bg-gradient-to-b from-cyan-50/60 to-white p-4"
-                  >
-                    <div class="absolute inset-x-4 top-4 bottom-10 flex flex-col justify-between">
-                      @for (line of [1, 2, 3, 4, 5]; track line) {
-                        <div class="border-t border-dashed border-slate-200"></div>
-                      }
+                  <div class="relative h-72 overflow-hidden rounded-2xl bg-gradient-to-b from-cyan-50/60 to-white p-4">
+                    <div class="absolute inset-x-4 bottom-10 top-4 flex flex-col justify-between">
+                      @for (line of [1, 2, 3, 4, 5]; track line) { <div class="border-t border-dashed border-slate-200"></div> }
                     </div>
-                    <svg
-                      class="relative h-[225px] w-full overflow-visible"
-                      viewBox="0 0 600 190"
-                      preserveAspectRatio="none"
-                      role="img"
-                      aria-label="Usage trend chart"
-                    >
+                    <svg class="relative h-[225px] w-full overflow-visible" viewBox="0 0 600 190" preserveAspectRatio="none" role="img" aria-label="Usage trend chart">
                       <defs>
                         <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.26" />
@@ -322,31 +190,13 @@ const EMPTY_DASHBOARD: DashboardResponse = {
                         </linearGradient>
                       </defs>
                       <polygon [attr.points]="usageAreaPoints()" fill="url(#trendFill)" />
-                      <polyline
-                        [attr.points]="usageTrendPoints()"
-                        fill="none"
-                        stroke="#06b6d4"
-                        stroke-width="4"
-                        vector-effect="non-scaling-stroke"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
+                      <polyline [attr.points]="usageTrendPoints()" fill="none" stroke="#06b6d4" stroke-width="4" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" />
                       @for (point of usagePointObjects(); track point.x) {
-                        <circle
-                          [attr.cx]="point.x"
-                          [attr.cy]="point.y"
-                          r="5"
-                          fill="white"
-                          stroke="#06b6d4"
-                          stroke-width="3"
-                          vector-effect="non-scaling-stroke"
-                        />
+                        <circle [attr.cx]="point.x" [attr.cy]="point.y" r="5" fill="white" stroke="#06b6d4" stroke-width="3" vector-effect="non-scaling-stroke" />
                       }
                     </svg>
                     <div class="mt-1 flex justify-between text-[10px] font-medium text-slate-400">
-                      @for (label of trendLabels(); track label) {
-                        <span>{{ label }}</span>
-                      }
+                      @for (label of trendLabels(); track label) { <span>{{ label }}</span> }
                     </div>
                   </div>
                 }
@@ -359,47 +209,23 @@ const EMPTY_DASHBOARD: DashboardResponse = {
               <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingStatus' | t }}</h2>
               <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.bookingStatusSub' | t }}</p>
             </div>
-            <div
-              class="grid items-center gap-6 p-5 sm:grid-cols-[170px_1fr] sm:p-6 xl:grid-cols-1 2xl:grid-cols-[170px_1fr]"
-            >
-              <div
-                class="relative mx-auto flex h-44 w-44 items-center justify-center rounded-full"
-                [style.background]="statusDonut()"
-              >
-                <div
-                  class="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white shadow-inner"
-                >
-                  <span class="text-3xl font-bold tracking-[-0.04em] text-slate-950">{{
-                    dashboard().totalBookings
-                  }}</span>
-                  <span class="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase"
-                    >Booking</span
-                  >
+            <div class="grid items-center gap-6 p-5 sm:grid-cols-[170px_1fr] sm:p-6 xl:grid-cols-1 2xl:grid-cols-[170px_1fr]">
+              <div class="relative mx-auto flex h-44 w-44 items-center justify-center rounded-full" [style.background]="statusDonut()">
+                <div class="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white shadow-inner">
+                  <span class="text-3xl font-bold tracking-[-0.04em] text-slate-950">{{ dashboard().totalBookings }}</span>
+                  <span class="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Booking</span>
                 </div>
               </div>
               <div class="space-y-3">
-                @for (
-                  status of dashboard().bookingStatusCounts.slice(0, 6);
-                  track status.key;
-                  let index = $index
-                ) {
+                @for (status of dashboard().bookingStatusCounts.slice(0, 6); track status.key; let index = $index) {
                   <div class="flex items-center gap-3">
-                    <span
-                      class="h-2.5 w-2.5 shrink-0 rounded-full"
-                      [style.background-color]="chartColors[index % chartColors.length]"
-                    ></span>
-                    <span class="min-w-0 flex-1 truncate text-xs font-medium text-slate-500">{{
-                      status.displayName || statusLabel(status.key)
-                    }}</span>
+                    <span class="h-2.5 w-2.5 shrink-0 rounded-full" [style.background-color]="chartColors[index % chartColors.length]"></span>
+                    <span class="min-w-0 flex-1 truncate text-xs font-medium text-slate-500">{{ status.displayName || statusLabel(status.key) }}</span>
                     <strong class="text-sm text-slate-900">{{ status.count }}</strong>
-                    <span class="w-11 text-right text-[10px] text-slate-400"
-                      >{{ status.percentage | number: '1.0-1' }}%</span
-                    >
+                    <span class="w-11 text-right text-[10px] text-slate-400">{{ status.percentage | number: '1.0-1' }}%</span>
                   </div>
                 }
-                @if (dashboard().bookingStatusCounts.length === 0) {
-                  <p class="py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p>
-                }
+                @if (dashboard().bookingStatusCounts.length === 0) { <p class="py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
               </div>
             </div>
           </article>
@@ -409,314 +235,114 @@ const EMPTY_DASHBOARD: DashboardResponse = {
           <article class="card-surface p-5 sm:p-6">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">
-                  {{ 'dashboard.bookingPurpose' | t }}
-                </h2>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingPurpose' | t }}</h2>
                 <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.bookingPurposeSub' | t }}</p>
               </div>
-              <div
-                class="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"
-              >
-                <app-icon name="sparkles" [size]="20" />
-              </div>
+              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="sparkles" [size]="20" /></div>
             </div>
             <div class="mt-6 space-y-5">
-              @for (
-                item of dashboard().bookingPurposeCounts.slice(0, 6);
-                track item.key;
-                let index = $index
-              ) {
+              @for (item of dashboard().bookingPurposeCounts.slice(0, 6); track item.key; let index = $index) {
                 <div>
                   <div class="mb-2 flex items-center justify-between gap-4 text-sm">
                     <span class="font-medium text-slate-600">{{ purposeLabel(item.key) }}</span>
-                    <span class="font-bold text-slate-900"
-                      >{{ item.count }}
-                      <small class="font-medium text-slate-400"
-                        >({{ item.percentage | number: '1.0-1' }}%)</small
-                      ></span
-                    >
+                    <span class="font-bold text-slate-900">{{ item.count }} <small class="font-medium text-slate-400">({{ item.percentage | number: '1.0-1' }}%)</small></span>
                   </div>
-                  <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      class="h-full rounded-full transition-all duration-700"
-                      [style.width.%]="item.percentage"
-                      [style.background-color]="chartColors[index % chartColors.length]"
-                    ></div>
-                  </div>
+                  <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full transition-all duration-700" [style.width.%]="item.percentage" [style.background-color]="chartColors[index % chartColors.length]"></div></div>
                 </div>
               }
-              @if (dashboard().bookingPurposeCounts.length === 0) {
-                <p class="py-12 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p>
-              }
+              @if (dashboard().bookingPurposeCounts.length === 0) { <p class="py-12 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
 
           <article class="card-surface p-5 sm:p-6">
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-lg font-bold text-slate-950">
-                  {{ 'dashboard.bookingDepartment' | t }}
-                </h2>
-                <p class="mt-1 text-xs text-slate-400">
-                  {{ 'dashboard.bookingDepartmentSub' | t }}
-                </p>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.bookingDepartment' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.bookingDepartmentSub' | t }}</p>
               </div>
             </div>
             <div class="mt-6 space-y-5">
-              @for (
-                item of dashboard().bookingDepartmentCounts.slice(0, 6);
-                track item.key;
-                let index = $index
-              ) {
+              @for (item of dashboard().bookingDepartmentCounts.slice(0, 6); track item.key; let index = $index) {
                 <div>
                   <div class="mb-2 flex items-center justify-between gap-4 text-sm">
-                    <span class="font-medium text-slate-600">{{
-                      departmentLabel(item.displayName || item.key)
-                    }}</span>
-                    <span class="font-bold text-slate-900"
-                      >{{ item.count }}
-                      <small class="font-medium text-slate-400"
-                        >({{ item.percentage | number: '1.0-1' }}%)</small
-                      ></span
-                    >
+                    <span class="font-medium text-slate-600">{{ departmentLabel(item.displayName || item.key) }}</span>
+                    <span class="font-bold text-slate-900">{{ item.count }} <small class="font-medium text-slate-400">({{ item.percentage | number: '1.0-1' }}%)</small></span>
                   </div>
-                  <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      class="h-full rounded-full transition-all duration-700"
-                      [style.width.%]="item.percentage"
-                      [style.background-color]="chartColors[index % chartColors.length]"
-                    ></div>
-                  </div>
+                  <div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full transition-all duration-700" [style.width.%]="item.percentage" [style.background-color]="chartColors[index % chartColors.length]"></div></div>
                 </div>
               }
 
-              @if (dashboard().bookingDepartmentCounts.length === 0) {
-                <p class="py-12 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p>
-              }
+              @if (dashboard().bookingDepartmentCounts.length === 0) { <p class="py-12 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
             </div>
           </article>
         </div>
 
-        <article class="card-surface overflow-hidden">
-          <div
-            class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6"
-          >
-            <div>
-              <h2 class="text-lg font-bold text-slate-950">
-                {{ 'dashboard.resourceEfficiency' | t }}
-              </h2>
-              <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.resourceEfficiencySub' | t }}</p>
+          <article class="card-surface overflow-hidden">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
+              <div>
+                <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.resourceEfficiency' | t }}</h2>
+                <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.resourceEfficiencySub' | t }}</p>
+              </div>
+              <select [ngModel]="resourceTab()" (ngModelChange)="resourceTab.set($event)" class="h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600">
+                <option value="labs">{{ 'nav.labs' | t }}</option>
+                <option value="equipments">{{ 'nav.equipment' | t }}</option>
+              </select>
             </div>
-            <select
-              [ngModel]="resourceTab()"
-              (ngModelChange)="resourceTab.set($event)"
-              class="h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-600"
-            >
-              <option value="labs">{{ 'nav.labs' | t }}</option>
-              <option value="equipments">{{ 'nav.equipment' | t }}</option>
-            </select>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full min-w-[660px] text-left">
-              <thead>
-                <tr
-                  class="border-b border-slate-100 bg-slate-50/70 text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase"
-                >
-                  <th class="px-6 py-4">{{ 'dashboard.resource' | t }}</th>
-                  <th class="px-4 py-4">Booking</th>
-                  <th class="px-4 py-4">{{ 'dashboard.actualHours' | t }}</th>
-                  <th class="px-4 py-4">{{ 'dashboard.availableHours' | t }}</th>
-                  <th class="px-6 py-4">{{ 'dashboard.utilizationRate' | t }}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                @for (resource of selectedResources().slice(0, 7); track resource.resourceId) {
-                  <tr class="transition hover:bg-slate-50/80">
-                    <td class="px-6 py-4">
-                      <div class="flex items-center gap-3">
-                        <span
-                          class="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600"
-                          ><app-icon
-                            [name]="resourceTab() === 'labs' ? 'flask' : 'microscope'"
-                            [size]="18"
-                        /></span>
-                        <div>
-                          <p class="text-sm font-semibold text-slate-800">
-                            {{ resource.resourceName }}
-                          </p>
-                          <p class="mt-0.5 text-[11px] text-slate-400">
-                            {{ resource.labName || resource.resourceType }}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-4 py-4 text-sm font-semibold text-slate-700">
-                      {{ resource.bookingCount }}
-                    </td>
-                    <td class="px-4 py-4 text-sm text-slate-500">
-                      {{ resource.actualUsageHours | number: '1.0-1' }}h
-                    </td>
-                    <td class="px-4 py-4 text-sm text-slate-500">
-                      {{ resource.availableHours | number: '1.0-1' }}h
-                    </td>
-                    <td class="px-6 py-4">
-                      <div class="flex items-center gap-3">
-                        <div class="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            class="h-full rounded-full"
-                            [class.bg-emerald-500]="resource.utilizationRate >= 70"
-                            [class.bg-cyan-500]="
-                              resource.utilizationRate >= 40 && resource.utilizationRate < 70
-                            "
-                            [class.bg-amber-500]="resource.utilizationRate < 40"
-                            [style.width.%]="clamp(resource.utilizationRate)"
-                          ></div>
-                        </div>
-                        <span class="w-12 text-right text-xs font-bold text-slate-700"
-                          >{{ resource.utilizationRate | number: '1.0-1' }}%</span
-                        >
-                      </div>
-                    </td>
-                  </tr>
-                }
-                @if (selectedResources().length === 0) {
-                  <tr>
-                    <td colspan="5" class="px-6 py-14 text-center text-sm text-slate-400">
-                      {{ 'common.noData' | t }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </article>
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[660px] text-left">
+                <thead><tr class="border-b border-slate-100 bg-slate-50/70 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400"><th class="px-6 py-4">{{ 'dashboard.resource' | t }}</th><th class="px-4 py-4">Booking</th><th class="px-4 py-4">{{ 'dashboard.actualHours' | t }}</th><th class="px-4 py-4">{{ 'dashboard.availableHours' | t }}</th><th class="px-6 py-4">{{ 'dashboard.utilizationRate' | t }}</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                  @for (resource of selectedResources().slice(0, 7); track resource.resourceId) {
+                    <tr class="transition hover:bg-slate-50/80">
+                      <td class="px-6 py-4"><div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600"><app-icon [name]="resourceTab() === 'labs' ? 'flask' : 'microscope'" [size]="18" /></span><div><p class="text-sm font-semibold text-slate-800">{{ resource.resourceName }}</p><p class="mt-0.5 text-[11px] text-slate-400">{{ resource.labName || resource.resourceType }}</p></div></div></td>
+                      <td class="px-4 py-4 text-sm font-semibold text-slate-700">{{ resource.bookingCount }}</td>
+                      <td class="px-4 py-4 text-sm text-slate-500">{{ resource.actualUsageHours | number: '1.0-1' }}h</td>
+                      <td class="px-4 py-4 text-sm text-slate-500">{{ resource.availableHours | number: '1.0-1' }}h</td>
+                      <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="h-2 w-24 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full" [class.bg-emerald-500]="resource.utilizationRate >= 70" [class.bg-cyan-500]="resource.utilizationRate >= 40 && resource.utilizationRate < 70" [class.bg-amber-500]="resource.utilizationRate < 40" [style.width.%]="clamp(resource.utilizationRate)"></div></div><span class="w-12 text-right text-xs font-bold text-slate-700">{{ resource.utilizationRate | number: '1.0-1' }}%</span></div></td>
+                    </tr>
+                  }
+                  @if (selectedResources().length === 0) { <tr><td colspan="5" class="px-6 py-14 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</td></tr> }
+                </tbody>
+              </table>
+            </div>
+          </article>
 
-        <article class="card-surface overflow-hidden">
-          <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
-            <h2 class="text-lg font-bold text-slate-950">
-              {{ 'dashboard.topPenalizedUsers' | t }}
-            </h2>
-            <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.topPenalizedSub' | t }}</p>
-          </div>
-          <div class="divide-y divide-slate-100">
-            @for (
-              user of dashboard().usersWithMostPenaltyPoints.slice(0, 6);
-              track user.userId;
-              let index = $index
-            ) {
-              <div class="flex items-center gap-4 px-5 py-4 sm:px-6">
-                <span
-                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-bold"
-                  [class.bg-rose-50]="index < 3"
-                  [class.text-rose-700]="index < 3"
-                  [class.bg-slate-100]="index >= 3"
-                  [class.text-slate-500]="index >= 3"
-                  >{{ index + 1 }}</span
-                >
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-semibold text-slate-800">{{ user.fullName }}</p>
-                  <p class="mt-0.5 truncate text-[11px] text-slate-400">
-                    {{ user.departmentName }} • {{ user.activeViolationCount }}
-                    {{ 'dashboard.activeViolations' | t }}
-                  </p>
+          <article class="card-surface overflow-hidden">
+            <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
+              <h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.topPenalizedUsers' | t }}</h2>
+              <p class="mt-1 text-xs text-slate-400">{{ 'dashboard.topPenalizedSub' | t }}</p>
+            </div>
+            <div class="divide-y divide-slate-100">
+              @for (user of dashboard().usersWithMostPenaltyPoints.slice(0, 6); track user.userId; let index = $index) {
+                <div class="flex items-center gap-4 px-5 py-4 sm:px-6">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-bold" [class.bg-rose-50]="index < 3" [class.text-rose-700]="index < 3" [class.bg-slate-100]="index >= 3" [class.text-slate-500]="index >= 3">{{ index + 1 }}</span>
+                  <div class="min-w-0 flex-1"><p class="truncate text-sm font-semibold text-slate-800">{{ user.fullName }}</p><p class="mt-0.5 truncate text-[11px] text-slate-400">{{ user.departmentName }} • {{ user.activeViolationCount }} {{ 'dashboard.activeViolations' | t }}</p></div>
+                  <div class="text-right"><p class="text-base font-bold text-rose-600">{{ user.penaltyPoints }}</p><p class="text-[10px] text-slate-400">{{ 'dashboard.points' | t }}</p></div>
                 </div>
-                <div class="text-right">
-                  <p class="text-base font-bold text-rose-600">{{ user.penaltyPoints }}</p>
-                  <p class="text-[10px] text-slate-400">{{ 'dashboard.points' | t }}</p>
-                </div>
-              </div>
-            }
-            @if (dashboard().usersWithMostPenaltyPoints.length === 0) {
-              <div class="px-6 py-14 text-center text-sm text-slate-400">
-                {{ 'dashboard.noPenalizedUsers' | t }}
-              </div>
-            }
-          </div>
-        </article>
+              }
+              @if (dashboard().usersWithMostPenaltyPoints.length === 0) { <div class="px-6 py-14 text-center text-sm text-slate-400">{{ 'dashboard.noPenalizedUsers' | t }}</div> }
+            </div>
+          </article>
 
         @if (!store.isAdmin()) {
           <div class="grid gap-6 xl:grid-cols-2">
             <article class="card-surface p-5 sm:p-6">
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"
-                >
-                  <app-icon name="flask" [size]="21" />
-                </div>
-                <div>
-                  <h2 class="text-lg font-bold text-slate-950">
-                    {{ 'dashboard.mostUsedLabs' | t }}
-                  </h2>
-                  <p class="text-xs text-slate-400">{{ 'dashboard.mostUsedLabsSub' | t }}</p>
-                </div>
-              </div>
+              <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><app-icon name="flask" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.mostUsedLabs' | t }}</h2><p class="text-xs text-slate-400">{{ 'dashboard.mostUsedLabsSub' | t }}</p></div></div>
               <div class="mt-6 grid gap-3 sm:grid-cols-3">
-                @for (
-                  lab of dashboard().mostUsedLabRooms.slice(0, 3);
-                  track lab.resourceId;
-                  let index = $index
-                ) {
-                  <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <div class="flex items-center justify-between">
-                      <span class="text-xs font-bold text-indigo-600">TOP {{ index + 1 }}</span
-                      ><span class="text-xs text-slate-400"
-                        >{{ lab.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span
-                      >
-                    </div>
-                    <p class="mt-4 truncate font-semibold text-slate-800">{{ lab.resourceName }}</p>
-                    <p class="mt-1 text-sm font-bold text-slate-950">
-                      {{ lab.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}
-                    </p>
-                  </div>
+                @for (lab of dashboard().mostUsedLabRooms.slice(0, 3); track lab.resourceId; let index = $index) {
+                  <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-indigo-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ lab.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ lab.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ lab.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
                 }
-                @if (dashboard().mostUsedLabRooms.length === 0) {
-                  <p class="col-span-3 py-8 text-center text-sm text-slate-400">
-                    {{ 'common.noData' | t }}
-                  </p>
-                }
+                @if (dashboard().mostUsedLabRooms.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
               </div>
             </article>
 
             <article class="card-surface p-5 sm:p-6">
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"
-                >
-                  <app-icon name="microscope" [size]="21" />
-                </div>
-                <div>
-                  <h2 class="text-lg font-bold text-slate-950">
-                    {{ 'dashboard.mostUsedEquipments' | t }}
-                  </h2>
-                  <p class="text-xs text-slate-400">{{ 'dashboard.mostUsedEquipmentsSub' | t }}</p>
-                </div>
-              </div>
+              <div class="flex items-center gap-3"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="microscope" [size]="21" /></div><div><h2 class="text-lg font-bold text-slate-950">{{ 'dashboard.mostUsedEquipments' | t }}</h2><p class="text-xs text-slate-400">{{ 'dashboard.mostUsedEquipmentsSub' | t }}</p></div></div>
               <div class="mt-6 grid gap-3 sm:grid-cols-3">
-                @for (
-                  equipment of dashboard().mostUsedEquipments.slice(0, 3);
-                  track equipment.resourceId;
-                  let index = $index
-                ) {
-                  <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <div class="flex items-center justify-between">
-                      <span class="text-xs font-bold text-cyan-600">TOP {{ index + 1 }}</span
-                      ><span class="text-xs text-slate-400"
-                        >{{ equipment.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span
-                      >
-                    </div>
-                    <p class="mt-4 truncate font-semibold text-slate-800">
-                      {{ equipment.resourceName }}
-                    </p>
-                    <p class="mt-1 text-sm font-bold text-slate-950">
-                      {{ equipment.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}
-                    </p>
-                  </div>
+                @for (equipment of dashboard().mostUsedEquipments.slice(0, 3); track equipment.resourceId; let index = $index) {
+                  <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold text-cyan-600">TOP {{ index + 1 }}</span><span class="text-xs text-slate-400">{{ equipment.usageCount }} {{ 'dashboard.totalUsageLogs' | t }}</span></div><p class="mt-4 truncate font-semibold text-slate-800">{{ equipment.resourceName }}</p><p class="mt-1 text-sm font-bold text-slate-950">{{ equipment.actualUsageHours | number: '1.0-1' }} {{ 'dashboard.hours' | t }}</p></div>
                 }
-                @if (dashboard().mostUsedEquipments.length === 0) {
-                  <p class="col-span-3 py-8 text-center text-sm text-slate-400">
-                    {{ 'common.noData' | t }}
-                  </p>
-                }
+                @if (dashboard().mostUsedEquipments.length === 0) { <p class="col-span-3 py-8 text-center text-sm text-slate-400">{{ 'common.noData' | t }}</p> }
               </div>
             </article>
           </div>
@@ -727,20 +353,46 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 })
 export class DashboardPage implements OnInit {
   private readonly workspace = inject(WorkspaceService)
+  private readonly systemApi = inject(SystemService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
   protected readonly dashboard = signal<DashboardResponse>(EMPTY_DASHBOARD)
+  protected readonly customPolicy = signal<PolicyResponse | null>(null)
   protected readonly loading = signal(true)
+
+  protected readonly activePolicyRules = computed<Array<{ title: string; desc: string }>>(() => {
+    const lang = this.languageStore.lang()
+    const custom = this.customPolicy()
+    let rawRules: string[] = []
+
+    if (custom && custom.generalRules && custom.generalRules.length > 0) {
+      const isViSeed = custom.generalRules[0]?.startsWith('Xác thực qua') || !custom.categories || custom.categories.length === 0
+      const isEnSeed = custom.generalRules[0]?.startsWith('2-Step Verification')
+      if (lang === 'en' && (isViSeed || isEnSeed)) rawRules = SEED_POLICY_EN.generalRules
+      else if (lang === 'vi' && (isViSeed || isEnSeed)) rawRules = SEED_POLICY_VI.generalRules
+      else rawRules = custom.generalRules
+    } else {
+      rawRules = (lang === 'en' ? SEED_POLICY_EN : SEED_POLICY_VI).generalRules
+    }
+
+    return rawRules.map((ruleStr, index) => {
+      const colonIdx = ruleStr.indexOf(':')
+      if (colonIdx !== -1) {
+        return {
+          title: `${index + 1}. ${ruleStr.substring(0, colonIdx).trim()}`,
+          desc: ruleStr.substring(colonIdx + 1).trim(),
+        }
+      }
+      return {
+        title: `${index + 1}. ${this.languageStore.t('policy.generalRules')}`,
+        desc: ruleStr.trim(),
+      }
+    })
+  })
+
   protected readonly activePreset = signal(30)
-  protected readonly chartColors = [
-    '#6366f1',
-    '#06b6d4',
-    '#8b5cf6',
-    '#f59e0b',
-    '#10b981',
-    '#f43f5e',
-  ]
+  protected readonly chartColors = ['#6366f1', '#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e']
   protected readonly presets = [
     { labelKey: 'dashboard.preset7', days: 7 },
     { labelKey: 'dashboard.preset30', days: 30 },
@@ -755,48 +407,16 @@ export class DashboardPage implements OnInit {
     this.languageStore.lang()
     const data = this.dashboard()
     return [
-      {
-        label: this.languageStore.t('dashboard.totalBookings'),
-        value: this.integer(data.totalBookings),
-        icon: 'calendar',
-        tone: 'indigo',
-      },
-      {
-        label: this.languageStore.t('dashboard.totalUsageLogs'),
-        value: this.integer(data.totalUsageLogs),
-        icon: 'activity',
-        tone: 'cyan',
-      },
-      {
-        label: this.languageStore.t('dashboard.totalViolations'),
-        value: this.integer(data.totalViolations),
-        icon: 'alert',
-        tone: 'rose',
-      },
-      {
-        label: this.languageStore.t('dashboard.maintenanceCost'),
-        value: this.moneyCompact(data.totalMaintenanceCost),
-        icon: 'wrench',
-        tone: 'violet',
-      },
-      {
-        label: this.languageStore.t('dashboard.noShowCount'),
-        value: this.integer(data.noShow.noShowCount),
-        icon: 'user',
-        tone: 'amber',
-      },
-      {
-        label: this.languageStore.t('dashboard.noShowRate'),
-        value: `${data.noShow.noShowRate.toFixed(1)}%`,
-        icon: 'chart',
-        tone: 'emerald',
-      },
+      { label: this.languageStore.t('dashboard.totalBookings'), value: this.integer(data.totalBookings), icon: 'calendar', tone: 'indigo' },
+      { label: this.languageStore.t('dashboard.totalUsageLogs'), value: this.integer(data.totalUsageLogs), icon: 'activity', tone: 'cyan' },
+      { label: this.languageStore.t('dashboard.totalViolations'), value: this.integer(data.totalViolations), icon: 'alert', tone: 'rose' },
+      { label: this.languageStore.t('dashboard.maintenanceCost'), value: this.moneyCompact(data.totalMaintenanceCost), icon: 'wrench', tone: 'violet' },
+      { label: this.languageStore.t('dashboard.noShowCount'), value: this.integer(data.noShow.noShowCount), icon: 'user', tone: 'amber' },
+      { label: this.languageStore.t('dashboard.noShowRate'), value: `${data.noShow.noShowRate.toFixed(1)}%`, icon: 'chart', tone: 'emerald' },
     ]
   })
   protected readonly selectedResources = computed<ResourceUtilizationResponse[]>(() =>
-    this.resourceTab() === 'labs'
-      ? this.dashboard().labUtilization
-      : this.dashboard().equipmentUtilization,
+    this.resourceTab() === 'labs' ? this.dashboard().labUtilization : this.dashboard().equipmentUtilization,
   )
   protected readonly totalUsageHours = computed(() =>
     this.dashboard().usageTrend.reduce((sum, item) => sum + item.totalUsageHours, 0),
@@ -811,9 +431,7 @@ export class DashboardPage implements OnInit {
     }))
   })
   protected readonly usageTrendPoints = computed(() =>
-    this.usagePointObjects()
-      .map((point) => `${point.x},${point.y}`)
-      .join(' '),
+    this.usagePointObjects().map((point) => `${point.x},${point.y}`).join(' '),
   )
   protected readonly usageAreaPoints = computed(() => {
     const points = this.usagePointObjects()
@@ -823,20 +441,16 @@ export class DashboardPage implements OnInit {
   protected readonly trendLabels = computed(() => {
     const trend = this.dashboard().usageTrend
     if (trend.length <= 5) return trend.map((item) => this.shortDate(item.periodStart))
-    const indices = [
-      0,
-      Math.floor((trend.length - 1) * 0.25),
-      Math.floor((trend.length - 1) * 0.5),
-      Math.floor((trend.length - 1) * 0.75),
-      trend.length - 1,
-    ]
+    const indices = [0, Math.floor((trend.length - 1) * 0.25), Math.floor((trend.length - 1) * 0.5), Math.floor((trend.length - 1) * 0.75), trend.length - 1]
     return indices.map((index) => this.shortDate(trend[index]?.periodStart ?? ''))
   })
-  protected readonly statusDonut = computed(() =>
-    this.buildDonut(this.dashboard().bookingStatusCounts),
-  )
+  protected readonly statusDonut = computed(() => this.buildDonut(this.dashboard().bookingStatusCounts))
 
   ngOnInit(): void {
+    this.systemApi.getPolicy().subscribe({
+      next: (res) => this.customPolicy.set(res),
+      error: () => {},
+    })
     this.applyPreset(30)
   }
 
@@ -871,8 +485,7 @@ export class DashboardPage implements OnInit {
       error: (error: unknown) => {
         this.loading.set(false)
         this.dashboard.set(EMPTY_DASHBOARD)
-        const message =
-          error instanceof ApiError ? error.message : 'Không thể tải dữ liệu dashboard.'
+        const message = error instanceof ApiError ? error.message : 'Không thể tải dữ liệu dashboard.'
         this.toast.error('Tải dashboard thất bại', message)
       },
     })
@@ -890,13 +503,14 @@ export class DashboardPage implements OnInit {
     return labelOf('department', value, this.languageStore.lang())
   }
 
+
+
   protected clamp(value: number): number {
     return Math.max(0, Math.min(100, value))
   }
 
   private buildDonut(items: CategoryCountResponse[]): string {
-    if (items.length === 0 || items.every((item) => item.percentage <= 0))
-      return 'conic-gradient(#e2e8f0 0 100%)'
+    if (items.length === 0 || items.every((item) => item.percentage <= 0)) return 'conic-gradient(#e2e8f0 0 100%)'
     let cursor = 0
     const slices = items.slice(0, this.chartColors.length).map((item, index) => {
       const start = cursor
@@ -916,9 +530,7 @@ export class DashboardPage implements OnInit {
 
   private shortDate(value: string): string {
     if (!value) return ''
-    return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit' }).format(
-      new Date(value),
-    )
+    return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit' }).format(new Date(value))
   }
 
   private integer(value: number): string {

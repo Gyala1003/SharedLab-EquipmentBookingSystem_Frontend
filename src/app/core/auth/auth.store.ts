@@ -15,70 +15,101 @@ export class AuthStore {
   private readonly _user = signal<AuthUser | null>(this.restore())
   private readonly _status = signal<'idle' | 'loading' | 'error'>('idle')
   private readonly _error = signal<string | null>(null)
+  private readonly _logoutStatus = signal<'idle' | 'loading'>('idle')
 
   readonly user = this._user.asReadonly()
   readonly status = this._status.asReadonly()
   readonly error = this._error.asReadonly()
   readonly isAuthenticated = computed(() => Boolean(this._user() && this.tokens.access))
-  readonly role = computed(() => this._user()?.roleName ?? '')
-  readonly isRequester = computed(() => this.role() === 'Requester')
-  readonly isManager = computed(() => this.role() === 'LabManager')
-  readonly isAdmin = computed(() => this.role() === 'Admin')
+  readonly role = computed(() => this._user()?.roleName?.trim() ?? '')
+  readonly roles = computed(() =>
+    this._user()?.roleName ? [this._user()!.roleName as UserRole] : [],
+  )
+  readonly isRequester = computed(() => {
+    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
+    return r === 'requester' || r === 'student'
+  })
+  readonly isManager = computed(() => {
+    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
+    return r === 'labmanager' || r === 'manager'
+  })
+  readonly isAdmin = computed(() => {
+    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
+    return r === 'admin' || r === 'administrator'
+  })
+  readonly logoutStatus = this._logoutStatus.asReadonly()
 
+  /** Trả về AuthUser để trang Login điều hướng theo role ngay sau khi đăng nhập. */
   async login(payload: LoginPayload, remember = true): Promise<AuthUser> {
     this._status.set('loading')
     this._error.set(null)
-
     try {
-      const tokens = await firstValueFrom(this.auth.login(payload))
-      this.tokens.set(tokens.accessToken, tokens.refreshToken, remember)
-      const user = await firstValueFrom(this.auth.me())
-      this.setUser(user, remember)
+      const res = await firstValueFrom(this.auth.login(payload))
+      this.tokens.set(res.accessToken, res.refreshToken, remember)
+      this.setUser(res.user, remember)
+      this._error.set(null) // Reset lỗi về null khi thành công
       this._status.set('idle')
-      return user
-    } catch (error) {
-      this.tokens.clear()
+      return res.user
+    } catch (e) {
       this._status.set('error')
-      this._error.set(this.resolveMessage(error))
-      throw error
+      this._error.set(this.resolveMessage(e))
+      throw e
     }
   }
 
   async hydrate(): Promise<void> {
-    if (!this.tokens.access) return
+    if (!this.tokens.access && !this.tokens.refresh) {
+      this.clear()
+      return
+    }
     try {
       const user = await firstValueFrom(this.auth.me())
-      this.setUser(user)
+      this.setUser(user, this.tokens.isPersistent)
     } catch {
-      this.clearLocalSession()
+      this.clear()
     }
   }
 
   async logout(): Promise<void> {
     const refreshToken = this.tokens.refresh
-    this.clearLocalSession()
-    if (!refreshToken) return
+    this._logoutStatus.set('loading')
     try {
-      await firstValueFrom(this.auth.logout(refreshToken))
-    } catch {
-      // Local logout is still complete when the API is unavailable.
+      if (refreshToken) {
+        await firstValueFrom(this.auth.logout(refreshToken))
+      }
+    } finally {
+      this.clear()
+      this._logoutStatus.set('idle')
     }
   }
 
   hasRole(roles: readonly UserRole[]): boolean {
-    return roles.includes(this.role() as UserRole)
+    const rawRole = this.role().trim().toLowerCase().replace(/[\s_]+/g, '')
+    if (!rawRole) return false
+    return roles.some((r) => {
+      const target = r.trim().toLowerCase().replace(/[\s_]+/g, '')
+      if (target === rawRole) return true
+      if (target === 'admin' && (rawRole === 'admin' || rawRole === 'administrator' || rawRole.includes('quantri'))) return true
+      if (target === 'labmanager' && (rawRole === 'labmanager' || rawRole === 'manager' || rawRole.includes('quanly'))) return true
+      if (target === 'requester' && (rawRole === 'requester' || rawRole === 'student' || rawRole.includes('sinhvien') || rawRole.includes('nguoidung'))) return true
+      return false
+    })
   }
 
-  clearLocalSession(): void {
+  clear(): void {
     this.tokens.clear()
-    localStorage.removeItem(USER_KEY)
-    sessionStorage.removeItem(USER_KEY)
+    this.clearStorage()
     this._user.set(null)
     this._status.set('idle')
     this._error.set(null)
   }
 
-  private setUser(user: AuthUser, persistent = this.tokens.isPersistent): void {
+  private clearStorage(): void {
+    localStorage.removeItem(USER_KEY)
+    sessionStorage.removeItem(USER_KEY)
+  }
+
+  private setUser(user: AuthUser, persistent: boolean): void {
     this._user.set(user)
     const target = persistent ? localStorage : sessionStorage
     const other = persistent ? sessionStorage : localStorage
@@ -87,13 +118,16 @@ export class AuthStore {
   }
 
   private restore(): AuthUser | null {
+    if (!this.tokens?.access && !this.tokens?.refresh) {
+      this.clearStorage()
+      return null
+    }
     const raw = localStorage.getItem(USER_KEY) ?? sessionStorage.getItem(USER_KEY)
-    if (!raw) return null
+    if (!raw || raw === 'undefined' || raw === 'null') return null
     try {
       return JSON.parse(raw) as AuthUser
     } catch {
-      localStorage.removeItem(USER_KEY)
-      sessionStorage.removeItem(USER_KEY)
+      this.clearStorage()
       return null
     }
   }

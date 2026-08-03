@@ -16,23 +16,25 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password)$/i.test(
-        req.url,
-      )
+      const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password)$/i.test(req.url)
       const refreshToken = tokens.refresh
 
       if (error.status === 401 && refreshToken && !isAuthEndpoint) {
-        return http.post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, { refreshToken }).pipe(
-          switchMap((fresh) => {
-            tokens.set(fresh.accessToken, fresh.refreshToken)
-            return next(req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }))
-          }),
-          catchError((refreshError: HttpErrorResponse) => {
-            clearSession(tokens)
-            void router.navigate(['/login'])
-            return throwError(() => normalize(refreshError))
-          }),
-        )
+        return http
+          .post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, { refreshToken })
+          .pipe(
+            switchMap((fresh) => {
+              tokens.set(fresh.accessToken, fresh.refreshToken)
+              return next(
+                req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
+              )
+            }),
+            catchError((refreshError: HttpErrorResponse) => {
+              clearSession(tokens)
+              void router.navigate(['/login'])
+              return throwError(() => normalize(refreshError))
+            }),
+          )
       }
 
       if (error.status === 401 && !isAuthEndpoint) {
@@ -60,7 +62,7 @@ function normalize(error: HttpErrorResponse): ApiError {
   const message =
     typeof body === 'string'
       ? body
-      : (body?.message ?? body?.title ?? error.message ?? 'Đã xảy ra lỗi kết nối.')
+      : body?.message ?? body?.title ?? error.message ?? 'Đã xảy ra lỗi kết nối.'
   return new ApiError(
     error.status,
     message,

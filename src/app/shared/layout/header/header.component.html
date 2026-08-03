@@ -1,180 +1,209 @@
 <header
-  class="fixed top-0 right-0 left-0 z-50 border-b transition-all duration-300"
-  [class.bg-white]="isScrolled()"
-  [class.shadow-sm]="isScrolled()"
-  [class.border-gray-200]="isScrolled()"
-  [class.bg-white/80]="!isScrolled()"
-  [class.border-transparent]="!isScrolled()"
+  class="sticky top-0 z-30 transition-all duration-300 backdrop-blur-md"
+  [class]="
+    isScrolled()
+      ? 'bg-white/90 border-b border-slate-200/80 shadow-sm'
+      : 'bg-white/85 border-b border-blue-100/80 shadow-sm shadow-blue-950/[0.02]'
+  "
 >
-  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-    <a routerLink="/" fragment="hero" class="flex items-center gap-2" (click)="closeMobileMenu()">
-      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
-        <svg
-          class="h-5 w-5 text-white"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M9 3H15M12 3V8M12 8L6.5 17.5C5.8 18.7 6.6 20 8 20H16C17.4 20 18.2 18.7 17.5 17.5L12 8Z"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path d="M7.5 15H16.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </svg>
-      </span>
-      <span class="text-lg font-bold tracking-tight text-gray-900">LabBooking</span>
-    </a>
-
-    <nav class="hidden lg:flex lg:items-center lg:gap-8">
-      @for (item of navItems; track item.fragment) {
-        <a
-          routerLink="/"
-          [fragment]="item.fragment"
-          routerLinkActive="text-blue-600"
-          class="text-sm font-medium text-gray-600 transition-colors hover:text-blue-600"
-        >
-          {{ item.label | translate }}
-        </a>
-      }
-    </nav>
-
-    <div class="hidden lg:flex lg:items-center lg:gap-3">
-      <!-- Nút chọn ngôn ngữ -->
-      <div class="relative">
+  <div class="mx-auto flex h-20 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
+    <!-- LEFT: Logo (Chưa đăng nhập) HOẶC Sidebar Toggle + Workspace Info (Đã đăng nhập) -->
+    <div class="flex items-center gap-3 min-w-0 flex-1">
+      @if (store.isAuthenticated()) {
+        <!-- ĐÃ ĐĂNG NHẬP: Hiện nút Sidebar Toggle và thông tin Workspace (Ẩn Logo) -->
         <button
           type="button"
-          class="flex items-center gap-1.5 rounded-md border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:border-gray-300 hover:text-gray-900"
-          (click)="toggleLangMenu()"
+          class="rounded-xl border border-blue-100 p-2.5 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 lg:hidden"
+          (click)="onToggleSidebar()"
         >
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
-            <path
-              d="M3 12H21M12 3C14.5 5.7 15.8 9 15.8 12C15.8 15 14.5 18.3 12 21C9.5 18.3 8.2 15 8.2 12C8.2 9 9.5 5.7 12 3Z"
-              stroke="currentColor"
-              stroke-width="1.6"
-            />
-          </svg>
-          {{ currentLanguageLabel() }}
-          <svg
-            class="h-3.5 w-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M6 9L12 15L18 9"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+          <app-icon name="menu" [size]="20" />
         </button>
 
-        @if (isLangMenuOpen()) {
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] font-black tracking-[0.2em] text-blue-700 uppercase">
+            {{ 'header.workspace' | t }}
+          </p>
+          <p class="mt-1 truncate text-sm font-bold text-slate-600">
+            {{ 'header.subtitle' | t }}
+          </p>
+        </div>
+      } @else {
+        <!-- CHƯA ĐĂNG NHẬP (Trang Home): Hiện Logo & Tên App (Ẩn nút Toggle) -->
+        <a routerLink="/" class="flex items-center gap-3">
           <div
-            class="absolute right-0 mt-2 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white shadow-lg shadow-blue-600/30"
           >
-            @for (lang of languages; track lang.code) {
-              <button
-                type="button"
-                class="flex w-full items-center px-4 py-2 text-sm hover:bg-gray-50"
-                [class.text-blue-600]="lang.code === currentLang()"
-                [class.font-semibold]="lang.code === currentLang()"
-                [class.text-gray-700]="lang.code !== currentLang()"
-                (click)="changeLanguage(lang.code)"
-              >
-                {{ lang.label }}
-              </button>
-            }
+            <app-icon name="flask" [size]="24" />
           </div>
-        }
-      </div>
-
-      <!-- Chỉ giữ lại 1 nút Đăng nhập duy nhất dạng Button nổi bật -->
-      <a
-        routerLink="/auth/login"
-        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
-      >
-        {{ 'header.login' | translate }}
-      </a>
+          <div class="min-w-0">
+            <p class="text-[10px] font-black tracking-[0.24em] text-blue-700 uppercase">
+              {{ 'app.name' | t }}
+            </p>
+            <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
+          </div>
+        </a>
+      }
     </div>
 
-    <!-- Toggle Mobile Menu -->
-    <button
-      type="button"
-      class="flex h-10 w-10 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 lg:hidden"
-      (click)="toggleMobileMenu()"
-    >
-      @if (!isMobileMenuOpen()) {
-        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M4 6H20M4 12H20M4 18H20"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-        </svg>
-      } @else {
-        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M6 6L18 18M6 18L18 6"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-          />
-        </svg>
-      }
-    </button>
-  </div>
+    <!-- RIGHT: Language Switcher, Actions & Profile Menu -->
+    <div class="flex items-center gap-3 shrink-0">
+      <!-- Language Switcher -->
+      <div
+        class="hidden items-center gap-1 rounded-full border border-blue-100 bg-blue-50/50 p-1 sm:flex"
+      >
+        <button
+          type="button"
+          class="rounded-full px-2.5 py-1 text-xs font-black transition"
+          [ngClass]="
+            currentLang() === 'vi'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+              : 'text-slate-500 hover:text-blue-700'
+          "
+          (click)="changeLanguage('vi')"
+        >
+          🇻🇳 VN
+        </button>
+        <button
+          type="button"
+          class="rounded-full px-2.5 py-1 text-xs font-black transition"
+          [ngClass]="
+            currentLang() === 'en'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+              : 'text-slate-500 hover:text-blue-700'
+          "
+          (click)="changeLanguage('en')"
+        >
+          🇬🇧 EN
+        </button>
+      </div>
 
-  <!-- Mobile Menu Dropdown -->
-  @if (isMobileMenuOpen()) {
-    <div class="border-t border-gray-200 bg-white px-4 pt-4 pb-6 lg:hidden">
-      <nav class="flex flex-col gap-1">
-        @for (item of navItems; track item.fragment) {
-          <a
-            routerLink="/"
-            [fragment]="item.fragment"
-            class="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            (click)="closeMobileMenu()"
+      <!-- Actions theo trạng thái Đăng nhập -->
+      @if (store.isAuthenticated()) {
+        <a
+          routerLink="/app/calendar"
+          class="hidden h-11 items-center gap-2 rounded-2xl border border-blue-100 bg-white px-4 text-xs font-black text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50/40 hover:text-blue-700 sm:flex"
+        >
+          <app-icon name="calendar" [size]="18" />
+          <span>{{ 'header.viewCalendar' | t }}</span>
+        </a>
+
+        <a
+          routerLink="/app/notifications"
+          class="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-100 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-blue-700 hover:shadow-md"
+          aria-label="{{ 'header.notifications' | t }}"
+        >
+          <app-icon name="bell" [size]="20" />
+          @if (badge.count() > 0) {
+            <span
+              class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500"
+            ></span>
+          }
+        </a>
+
+        <!-- User Profile Dropdown -->
+        <div class="relative hidden md:block">
+          <button
+            type="button"
+            class="flex items-center gap-2.5 rounded-2xl border border-blue-100 bg-white p-1.5 pr-3 shadow-sm transition hover:border-blue-300 hover:shadow-md"
+            (click)="toggleUserMenu()"
           >
-            {{ item.label | translate }}
-          </a>
-        }
-      </nav>
+            @if (store.user(); as user) {
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-xs font-black text-white shadow-sm"
+              >
+                {{ initials(user.fullName) }}
+              </div>
+              <span class="text-xs font-black text-slate-800">{{ user.fullName }}</span>
+              <app-icon
+                name="chevron-down"
+                [size]="16"
+                class="text-slate-400 transition-transform duration-200"
+                [ngClass]="userMenuOpen() ? 'rotate-180' : ''"
+              />
+            }
+          </button>
 
-      <div class="mt-4 flex flex-col gap-2 border-t border-gray-200 pt-4">
-        <div class="flex items-center gap-2">
-          @for (lang of languages; track lang.code) {
-            <button
-              type="button"
-              class="rounded-md border px-3 py-1.5 text-sm font-medium"
-              [class.border-blue-600]="lang.code === currentLang()"
-              [class.text-blue-600]="lang.code === currentLang()"
-              [class.border-gray-200]="lang.code !== currentLang()"
-              [class.text-gray-600]="lang.code !== currentLang()"
-              (click)="changeLanguage(lang.code)"
+          @if (userMenuOpen()) {
+            <div class="fixed inset-0 z-30" (click)="userMenuOpen.set(false)"></div>
+
+            <div
+              class="absolute right-0 top-full z-40 mt-2 w-64 rounded-3xl border border-slate-100 bg-white p-4 shadow-2xl shadow-slate-900/15 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
             >
-              {{ lang.label }}
-            </button>
+              @if (store.user(); as user) {
+                <div class="px-2 pb-3">
+                  <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
+                  <p class="truncate text-xs font-medium text-slate-400 mt-0.5">{{ user.email }}</p>
+                </div>
+
+                <div class="my-1 border-t border-slate-100"></div>
+
+                <nav class="space-y-1 py-1">
+                  <a
+                    routerLink="/app/profile"
+                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                    (click)="userMenuOpen.set(false)"
+                  >
+                    <app-icon name="user" [size]="17" class="text-slate-400" />
+                    <span>{{ 'header.profile' | t }}</span>
+                  </a>
+
+                  <a
+                    routerLink="/app/bookings/my"
+                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                    (click)="userMenuOpen.set(false)"
+                  >
+                    <app-icon name="calendar" [size]="17" class="text-slate-400" />
+                    <span>{{ 'nav.items.myBookings' | t }}</span>
+                  </a>
+
+                  <a
+                    routerLink="/app/notifications"
+                    class="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                    (click)="userMenuOpen.set(false)"
+                  >
+                    <div class="flex items-center gap-3">
+                      <app-icon name="bell" [size]="17" class="text-slate-400" />
+                      <span>{{ 'header.notifications' | t }}</span>
+                    </div>
+                    @if (badge.count() > 0) {
+                      <span
+                        class="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-black text-white"
+                      >
+                        {{ badge.count() > 99 ? '99+' : badge.count() }}
+                      </span>
+                    }
+                  </a>
+
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                    (click)="onSupportClick()"
+                  >
+                    <app-icon name="help-circle" [size]="17" class="text-slate-400" />
+                    <span>{{ 'header.support' | t }}</span>
+                  </button>
+                </nav>
+
+                <div class="my-1 border-t border-slate-100"></div>
+
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-extrabold text-rose-600 transition hover:bg-rose-50"
+                  (click)="logout()"
+                >
+                  <app-icon name="logout" [size]="17" class="text-rose-500" />
+                  <span>{{ 'sidebar.logout' | t }}</span>
+                </button>
+              }
+            </div>
           }
         </div>
-
-        <!-- Chỉ giữ lại 1 nút Đăng nhập trên mobile -->
-        <a
-          routerLink="/auth/login"
-          class="mt-2 rounded-md bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white"
-          (click)="closeMobileMenu()"
-        >
-          {{ 'header.login' | translate }}
+      } @else {
+        <!-- Nút Đăng nhập cho khách -->
+        <a routerLink="/auth/login" class="flex h-11 items-center justify-center rounded-xl bg-blue-600 px-5 text-xs font-bold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700">
+          {{ 'header.login' | t }}
         </a>
-      </div>
+      }
     </div>
-  }
+  </div>
 </header>
-
-<div class="h-16"></div>

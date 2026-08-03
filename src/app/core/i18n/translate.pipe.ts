@@ -6,14 +6,16 @@ import { translations } from './translations'
 export class TranslatePipe implements PipeTransform {
   private readonly languageStore = inject(LanguageStore)
 
-  transform(key: string, params?: Record<string, string | number>): string {
+  transform(key: string | null | undefined, params?: Record<string, string | number>): string {
+    if (!key) return ''
     const entry = translations[key]
-    let result = entry ? entry[this.languageStore.lang()] || entry.vi || key : key
+    let result = entry ? (entry[this.languageStore.lang()] || entry.vi || key) : key
     if (params) {
       for (const [k, v] of Object.entries(params)) {
-        result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
+        result = result.replace(new RegExp(`\\{+${k}\\}+`, 'g'), String(v))
       }
     }
     return result
   }
 }
+

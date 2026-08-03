@@ -4,19 +4,16 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { forkJoin } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
-import type {
-  BookingItemRequest,
-  EquipmentResponse,
-  LabRoomResponse,
-  PriorityRuleResponse,
-  SuggestedSlotResponse,
-} from '../../core/api/system.models'
+import type { BookingItemRequest, CalendarEventResponse, EquipmentResponse, LabRoomResponse, PriorityRuleResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
+import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
+import { labelOf, toIso } from '../../shared/utils/presentation'
 
 interface SelectedResource {
   key: string
@@ -27,216 +24,248 @@ interface SelectedResource {
   note: string
 }
 
+export interface TimeSlot {
+  id: number
+  slotNumber: number
+  startTimeStr: string
+  endTimeStr: string
+  label: string
+}
+
+export const FIXED_TIME_SLOTS: TimeSlot[] = [
+  { id: 1, slotNumber: 1, startTimeStr: '07:50', endTimeStr: '09:50', label: 'Slot 1 (07:50 - 09:50)' },
+  { id: 2, slotNumber: 2, startTimeStr: '10:00', endTimeStr: '12:20', label: 'Slot 2 (10:00 - 12:20)' },
+  { id: 3, slotNumber: 3, startTimeStr: '12:50', endTimeStr: '15:10', label: 'Slot 3 (12:50 - 15:10)' },
+  { id: 4, slotNumber: 4, startTimeStr: '15:20', endTimeStr: '17:40', label: 'Slot 4 (15:20 - 17:40)' },
+]
+
+export interface SlotWithStatus extends TimeSlot {
+  isOccupied: boolean
+  isSelected: boolean
+  occupiedReason?: 'booking' | 'maintenance'
+  maintenanceTitle?: string
+}
+
 @Component({
   selector: 'app-booking-form-page',
-  imports: [
-    DatePipe,
-    NgClass,
-    FormsModule,
-    RouterLink,
-    PageHeaderComponent,
-    IconComponent,
-    DataStateComponent,
-  ],
+  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, DataStateComponent, StatusBadgeComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header
-        title="Tạo yêu cầu booking"
-        subtitle="Quy trình 4 bước giúp chọn đúng tài nguyên, thời gian và mức ưu tiên trước khi gửi duyệt."
-      >
-        <a routerLink="/app/calendar" class="btn-secondary"
-          ><app-icon name="calendar" [size]="17" /> Kiểm tra lịch</a
-        >
+      <app-page-header title="{{ 'bookingForm.title' | t }}" subtitle="{{ 'bookingForm.subtitle' | t }}">
+        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'bookingForm.checkCalendar' | t }}</a>
       </app-page-header>
 
       @if (store.user()?.status !== 'Active') {
-        <div class="rounded-[24px] border border-amber-200 bg-amber-50 p-5 text-amber-900">
-          <div class="flex gap-3">
-            <app-icon name="alert" [size]="21" />
-            <div>
-              <p class="font-black">Tài khoản hiện không thể tạo booking</p>
-              <p class="mt-1 text-sm leading-6 text-amber-800/75">
-                Trạng thái hiện tại: {{ store.user()?.status }}. Liên hệ quản trị viên hoặc chờ hết
-                thời gian hạn chế.
-              </p>
-            </div>
-          </div>
-        </div>
+        <div class="rounded-[24px] border border-amber-200 bg-amber-50 p-5 text-amber-900"><div class="flex gap-3"><app-icon name="alert" [size]="21" /><div><p class="font-black">{{ 'bookingForm.accountStatusRestrictedTitle' | t }}</p><p class="mt-1 text-sm leading-6 text-amber-800/75">{{ 'bookingForm.accountStatusRestrictedMsg' | t: { status: store.user()?.status ?? '' } }}</p></div></div></div>
       }
 
       <div class="grid gap-6 xl:grid-cols-[1fr_320px]">
         <div class="space-y-6">
-          <div class="card-surface p-3 sm:p-4">
-            <div class="grid grid-cols-4 gap-2">
-              @for (item of steps; track item.id) {
-                <button
-                  type="button"
-                  class="relative rounded-2xl px-2 py-3 text-center transition"
-                  [ngClass]="
-                    step() === item.id
-                      ? 'bg-violet-600 text-white shadow-lg shadow-violet-200'
-                      : step() > item.id
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-slate-50 text-slate-400'
-                  "
-                  (click)="goTo(item.id)"
-                >
-                  <span
-                    class="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-current/20 text-xs font-black"
-                    >{{ step() > item.id ? '✓' : item.id }}</span
-                  ><span
-                    class="mt-2 hidden text-[10px] font-black tracking-[.08em] uppercase sm:block"
-                    >{{ item.label }}</span
-                  >
-                </button>
-              }
-            </div>
-          </div>
+          <div class="card-surface p-3 sm:p-4"><div class="grid grid-cols-4 gap-2">@for (item of steps(); track item.id) { <button type="button" class="relative rounded-2xl px-2 py-3 text-center transition" [ngClass]="step() === item.id ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : step() > item.id ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-400'" (click)="goTo(item.id)"><span class="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-current/20 text-xs font-black">{{ step() > item.id ? '✓' : item.id }}</span><span class="mt-2 hidden text-[10px] font-black uppercase tracking-[.08em] sm:block">{{ item.labelKey | t }}</span></button> }</div></div>
 
           @if (step() === 1) {
             <article class="card-surface p-5 sm:p-7">
+              <!-- Header -->
               <div class="flex items-start gap-4">
-                <div
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-600"
-                >
-                  <app-icon name="microscope" [size]="23" />
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                  <app-icon name="building" [size]="23" />
                 </div>
                 <div>
-                  <h2 class="text-xl font-black text-slate-950">Chọn tài nguyên</h2>
-                  <p class="mt-1 text-sm text-slate-500">
-                    Một booking chỉ được chứa tài nguyên thuộc cùng một phòng lab.
-                  </p>
+                  <h2 class="text-xl font-black text-slate-950">{{ 'bookingForm.step1.title' | t }}</h2>
+                  <p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step1.subtitle' | t }}</p>
                 </div>
               </div>
-              <div class="mt-6 grid gap-4 md:grid-cols-2">
-                <button
-                  type="button"
-                  class="rounded-[24px] border p-5 text-left transition"
-                  [ngClass]="
-                    mode() === 'lab'
-                      ? 'border-violet-300 bg-violet-50 shadow-lg shadow-violet-100'
-                      : 'border-slate-200 bg-white hover:border-violet-200'
-                  "
-                  (click)="setMode('lab')"
-                >
-                  <div class="flex items-center gap-3">
-                    <span
-                      class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm"
-                      ><app-icon name="building" [size]="22"
-                    /></span>
-                    <div>
-                      <p class="font-black text-slate-900">Đặt cả phòng</p>
-                      <p class="mt-1 text-xs text-slate-500">Sử dụng toàn bộ không gian</p>
-                    </div>
-                  </div></button
-                ><button
-                  type="button"
-                  class="rounded-[24px] border p-5 text-left transition"
-                  [ngClass]="
-                    mode() === 'equipment'
-                      ? 'border-cyan-300 bg-cyan-50 shadow-lg shadow-cyan-100'
-                      : 'border-slate-200 bg-white hover:border-cyan-200'
-                  "
-                  (click)="setMode('equipment')"
-                >
-                  <div class="flex items-center gap-3">
-                    <span
-                      class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-cyan-600 shadow-sm"
-                      ><app-icon name="microscope" [size]="22"
-                    /></span>
-                    <div>
-                      <p class="font-black text-slate-900">Đặt thiết bị</p>
-                      <p class="mt-1 text-xs text-slate-500">Có thể chọn nhiều thiết bị</p>
-                    </div>
-                  </div>
-                </button>
-              </div>
-              <div class="mt-6">
-                <label class="field-label">Phòng lab *</label
-                ><select class="input-shell" [(ngModel)]="labId" (ngModelChange)="onLabChange()">
-                  <option [ngValue]="null">Chọn phòng lab</option>
+
+              <!-- Section label -->
+              <div class="mt-7">
+                <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">{{ 'bookingForm.step1.selectLabTitle' | t }}</p>
+
+                <!-- Lab status legend -->
+                <div class="mb-4 flex flex-wrap items-center gap-3 text-[11px] font-bold text-slate-500">
+                  <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span> {{ 'bookingForm.step1.statusAvailable' | t }}</span>
+                  <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-400"></span> {{ 'bookingForm.step1.statusInUse' | t }}</span>
+                  <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span> {{ 'bookingForm.step1.statusMaintenance' | t }}</span>
+                  <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-slate-300"></span> {{ 'bookingForm.step1.statusUnavailable' | t }}</span>
+                </div>
+
+                <!-- Lab Cards Grid -->
+                <div class="grid gap-3 sm:grid-cols-2">
                   @for (lab of labs(); track lab.labId) {
-                    <option [ngValue]="lab.labId" [disabled]="lab.status !== 'Available'">
-                      {{ lab.labName }} · {{ lab.roomCode }} · {{ lab.status }}
-                    </option>
-                  }
-                </select>
-              </div>
-              @if (mode() === 'lab' && selected().length) {
-                <div class="mt-5 rounded-[24px] border border-violet-200 bg-violet-50 p-5">
-                  <p class="font-black text-violet-900">{{ selected()[0].name }}</p>
-                  <label class="field-label mt-4">Ghi chú cho phòng</label
-                  ><input
-                    class="input-shell"
-                    [ngModel]="selected()[0].note"
-                    (ngModelChange)="updateNote(0, $event)"
-                    placeholder="Yêu cầu bố trí, lưu ý khi sử dụng..."
-                  />
-                </div>
-              }
-              @if (mode() === 'equipment' && labId) {
-                <div class="mt-6">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="font-black text-slate-900">Thiết bị trong phòng</p>
-                      <p class="mt-1 text-xs text-slate-400">
-                        Chọn một hoặc nhiều thiết bị sẵn sàng
-                      </p>
-                    </div>
-                    <span
-                      class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600"
-                      >{{ selected().length }} đã chọn</span
+                    <button
+                      type="button"
+                      class="group relative flex items-center gap-4 rounded-[20px] border p-4 text-left transition duration-200"
+                      [ngClass]="{
+                        'border-violet-400 bg-gradient-to-br from-violet-50 to-indigo-50 shadow-md ring-2 ring-violet-400/30': labId() === lab.labId,
+                        'border-slate-200 bg-white hover:border-violet-200 hover:bg-slate-50/80 hover:shadow-sm': labId() !== lab.labId && lab.status === 'Available',
+                        'border-slate-100 bg-slate-50/60 cursor-not-allowed opacity-60': lab.status !== 'Available'
+                      }"
+                      [disabled]="lab.status !== 'Available'"
+                      (click)="selectLab(lab)"
                     >
-                  </div>
-                  @if (availableEquipments().length === 0) {
-                    <div class="mt-4">
-                      <app-data-state
-                        title="Không có thiết bị"
-                        message="Phòng này chưa có thiết bị hoặc không thể tải dữ liệu."
-                        icon="microscope"
-                      />
-                    </div>
-                  } @else {
-                    <div class="mt-4 grid gap-3 md:grid-cols-2">
-                      @for (equipment of availableEquipments(); track equipment.equipmentId) {
-                        <button
-                          type="button"
-                          class="flex items-center gap-3 rounded-2xl border p-4 text-left transition"
-                          [ngClass]="
-                            isSelected(equipment.equipmentId)
-                              ? 'border-cyan-300 bg-cyan-50 shadow-sm'
-                              : 'border-slate-200 hover:border-cyan-200'
-                          "
-                          [disabled]="equipment.status !== 'Available'"
-                          (click)="toggleEquipment(equipment)"
-                        >
-                          <span
-                            class="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-cyan-600 shadow-sm"
-                            ><app-icon name="microscope" [size]="19" /></span
-                          ><span class="min-w-0 flex-1"
-                            ><span class="block truncate text-sm font-black text-slate-900">{{
-                              equipment.equipmentName
-                            }}</span
-                            ><span class="mt-1 block text-[10px] font-bold text-slate-400">{{
-                              equipment.status
-                            }}</span></span
-                          >
-                          @if (isSelected(equipment.equipmentId)) {
-                            <span class="text-cyan-600"><app-icon name="check" [size]="18" /></span>
+                      <!-- Icon -->
+                      <span
+                        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-sm transition"
+                        [ngClass]="{
+                          'bg-violet-600 text-white': labId() === lab.labId,
+                          'bg-emerald-50 text-emerald-600': labId() !== lab.labId && lab.status === 'Available',
+                          'bg-rose-50 text-rose-400': lab.status === 'InUse',
+                          'bg-amber-50 text-amber-500': lab.status === 'UnderMaintenance',
+                          'bg-slate-100 text-slate-400': lab.status !== 'Available' && lab.status !== 'InUse' && lab.status !== 'UnderMaintenance'
+                        }"
+                      >
+                        <app-icon name="building" [size]="21" />
+                      </span>
+
+                      <!-- Info -->
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate font-black text-slate-900 text-sm">{{ lab.labName | t }}</p>
+                        <p class="mt-0.5 text-[11px] font-semibold text-slate-400">{{ lab.roomCode }}</p>
+                        <!-- Status badge -->
+                        <div class="mt-1.5">
+                          @if (lab.status === 'Available') {
+                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black text-emerald-700 border border-emerald-200">
+                              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              {{ 'bookingForm.step1.badgeAvailable' | t }}
+                            </span>
+                          } @else if (lab.status === 'InUse') {
+                            <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-black text-rose-700 border border-rose-200">
+                              <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                              {{ 'bookingForm.step1.badgeInUse' | t }}
+                            </span>
+                          } @else if (lab.status === 'UnderMaintenance') {
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-black text-amber-700 border border-amber-200">
+                              <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                              {{ 'bookingForm.step1.badgeMaintenance' | t }}
+                            </span>
+                          } @else {
+                            <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-black text-slate-500 border border-slate-200">
+                              <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+                              {{ lab.status }}
+                            </span>
                           }
-                        </button>
+                        </div>
+                      </div>
+
+                      <!-- Selected checkmark -->
+                      @if (labId() === lab.labId) {
+                        <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm">
+                          <app-icon name="check" [size]="15" />
+                        </div>
                       }
-                    </div>
+                    </button>
                   }
                 </div>
+              </div>
+
+              <!-- Selected Lab Detail + Note + Equipment Toggle -->
+              @if (labId() && selectedLab()) {
+                <div class="mt-6 rounded-[24px] border border-violet-200 bg-gradient-to-br from-violet-50/80 to-indigo-50/60 p-5 space-y-5">
+                  <!-- Lab info row -->
+                  <div class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+                      <app-icon name="building" [size]="19" />
+                    </span>
+                    <div>
+                      <p class="font-black text-violet-900">{{ selectedLab()!.labName | t }}</p>
+                      <p class="text-xs text-violet-600/70">{{ selectedLab()!.roomCode }} · {{ 'labs.capacity' | t }}: {{ selectedLab()!.capacity }} {{ 'common.people' | t }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Note field -->
+                  <div>
+                    <label class="field-label">{{ 'bookingForm.step1.roomNoteLabel' | t }}</label>
+                    <input class="input-shell bg-white" [ngModel]="labNote" (ngModelChange)="onLabNoteChange($event)" placeholder="{{ 'bookingForm.step1.roomNotePlaceholder' | t }}" />
+                  </div>
+
+                  <!-- Equipment section toggle -->
+                  <div class="rounded-2xl border border-violet-200/70 bg-white/70 p-4">
+                    <button
+                      type="button"
+                      class="flex w-full items-center justify-between gap-3 text-left"
+                      (click)="toggleAddEquipment()"
+                    >
+                      <div class="flex items-center gap-3">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 shadow-sm">
+                          <app-icon name="microscope" [size]="18" />
+                        </span>
+                        <div>
+                          <p class="font-black text-slate-900 text-sm">{{ 'bookingForm.step1.addEquipmentTitle' | t }}</p>
+                          <p class="mt-0.5 text-xs text-slate-500">{{ 'bookingForm.step1.addEquipmentSubtitle' | t }}</p>
+                        </div>
+                      </div>
+                      <!-- Toggle switch -->
+                      <div
+                        class="relative h-6 w-11 rounded-full transition-colors duration-200"
+                        [ngClass]="addEquipment() ? 'bg-cyan-500' : 'bg-slate-200'"
+                      >
+                        <div
+                          class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200"
+                          [ngClass]="addEquipment() ? 'translate-x-5' : 'translate-x-0.5'"
+                        ></div>
+                      </div>
+                    </button>
+
+                    <!-- Equipment list (shown when toggle is on) -->
+                    @if (addEquipment()) {
+                      <div class="mt-4 border-t border-slate-100 pt-4">
+                        <div class="flex items-center justify-between mb-3">
+                          <p class="text-xs font-black text-slate-700">{{ 'bookingForm.step1.equipmentsInLab' | t: { name: (selectedLab()!.labName | t) } }}</p>
+                          <span class="rounded-full bg-cyan-50 px-3 py-0.5 text-[11px] font-black text-cyan-700 border border-cyan-200">
+                            {{ selectedEquipmentCount() }} {{ 'bookingForm.step1.selectedCount' | t }}
+                          </span>
+                        </div>
+                        @if (availableEquipments().length === 0) {
+                          <app-data-state
+                            title="{{ 'bookingForm.step1.noEquipment' | t }}"
+                            message="{{ 'bookingForm.step1.noEquipmentMsg' | t }}"
+                            icon="microscope"
+                          />
+                        } @else {
+                          <div class="grid gap-2 sm:grid-cols-2">
+                            @for (equipment of availableEquipments(); track equipment.equipmentId) {
+                              <button
+                                type="button"
+                                class="flex items-center gap-3 rounded-xl border p-3 text-left transition"
+                                [ngClass]="isEquipmentSelected(equipment.equipmentId)
+                                  ? 'border-cyan-300 bg-cyan-50 shadow-sm'
+                                  : equipment.status === 'Available'
+                                    ? 'border-slate-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/30'
+                                    : 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'"
+                                [disabled]="equipment.status !== 'Available'"
+                                (click)="toggleEquipment(equipment)"
+                              >
+                                <span
+                                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-sm"
+                                  [ngClass]="isEquipmentSelected(equipment.equipmentId) ? 'bg-cyan-500 text-white' : 'bg-white text-cyan-600'"
+                                >
+                                  <app-icon name="microscope" [size]="16" />
+                                </span>
+                                <span class="min-w-0 flex-1">
+                                  <span class="block truncate text-sm font-black text-slate-900">{{ equipment.equipmentName | t }}</span>
+                                  @if (equipment.status !== 'Available') {
+                                    <span class="mt-0.5 block text-[10px] font-bold text-rose-500">{{ 'bookingForm.step1.statusUnavailable' | t }}</span>
+                                  } @else {
+                                    <span class="mt-0.5 block text-[10px] font-bold text-emerald-600">{{ 'bookingForm.step1.badgeAvailable' | t }}</span>
+                                  }
+                                </span>
+                                @if (isEquipmentSelected(equipment.equipmentId)) {
+                                  <span class="shrink-0 text-cyan-600">
+                                    <app-icon name="check" [size]="16" />
+                                  </span>
+                                }
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
               }
+
               <div class="mt-7 flex justify-end">
-                <button
-                  class="btn-primary"
-                  [disabled]="selected().length === 0"
-                  (click)="step.set(2)"
-                >
-                  Tiếp tục <app-icon name="arrow-right" [size]="17" />
+                <button class="btn-primary" [disabled]="selected().length === 0" (click)="goToStep2()">
+                  {{ 'common.next' | t }} <app-icon name="arrow-right" [size]="17" />
                 </button>
               </div>
             </article>
@@ -245,286 +274,196 @@ interface SelectedResource {
           @if (step() === 2) {
             <article class="card-surface p-5 sm:p-7">
               <div class="flex items-start gap-4">
-                <div
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"
-                >
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600">
                   <app-icon name="clock" [size]="23" />
                 </div>
                 <div>
-                  <h2 class="text-xl font-black text-slate-950">Chọn thời gian</h2>
-                  <p class="mt-1 text-sm text-slate-500">
-                    Thời gian sẽ được chuyển sang UTC trước khi gửi backend.
-                  </p>
+                  <h2 class="text-xl font-black text-slate-950">{{ 'bookingForm.step2.title' | t }}</h2>
+                  <p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step2.subtitle' | t }}</p>
                 </div>
               </div>
-              <div class="mt-6 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label class="field-label">Bắt đầu *</label
-                  ><input class="input-shell" type="datetime-local" [(ngModel)]="startTime" />
+
+              <!-- 2-COLUMN LAYOUT -->
+              <div class="mt-6 grid gap-6 lg:grid-cols-12">
+                <!-- LEFT COLUMN: Date Picker & Day's Bookings Schedule -->
+                <div class="space-y-4 lg:col-span-6">
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <label class="field-label flex items-center justify-between">
+                      <span>{{ 'bookingForm.step2.dateLabel' | t }}</span>
+                      <span class="text-xs font-bold text-violet-600">
+                        {{ 'bookingForm.step2.userQuota' | t: { current: userDayBookingsCount(), max: 2 } }}
+                      </span>
+                    </label>
+                    <input
+                      class="input-shell bg-white"
+                      type="date"
+                      [min]="minDate"
+                      [(ngModel)]="bookingDate"
+                      (ngModelChange)="onDateChange()"
+                    />
+                  </div>
+
+                  @if (userMaxLimitReached()) {
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                      <div class="flex items-center gap-2.5 font-black text-xs sm:text-sm">
+                        <app-icon name="alert" [size]="18" class="text-amber-600 shrink-0" />
+                        <span>{{ 'bookingForm.step2.userLimitReached' | t }}</span>
+                      </div>
+                    </div>
+                  }
+
+                  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <h3 class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-700">
+                        <app-icon name="calendar" [size]="16" class="text-violet-500" />
+                        <span>{{ 'bookingForm.step2.dayEventsTitle' | t }}</span>
+                      </h3>
+                      <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-black text-slate-600">
+                        {{ dayEvents().length }} {{ 'bookingForm.step2.eventsCount' | t }}
+                      </span>
+                    </div>
+
+                    <div class="mt-3 space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+                      @if (dayEventsLoading()) {
+                        <div class="py-6 text-center text-xs text-slate-400 font-medium">
+                          {{ 'bookingForm.step2.loadingSchedule' | t }}
+                        </div>
+                      } @else if (dayEvents().length === 0) {
+                        <div class="rounded-xl border border-dashed border-slate-200 p-5 text-center">
+                          <app-icon name="check" [size]="24" class="mx-auto text-emerald-500" />
+                          <p class="mt-2 text-xs font-bold text-slate-700">{{ 'bookingForm.step2.noEventsToday' | t }}</p>
+                          <p class="mt-1 text-[11px] text-slate-400">{{ 'bookingForm.step2.allSlotsFree' | t }}</p>
+                        </div>
+                      } @else {
+                        @for (event of dayEvents(); track event.sourceId + event.eventType) {
+                          <div class="flex items-center justify-between rounded-xl border border-slate-150 bg-slate-50/80 p-3 transition hover:bg-slate-50">
+                            <div class="min-w-0 flex-1">
+                              <div class="flex items-center gap-2">
+                                <span class="rounded-md bg-violet-100 px-2 py-0.5 text-[10px] font-black text-violet-800">
+                                  {{ event.startTime | date:'HH:mm' }} - {{ event.endTime | date:'HH:mm' }}
+                                </span>
+                                <span class="truncate text-xs font-bold text-slate-900">{{ event.title }}</span>
+                              </div>
+                            </div>
+                            <app-status-badge [value]="event.status" [domain]="event.eventType === 'Maintenance' ? 'maintenance' : 'booking'" />
+                          </div>
+                        }
+                      }
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label class="field-label">Kết thúc *</label
-                  ><input class="input-shell" type="datetime-local" [(ngModel)]="endTime" />
-                </div>
-              </div>
-              <div class="mt-5 flex flex-wrap gap-2">
-                <button class="btn-secondary" (click)="checkAvailability()" [disabled]="checking()">
-                  <app-icon name="search" [size]="17" />
-                  {{ checking() ? 'Đang kiểm tra...' : 'Kiểm tra khung giờ' }}</button
-                ><a
-                  routerLink="/app/calendar"
-                  [queryParams]="{ labId: labId }"
-                  class="btn-secondary"
-                  ><app-icon name="calendar" [size]="17" /> Mở lịch phòng</a
-                >
-              </div>
-              @if (availabilityMessage()) {
-                <div
-                  class="mt-5 rounded-2xl border p-4"
-                  [ngClass]="
-                    available()
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                      : 'border-amber-200 bg-amber-50 text-amber-800'
-                  "
-                >
-                  <div class="flex flex-wrap items-center gap-3">
-                    <p class="flex min-w-0 flex-1 items-center gap-2 font-black">
-                      <app-icon [name]="available() ? 'check' : 'alert'" [size]="18" />
-                      {{ availabilityMessage() }}
-                    </p>
-                    @if (!available()) {
+
+                <!-- RIGHT COLUMN: 4 Fixed Time Slots Selection -->
+                <div class="space-y-4 lg:col-span-6">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                      <app-icon name="clock" [size]="16" class="text-cyan-500" />
+                      <span>{{ 'bookingForm.step2.selectSlotTitle' | t }}</span>
+                    </h3>
+                    <span class="text-[11px] font-extrabold text-slate-400">
+                      {{ 'bookingForm.step2.fixedSlotsHint' | t }}
+                    </span>
+                  </div>
+
+                  <div class="grid gap-3">
+                    @for (slot of slotsWithStatus(); track slot.id) {
                       <button
                         type="button"
-                        class="btn-secondary shrink-0"
-                        [disabled]="joiningWaitlist() || selected().length !== 1"
-                        (click)="joinWaitlist()"
+                        class="group relative flex items-center justify-between rounded-2xl border p-4 text-left transition duration-200"
+                        [ngClass]="{
+                          'border-amber-300 bg-amber-50/90 text-amber-950 shadow-sm cursor-not-allowed': slot.isOccupied && slot.occupiedReason === 'maintenance',
+                          'border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-75': slot.isOccupied && slot.occupiedReason !== 'maintenance',
+                          'border-violet-600 bg-violet-50/90 text-violet-950 shadow-md ring-2 ring-violet-500/20': slot.isSelected && !slot.isOccupied,
+                          'border-slate-200 bg-white hover:border-violet-300 hover:bg-slate-50/80 text-slate-800 shadow-sm': !slot.isSelected && !slot.isOccupied
+                        }"
+                        [disabled]="slot.isOccupied"
+                        (click)="selectSlot(slot)"
                       >
-                        <app-icon name="hourglass" [size]="16" />
-                        {{ joiningWaitlist() ? 'Đang tham gia...' : 'Tham gia hàng chờ' }}
+                        <div class="flex items-center gap-3.5 min-w-0">
+                          <div
+                            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-black text-xs transition"
+                            [ngClass]="{
+                              'bg-amber-500 text-white shadow-sm': slot.isOccupied && slot.occupiedReason === 'maintenance',
+                              'bg-slate-200 text-slate-500': slot.isOccupied && slot.occupiedReason !== 'maintenance',
+                              'bg-violet-600 text-white shadow-sm': slot.isSelected && !slot.isOccupied,
+                              'bg-violet-100 text-violet-700 group-hover:bg-violet-200': !slot.isSelected && !slot.isOccupied
+                            }"
+                          >
+                            @if (slot.isOccupied && slot.occupiedReason === 'maintenance') {
+                              <app-icon name="wrench" [size]="18" />
+                            } @else {
+                              S{{ slot.slotNumber }}
+                            }
+                          </div>
+                          <div class="min-w-0">
+                            <p class="font-extrabold text-sm leading-tight">
+                              Slot {{ slot.slotNumber }} ({{ slot.startTimeStr }} – {{ slot.endTimeStr }})
+                            </p>
+                            <p class="mt-1 text-xs font-semibold"
+                              [ngClass]="{
+                                'text-amber-800 font-bold': slot.isOccupied && slot.occupiedReason === 'maintenance',
+                                'text-rose-600': slot.isOccupied && slot.occupiedReason !== 'maintenance',
+                                'text-violet-700': slot.isSelected && !slot.isOccupied,
+                                'text-slate-400': !slot.isSelected && !slot.isOccupied
+                              }"
+                            >
+                              @if (slot.isOccupied && slot.occupiedReason === 'maintenance') {
+                                 {{ 'bookingForm.step2.slotUnderMaintenance' | t }}
+                              } @else if (slot.isOccupied) {
+                                 {{ 'bookingForm.step2.slotOccupied' | t }}
+                              } @else if (slot.isSelected) {
+                                 {{ 'bookingForm.step2.slotSelected' | t }}
+                              } @else {
+                                 {{ 'bookingForm.step2.slotAvailable' | t }}
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        @if (slot.isSelected && !slot.isOccupied) {
+                          <div class="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600 text-white shadow-sm">
+                            <app-icon name="check" [size]="16" />
+                          </div>
+                        }
                       </button>
                     }
                   </div>
-                  @if (!available() && selected().length > 1) {
-                    <p class="mt-3 text-xs leading-5 opacity-75">
-                      Hàng chờ hiện chỉ nhận một phòng hoặc một thiết bị mỗi lượt. Hãy giữ lại một
-                      thiết bị nếu muốn tham gia.
-                    </p>
+
+                  @if (selectedSlotIds().length > 0) {
+                    <div class="rounded-2xl border border-violet-200 bg-violet-50/80 p-4">
+                      <div class="flex items-center justify-between text-xs font-bold text-violet-900">
+                        <span>{{ 'bookingForm.step2.selectedTimeRange' | t }}:</span>
+                        <span class="rounded-lg bg-white px-3 py-1 font-black text-violet-700 shadow-sm border border-violet-100">
+                          {{ formattedSelectedRange() }}
+                        </span>
+                      </div>
+                    </div>
                   }
                 </div>
-              }
-              @if (suggestions().length) {
-                <div class="mt-6">
-                  <p class="font-black text-slate-900">Khung giờ thay thế</p>
-                  <div class="mt-3 grid gap-3 md:grid-cols-2">
-                    @for (slot of suggestions(); track slot.startTime) {
-                      <button
-                        class="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-left hover:bg-violet-100"
-                        (click)="chooseSlot(slot)"
-                      >
-                        <p class="text-sm font-black text-violet-900">
-                          {{ slot.startTime | date: 'HH:mm dd/MM/yyyy' }}
-                        </p>
-                        <p class="mt-1 text-xs text-violet-700">
-                          đến {{ slot.endTime | date: 'HH:mm dd/MM/yyyy' }}
-                        </p>
-                      </button>
-                    }
-                  </div>
-                </div>
-              }
-              <div class="mt-7 flex justify-between">
+              </div>
+
+              <!-- Navigation Buttons -->
+              <div class="mt-7 flex justify-between border-t border-slate-100 pt-5">
                 <button class="btn-secondary" (click)="step.set(1)">
-                  <app-icon name="arrow-left" [size]="17" /> Quay lại</button
-                ><button class="btn-primary" [disabled]="!validTime()" (click)="step.set(3)">
-                  Tiếp tục <app-icon name="arrow-right" [size]="17" />
+                  <app-icon name="arrow-left" [size]="17" /> {{ 'common.back' | t }}
+                </button>
+                <button class="btn-primary" [disabled]="!validSlotSelection()" (click)="step.set(3)">
+                  {{ 'common.next' | t }} <app-icon name="arrow-right" [size]="17" />
                 </button>
               </div>
             </article>
           }
 
           @if (step() === 3) {
-            <article class="card-surface p-5 sm:p-7">
-              <div class="flex items-start gap-4">
-                <div
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"
-                >
-                  <app-icon name="sparkles" [size]="23" />
-                </div>
-                <div>
-                  <h2 class="text-xl font-black text-slate-950">Mục đích & ưu tiên</h2>
-                  <p class="mt-1 text-sm text-slate-500">
-                    Mức ưu tiên được đọc từ quy tắc đang Active trong backend.
-                  </p>
-                </div>
-              </div>
-              <div class="mt-6 grid gap-3 sm:grid-cols-2">
-                @for (purpose of purposes; track purpose.value) {
-                  <button
-                    type="button"
-                    class="rounded-2xl border p-4 text-left transition"
-                    [ngClass]="
-                      purposeType === purpose.value
-                        ? 'border-violet-300 bg-violet-50 shadow-sm'
-                        : 'border-slate-200 hover:border-violet-200'
-                    "
-                    (click)="purposeType = purpose.value"
-                  >
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="font-black text-slate-900">{{ purpose.label }}</p>
-                        <p class="mt-1 text-xs leading-5 text-slate-500">
-                          {{ purpose.description }}
-                        </p>
-                      </div>
-                      <span
-                        class="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-violet-700 shadow-sm"
-                        >P{{ priorityFor(purpose.key) }}</span
-                      >
-                    </div>
-                  </button>
-                }
-              </div>
-              <div class="mt-5">
-                <label class="field-label">Mô tả mục đích *</label
-                ><textarea
-                  class="textarea-shell min-h-36"
-                  [(ngModel)]="purposeDescription"
-                  placeholder="Mô tả nội dung thực hành, dự án, số người tham gia và kết quả mong đợi..."
-                ></textarea>
-              </div>
-              <div class="mt-7 flex justify-between">
-                <button class="btn-secondary" (click)="step.set(2)">
-                  <app-icon name="arrow-left" [size]="17" /> Quay lại</button
-                ><button
-                  class="btn-primary"
-                  [disabled]="!purposeDescription.trim()"
-                  (click)="step.set(4)"
-                >
-                  Xem lại <app-icon name="arrow-right" [size]="17" />
-                </button>
-              </div>
-            </article>
+            <article class="card-surface p-5 sm:p-7"><div class="flex items-start gap-4"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"><app-icon name="sparkles" [size]="23" /></div><div><h2 class="text-xl font-black text-slate-950">{{ 'bookingForm.step3.title' | t }}</h2><p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step3.subtitle' | t }}</p></div></div><div class="mt-6 grid gap-3 sm:grid-cols-2">@for (purpose of purposesList(); track purpose.value) { <button type="button" class="rounded-2xl border p-4 text-left transition" [ngClass]="purposeType === purpose.value ? 'border-violet-300 bg-violet-50 shadow-sm' : 'border-slate-200 hover:border-violet-200'" (click)="purposeType = purpose.value"><div class="flex items-start justify-between gap-3"><div><p class="font-black text-slate-900">{{ purpose.label }}</p><p class="mt-1 text-xs leading-5 text-slate-500">{{ purpose.description }}</p></div><span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-violet-700 shadow-sm">P{{ priorityFor(purpose.key) }}</span></div></button> }</div><div class="mt-5"><label class="field-label">{{ 'bookingForm.step3.descLabel' | t }}</label><textarea class="textarea-shell min-h-36" [(ngModel)]="purposeDescription" placeholder="{{ 'bookingForm.step3.descPlaceholder' | t }}"></textarea></div><div class="mt-7 flex justify-between"><button class="btn-secondary" (click)="step.set(2)"><app-icon name="arrow-left" [size]="17" /> {{ 'common.back' | t }}</button><button class="btn-primary" [disabled]="!purposeDescription.trim()" (click)="step.set(4)">{{ 'bookingForm.step3.reviewBtn' | t }} <app-icon name="arrow-right" [size]="17" /></button></div></article>
           }
 
           @if (step() === 4) {
-            <article class="card-surface p-5 sm:p-7">
-              <div class="flex items-start gap-4">
-                <div
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"
-                >
-                  <app-icon name="check" [size]="23" />
-                </div>
-                <div>
-                  <h2 class="text-xl font-black text-slate-950">Xác nhận yêu cầu</h2>
-                  <p class="mt-1 text-sm text-slate-500">
-                    Kiểm tra lần cuối trước khi gửi booking ở trạng thái Pending.
-                  </p>
-                </div>
-              </div>
-              <div class="mt-6 grid gap-4 md:grid-cols-2">
-                <div class="rounded-2xl bg-slate-50 p-5">
-                  <p class="text-[10px] font-black tracking-[.15em] text-slate-400 uppercase">
-                    Thời gian
-                  </p>
-                  <p class="mt-2 font-black text-slate-900">
-                    {{ startTime | date: 'HH:mm dd/MM/yyyy' }}
-                  </p>
-                  <p class="mt-1 text-sm text-slate-500">
-                    đến {{ endTime | date: 'HH:mm dd/MM/yyyy' }}
-                  </p>
-                </div>
-                <div class="rounded-2xl bg-slate-50 p-5">
-                  <p class="text-[10px] font-black tracking-[.15em] text-slate-400 uppercase">
-                    Mục đích
-                  </p>
-                  <p class="mt-2 font-black text-slate-900">{{ purposeLabel() }}</p>
-                  <p class="mt-1 text-sm text-slate-500">
-                    Mức ưu tiên P{{ priorityFor(purposeKey()) }}
-                  </p>
-                </div>
-              </div>
-              <div class="mt-4 rounded-2xl border border-slate-200 p-5">
-                <p class="text-xs font-black text-slate-700">Tài nguyên đã chọn</p>
-                <div class="mt-3 space-y-3">
-                  @for (resource of selected(); track resource.key) {
-                    <div class="flex items-center gap-3">
-                      <span
-                        class="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600"
-                        ><app-icon
-                          [name]="resource.resourceType === 1 ? 'building' : 'microscope'"
-                          [size]="17"
-                      /></span>
-                      <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-black text-slate-900">
-                          {{ resource.name }}
-                        </p>
-                        <p class="truncate text-xs text-slate-400">
-                          {{ resource.note || 'Không có ghi chú' }}
-                        </p>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-              <div class="mt-4 rounded-2xl bg-violet-50 p-5">
-                <p class="text-xs font-black text-violet-800">Mô tả</p>
-                <p class="mt-2 text-sm leading-6 whitespace-pre-line text-violet-900/70">
-                  {{ purposeDescription }}
-                </p>
-              </div>
-              <div class="mt-7 flex justify-between">
-                <button class="btn-secondary" (click)="step.set(3)">
-                  <app-icon name="arrow-left" [size]="17" /> Quay lại</button
-                ><button
-                  class="btn-primary"
-                  [disabled]="submitting() || store.user()?.status !== 'Active'"
-                  (click)="submit()"
-                >
-                  <app-icon name="send" [size]="17" />
-                  {{ submitting() ? 'Đang gửi...' : 'Gửi yêu cầu booking' }}
-                </button>
-              </div>
-            </article>
+            <article class="card-surface p-5 sm:p-7"><div class="flex items-start gap-4"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"><app-icon name="check" [size]="23" /></div><div><h2 class="text-xl font-black text-slate-950">{{ 'bookingForm.step4.title' | t }}</h2><p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step4.subtitle' | t }}</p></div></div><div class="mt-6 grid gap-4 md:grid-cols-2"><div class="rounded-2xl bg-slate-50 p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'bookingForm.step4.timeLabel' | t }}</p><p class="mt-2 font-black text-slate-900">{{ startTime() | date:'HH:mm dd/MM/yyyy' }}</p><p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step2.to' | t }} {{ endTime() | date:'HH:mm dd/MM/yyyy' }}</p></div><div class="rounded-2xl bg-slate-50 p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'bookingForm.step4.purposeLabel' | t }}</p><p class="mt-2 font-black text-slate-900">{{ purposeLabel() }}</p><p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step4.priorityLevel' | t: { level: priorityFor(purposeKey()) } }}</p></div></div><div class="mt-4 rounded-2xl border border-slate-200 p-5"><p class="text-xs font-black text-slate-700">{{ 'bookingForm.step4.selectedResources' | t }}</p><div class="mt-3 space-y-3">@for (resource of selected(); track resource.key) { <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><app-icon [name]="resource.resourceType === 1 ? 'building' : 'microscope'" [size]="17" /></span><div class="min-w-0 flex-1"><p class="truncate text-sm font-black text-slate-900">{{ resource.name }}</p><p class="truncate text-xs text-slate-400">{{ resource.note || ('bookingForm.step4.noNote' | t) }}</p></div></div> }</div></div><div class="mt-4 rounded-2xl bg-violet-50 p-5"><p class="text-xs font-black text-violet-800">{{ 'bookingForm.step4.description' | t }}</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-violet-900/70">{{ purposeDescription }}</p></div><div class="mt-7 flex justify-between"><button class="btn-secondary" (click)="step.set(3)"><app-icon name="arrow-left" [size]="17" /> {{ 'common.back' | t }}</button><button class="btn-primary" [disabled]="submitting() || store.user()?.status !== 'Active'" (click)="submit()"><app-icon name="send" [size]="17" /> {{ submitting() ? ('bookingForm.step4.submittingBtn' | t) : ('bookingForm.step4.submitBtn' | t) }}</button></div></article>
           }
         </div>
 
-        <aside class="space-y-4 xl:sticky xl:top-28 xl:self-start">
-          <article class="card-surface p-5">
-            <p class="text-[10px] font-black tracking-[.16em] text-violet-500 uppercase">
-              Tóm tắt nhanh
-            </p>
-            <div class="mt-4 space-y-4">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-slate-500">Phòng lab</span
-                ><strong class="max-w-40 truncate text-slate-900">{{ selectedLabName() }}</strong>
-              </div>
-              <div class="h-px bg-slate-100"></div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-slate-500">Tài nguyên</span
-                ><strong class="text-slate-900">{{ selected().length }}</strong>
-              </div>
-              <div class="h-px bg-slate-100"></div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-slate-500">Ưu tiên</span
-                ><strong class="text-violet-700">P{{ priorityFor(purposeKey()) }}</strong>
-              </div>
-            </div>
-          </article>
-          <article
-            class="rounded-[24px] border border-cyan-200 bg-gradient-to-br from-cyan-50 to-indigo-50 p-5"
-          >
-            <div
-              class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-cyan-600 shadow-sm"
-            >
-              <app-icon name="lightbulb" [size]="21" />
-            </div>
-            <p class="mt-4 font-black text-slate-900">Mẹo đặt lịch</p>
-            <p class="mt-2 text-sm leading-6 text-slate-600">
-              Kiểm tra lịch trước khi gửi. Pending không khóa tài nguyên; booking chỉ khóa slot sau
-              khi được duyệt.
-            </p>
-          </article>
-        </aside>
+        <aside class="space-y-4 xl:sticky xl:top-28 xl:self-start"><article class="card-surface p-5"><p class="text-[10px] font-black uppercase tracking-[.16em] text-violet-500">{{ 'bookingForm.sidebar.quickSummary' | t }}</p><div class="mt-4 space-y-4"><div class="flex items-center justify-between text-sm"><span class="text-slate-500">{{ 'bookingForm.sidebar.labRoom' | t }}</span><strong class="max-w-40 truncate text-slate-900">{{ selectedLabName() }}</strong></div><div class="h-px bg-slate-100"></div><div class="flex items-center justify-between text-sm"><span class="text-slate-500">{{ 'bookingForm.sidebar.resources' | t }}</span><strong class="text-slate-900">{{ selected().length }}</strong></div><div class="h-px bg-slate-100"></div><div class="flex items-center justify-between text-sm"><span class="text-slate-500">{{ 'bookingForm.sidebar.priority' | t }}</span><strong class="text-violet-700">P{{ priorityFor(purposeKey()) }}</strong></div></div></article><article class="rounded-[24px] border border-cyan-200 bg-gradient-to-br from-cyan-50 to-indigo-50 p-5"><div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-cyan-600 shadow-sm"><app-icon name="lightbulb" [size]="21" /></div><p class="mt-4 font-black text-slate-900">{{ 'bookingForm.sidebar.tipTitle' | t }}</p><p class="mt-2 text-sm leading-6 text-slate-600">{{ 'bookingForm.sidebar.tipBody' | t }}</p></article></aside>
       </div>
     </section>
   `,
@@ -535,93 +474,154 @@ export class BookingFormPage implements OnInit {
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
   protected readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly equipments = signal<EquipmentResponse[]>([])
   protected readonly rules = signal<PriorityRuleResponse[]>([])
   protected readonly selected = signal<SelectedResource[]>([])
   protected readonly mode = signal<'lab' | 'equipment'>('lab')
   protected readonly step = signal(1)
-  protected readonly suggestions = signal<SuggestedSlotResponse[]>([])
-  protected readonly checking = signal(false)
   protected readonly submitting = signal(false)
-  protected readonly joiningWaitlist = signal(false)
-  protected readonly available = signal(false)
-  protected readonly availabilityMessage = signal('')
-  protected labId: number | null = null
-  protected startTime = toLocalDateTimeInput(new Date(Date.now() + 24 * 60 * 60 * 1000))
-  protected endTime = toLocalDateTimeInput(new Date(Date.now() + 26 * 60 * 60 * 1000))
+  protected readonly addEquipment = signal(false)
+  protected labNote = ''
+
+  protected readonly labId = signal<number | null>(null)
+  protected bookingDate = new Date().toISOString().split('T')[0]
+  protected minDate = new Date().toISOString().split('T')[0]
+  protected readonly selectedSlotIds = signal<number[]>([])
+  protected readonly dayEvents = signal<CalendarEventResponse[]>([])
+  protected readonly dayEventsLoading = signal(false)
+  protected readonly userDayBookingsCount = signal(0)
+  protected readonly userMaxLimitReached = computed(() => this.userDayBookingsCount() >= 2)
+
   protected purposeType = 1
   protected purposeDescription = ''
   private sourceWaitlistId: number | null = null
-  protected readonly steps = [
-    { id: 1, label: 'Tài nguyên' },
-    { id: 2, label: 'Thời gian' },
-    { id: 3, label: 'Mục đích' },
-    { id: 4, label: 'Xác nhận' },
-  ]
-  protected readonly purposes = [
-    {
-      value: 1,
-      key: 'ResearchProject',
-      label: 'Dự án nghiên cứu',
-      description: 'Nghiên cứu khoa học, đề tài hoặc dự án.',
-    },
-    {
-      value: 2,
-      key: 'CoursePractice',
-      label: 'Thực hành môn học',
-      description: 'Buổi thực hành theo kế hoạch môn học.',
-    },
-    {
-      value: 3,
-      key: 'SelfStudy',
-      label: 'Tự học',
-      description: 'Tự nghiên cứu hoặc luyện tập cá nhân.',
-    },
-    {
-      value: 4,
-      key: 'Other',
-      label: 'Mục đích khác',
-      description: 'Các nhu cầu hợp lệ ngoài ba nhóm trên.',
-    },
-  ]
-  protected readonly availableEquipments = computed(() =>
-    this.equipments().filter((item) => item.labId === this.labId),
-  )
-  protected readonly selectedLabName = computed(
-    () => this.labs().find((lab) => lab.labId === this.labId)?.labName ?? 'Chưa chọn',
-  )
+
+  protected readonly steps = computed(() => {
+    this.languageStore.lang()
+    return [
+      { id: 1, labelKey: 'bookingForm.steps.resource' },
+      { id: 2, labelKey: 'bookingForm.steps.time' },
+      { id: 3, labelKey: 'bookingForm.steps.purpose' },
+      { id: 4, labelKey: 'bookingForm.steps.confirm' },
+    ]
+  })
+
+  protected readonly purposesList = computed(() => {
+    this.languageStore.lang()
+    return [
+      {
+        value: 1,
+        key: 'ResearchProject',
+        label: this.languageStore.t('bookingForm.purposes.research.label'),
+        description: this.languageStore.t('bookingForm.purposes.research.desc'),
+      },
+      {
+        value: 2,
+        key: 'CoursePractice',
+        label: this.languageStore.t('bookingForm.purposes.course.label'),
+        description: this.languageStore.t('bookingForm.purposes.course.desc'),
+      },
+      {
+        value: 3,
+        key: 'SelfStudy',
+        label: this.languageStore.t('bookingForm.purposes.selfStudy.label'),
+        description: this.languageStore.t('bookingForm.purposes.selfStudy.desc'),
+      },
+      {
+        value: 4,
+        key: 'Other',
+        label: this.languageStore.t('bookingForm.purposes.other.label'),
+        description: this.languageStore.t('bookingForm.purposes.other.desc'),
+      },
+    ]
+  })
+
+  protected readonly slotsWithStatus = computed<SlotWithStatus[]>(() => {
+    const date = this.bookingDate
+    const events = this.dayEvents()
+    const selectedIds = this.selectedSlotIds()
+
+    return FIXED_TIME_SLOTS.map((slot) => {
+      const slotStart = new Date(`${date}T${slot.startTimeStr}:00`)
+      const slotEnd = new Date(`${date}T${slot.endTimeStr}:00`)
+
+      const matchingEvent = events.find((ev) => {
+        const evStart = new Date(ev.startTime)
+        const evEnd = new Date(ev.endTime)
+        return evStart < slotEnd && evEnd > slotStart
+      })
+
+      const isOccupied = Boolean(matchingEvent)
+      const occupiedReason = matchingEvent
+        ? matchingEvent.eventType === 'Maintenance'
+          ? 'maintenance'
+          : 'booking'
+        : undefined
+
+      const isSelected = selectedIds.includes(slot.id)
+      return {
+        ...slot,
+        isOccupied,
+        isSelected,
+        occupiedReason,
+        maintenanceTitle: matchingEvent?.eventType === 'Maintenance' ? matchingEvent.title : undefined,
+      }
+    })
+  })
+
+  protected readonly formattedSelectedRange = computed(() => {
+    const ids = [...this.selectedSlotIds()].sort((a, b) => a - b)
+    if (!ids.length) return ''
+    const first = FIXED_TIME_SLOTS.find((s) => s.id === ids[0])!
+    const last = FIXED_TIME_SLOTS.find((s) => s.id === ids[ids.length - 1])!
+    return `${first.startTimeStr} – ${last.endTimeStr} (${this.bookingDate})`
+  })
+
+  protected readonly startTime = computed(() => {
+    const ids = [...this.selectedSlotIds()].sort((a, b) => a - b)
+    if (!ids.length) return new Date(`${this.bookingDate}T07:50:00`)
+    const first = FIXED_TIME_SLOTS.find((s) => s.id === ids[0])!
+    return new Date(`${this.bookingDate}T${first.startTimeStr}:00`)
+  })
+
+  protected readonly endTime = computed(() => {
+    const ids = [...this.selectedSlotIds()].sort((a, b) => a - b)
+    if (!ids.length) return new Date(`${this.bookingDate}T09:50:00`)
+    const last = FIXED_TIME_SLOTS.find((s) => s.id === ids[ids.length - 1])!
+    return new Date(`${this.bookingDate}T${last.endTimeStr}:00`)
+  })
+
+  protected readonly validSlotSelection = computed(() => {
+    return this.selectedSlotIds().length > 0
+  })
+
+  protected readonly availableEquipments = computed(() => this.equipments().filter((item) => item.labId === this.labId()))
+  protected readonly selectedLab = computed(() => this.labs().find((lab) => lab.labId === this.labId()) ?? null)
+  protected readonly selectedLabName = computed(() => {
+    this.languageStore.lang()
+    const name = this.selectedLab()?.labName
+    return name ? this.languageStore.t(name) : this.languageStore.t('bookingForm.sidebar.notSelected')
+  })
+  protected readonly selectedEquipmentCount = computed(() => this.selected().filter((r) => r.resourceType === 2).length)
 
   ngOnInit(): void {
-    forkJoin({
-      labs: this.api.labs(),
-      equipments: this.api.equipments(),
-      rules: this.api.priorityRules(true),
-    }).subscribe({
+    const q = this.route.snapshot.queryParams
+    if (q['labId']) this.labId.set(Number(q['labId']))
+    if (q['waitlistId']) this.sourceWaitlistId = Number(q['waitlistId'])
+
+    forkJoin({ labs: this.api.labs(), equipments: this.api.equipments(), rules: this.api.priorityRules(true) }).subscribe({
       next: ({ labs, equipments, rules }) => {
         this.labs.set(labs)
         this.equipments.set(equipments)
         this.rules.set(rules)
 
-        const query = this.route.snapshot.queryParamMap
-        const qLab = Number(query.get('labId'))
-        const qEquipment = Number(query.get('equipmentId'))
-        const qStart = query.get('start')
-        const qEnd = query.get('end')
-        const qWaitlist = Number(query.get('waitlistId'))
-        if (qStart && !Number.isNaN(new Date(qStart).getTime()))
-          this.startTime = toLocalDateTimeInput(qStart)
-        if (qEnd && !Number.isNaN(new Date(qEnd).getTime()))
-          this.endTime = toLocalDateTimeInput(qEnd)
-        this.sourceWaitlistId = qWaitlist > 0 ? qWaitlist : null
-
-        if (qLab) {
-          this.labId = qLab
-          this.mode.set(qEquipment ? 'equipment' : 'lab')
-          this.onLabChange()
-          if (qEquipment) {
-            const item = equipments.find((equipment) => equipment.equipmentId === qEquipment)
-            if (item) this.toggleEquipment(item)
+        const preselectedId = this.labId()
+        if (preselectedId) {
+          const lab = labs.find((item) => item.labId === preselectedId)
+          if (lab) {
+            this.selected.set([{ key: `lab-${lab.labId}`, resourceType: 1, labId: lab.labId, equipmentId: null, name: lab.labName, note: '' }])
           }
         }
       },
@@ -629,231 +629,225 @@ export class BookingFormPage implements OnInit {
     })
   }
 
-  protected setMode(mode: 'lab' | 'equipment'): void {
-    this.mode.set(mode)
-    this.selected.set([])
-    if (this.labId) this.onLabChange()
+  protected setMode(mode: 'lab' | 'equipment'): void { this.mode.set(mode); this.selected.set([]); if (this.labId()) this.onLabChange() }
+
+  protected selectLab(lab: LabRoomResponse): void {
+    if (lab.status !== 'Available') return
+    this.labId.set(lab.labId)
+    this.addEquipment.set(false)
+    this.labNote = ''
+    // Set the lab as the primary selected resource
+    this.selected.set([{ key: `lab-${lab.labId}`, resourceType: 1, labId: lab.labId, equipmentId: null, name: lab.labName, note: '' }])
   }
+
   protected onLabChange(): void {
+    this.addEquipment.set(false)
+    this.labNote = ''
     this.selected.set([])
-    const lab = this.labs().find((item) => item.labId === this.labId)
-    if (lab && this.mode() === 'lab')
-      this.selected.set([
-        {
-          key: `lab-${lab.labId}`,
-          resourceType: 1,
-          labId: lab.labId,
-          equipmentId: null,
-          name: lab.labName,
-          note: '',
-        },
-      ])
+    const lab = this.labs().find((item) => item.labId === this.labId())
+    if (lab) {
+      this.selected.set([{ key: `lab-${lab.labId}`, resourceType: 1, labId: lab.labId, equipmentId: null, name: lab.labName, note: '' }])
+    }
   }
+
+  protected onLabNoteChange(note: string): void {
+    this.labNote = note
+    this.selected.update((items) => items.map((item) => item.resourceType === 1 ? { ...item, note } : item))
+  }
+
+  protected toggleAddEquipment(): void {
+    this.addEquipment.update((v) => !v)
+    if (!this.addEquipment()) {
+      // Remove all equipment selections when toggling off
+      this.selected.update((items) => items.filter((item) => item.resourceType !== 2))
+    }
+  }
+
   protected toggleEquipment(item: EquipmentResponse): void {
     if (item.status !== 'Available') return
     this.selected.update((current) =>
-      current.some((selected) => selected.equipmentId === item.equipmentId)
-        ? current.filter((selected) => selected.equipmentId !== item.equipmentId)
-        : [
-            ...current,
-            {
-              key: `equipment-${item.equipmentId}`,
-              resourceType: 2,
-              labId: null,
-              equipmentId: item.equipmentId,
-              name: item.equipmentName,
-              note: '',
-            },
-          ],
+      current.some((s) => s.equipmentId === item.equipmentId)
+        ? current.filter((s) => s.equipmentId !== item.equipmentId)
+        : [...current, { key: `equipment-${item.equipmentId}`, resourceType: 2, labId: null, equipmentId: item.equipmentId, name: item.equipmentName, note: '' }]
     )
-  }
-  protected isSelected(id: number): boolean {
-    return this.selected().some((item) => item.equipmentId === id)
-  }
-  protected updateNote(index: number, note: string): void {
-    this.selected.update((items) =>
-      items.map((item, itemIndex) => (itemIndex === index ? { ...item, note } : item)),
-    )
-  }
-  protected validTime(): boolean {
-    return Boolean(
-      this.startTime &&
-      this.endTime &&
-      new Date(this.startTime) < new Date(this.endTime) &&
-      new Date(this.startTime) > new Date(),
-    )
-  }
-  protected goTo(target: number): void {
-    if (target <= this.step()) this.step.set(target)
-  }
-  protected checkAvailability(): void {
-    if (!this.validTime() || !this.selected().length) {
-      this.toast.info('Hãy chọn thời gian và tài nguyên hợp lệ')
-      return
-    }
-    this.checking.set(true)
-    this.suggestions.set([])
-    this.api
-      .calendar(toIso(this.startTime), toIso(this.endTime), this.labId ?? undefined)
-      .subscribe({
-        next: (events) => {
-          const selectedEquipmentIds = new Set(
-            this.selected()
-              .map((item) => item.equipmentId)
-              .filter((id): id is number => id !== null),
-          )
-          const blocking = events.some((event) => {
-            const overlapsTime =
-              event.blocking &&
-              new Date(event.startTime) < new Date(this.endTime) &&
-              new Date(event.endTime) > new Date(this.startTime)
-            if (!overlapsTime) return false
-            if (this.mode() === 'lab')
-              return event.resources.some((resource) => resource.labId === this.labId)
-            return event.resources.some(
-              (resource) =>
-                (resource.resourceType === 'LabRoom' && resource.labId === this.labId) ||
-                (resource.resourceType === 'Equipment' &&
-                  selectedEquipmentIds.has(resource.resourceId)),
-            )
-          })
-          this.available.set(!blocking)
-          this.availabilityMessage.set(
-            blocking
-              ? 'Khung giờ đang có sự kiện chặn tài nguyên. Hãy xem các gợi ý bên dưới.'
-              : 'Khung giờ hiện chưa có sự kiện chặn tài nguyên.',
-          )
-          if (blocking) this.loadSuggestions()
-          else this.checking.set(false)
-        },
-        error: () => {
-          this.checking.set(false)
-          this.toast.error('Không kiểm tra được lịch')
-        },
-      })
-  }
-  protected chooseSlot(slot: SuggestedSlotResponse): void {
-    this.startTime = toLocalDateTimeInput(slot.startTime)
-    this.endTime = toLocalDateTimeInput(slot.endTime)
-    this.available.set(true)
-    this.availabilityMessage.set('Đã chọn một khung giờ thay thế.')
-  }
-  protected priorityFor(purpose: string): number {
-    return (
-      this.rules().find((rule) => rule.purposeType === purpose)?.priorityLevel ??
-      this.purposes.findIndex((item) => item.key === purpose) + 1
-    )
-  }
-  protected purposeKey(): string {
-    return this.purposes.find((item) => item.value === this.purposeType)?.key ?? 'Other'
-  }
-  protected purposeLabel(): string {
-    return labelOf('purpose', this.purposeKey())
-  }
-  protected submit(): void {
-    if (!this.validTime() || !this.selected().length || !this.purposeDescription.trim()) {
-      this.toast.info('Thông tin booking chưa đầy đủ')
-      return
-    }
-    this.submitting.set(true)
-    this.api
-      .createBooking({
-        purposeType: this.purposeType,
-        purposeDescription: this.purposeDescription.trim(),
-        startTime: toIso(this.startTime),
-        endTime: toIso(this.endTime),
-        items: this.itemPayload(),
-      })
-      .subscribe({
-        next: (booking) => {
-          const finish = (): void => {
-            this.submitting.set(false)
-            this.toast.success(
-              'Đã gửi yêu cầu booking',
-              `Booking #${booking.bookingId} đang chờ duyệt.`,
-            )
-            void this.router.navigate(['/app/bookings', booking.bookingId])
-          }
-          if (!this.sourceWaitlistId) {
-            finish()
-            return
-          }
-          this.api.markWaitlistBooked(this.sourceWaitlistId).subscribe({
-            next: finish,
-            error: () => {
-              this.toast.info(
-                'Booking đã tạo nhưng hàng chờ chưa cập nhật',
-                'Bạn có thể kiểm tra lại tại màn hình Hàng chờ của tôi.',
-              )
-              finish()
-            },
-          })
-        },
-        error: () => {
-          this.submitting.set(false)
-          this.toast.error(
-            'Không thể tạo booking',
-            'Khung giờ có thể vừa phát sinh xung đột. Hãy kiểm tra lại lịch.',
-          )
-        },
-      })
   }
 
-  protected joinWaitlist(): void {
-    if (this.selected().length !== 1 || !this.validTime()) {
-      this.toast.info('Hãy chọn đúng một tài nguyên và khung giờ hợp lệ')
+  protected isEquipmentSelected(id: number): boolean { return this.selected().some((item) => item.equipmentId === id) }
+  protected isSelected(id: number): boolean { return this.isEquipmentSelected(id) }
+  protected updateNote(index: number, note: string): void { this.selected.update((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, note } : item)) }
+
+  protected goToStep2(): void {
+    this.step.set(2)
+    this.loadDayData()
+  }
+
+  protected goTo(target: number): void {
+    if (target <= this.step()) {
+      this.step.set(target)
+      if (target === 2) this.loadDayData()
+    }
+  }
+
+  protected onDateChange(): void {
+    this.loadDayData()
+  }
+
+  protected loadDayData(): void {
+    if (!this.bookingDate) return
+    this.dayEventsLoading.set(true)
+    this.selectedSlotIds.set([])
+
+    const fromStr = `${this.bookingDate}T00:00:00`
+    const toStr = `${this.bookingDate}T23:59:59`
+    const user = this.store.user()
+    const userId = user?.userId
+    const currentLabId = this.labId()
+
+    forkJoin({
+      events: this.api.calendar(toIso(fromStr), toIso(toStr), currentLabId ?? undefined),
+      maintenances: currentLabId ? this.api.maintenancesByLab(currentLabId) : this.api.maintenances(),
+      userBookings: userId ? this.api.bookingsByUser(userId) : this.api.bookings(),
+    }).subscribe({
+      next: ({ events, maintenances, userBookings }) => {
+        const selectedEquipmentIds = new Set(
+          this.selected().map((i) => i.equipmentId).filter((id): id is number => id !== null)
+        )
+        const relevantEvents = events.filter((ev) => {
+          if (ev.status === 'Cancelled' || ev.status === 'Rejected') return false
+          return ev.resources.some((r) => r.labId === currentLabId)
+        })
+
+        const maintenanceEvents: CalendarEventResponse[] = (maintenances || [])
+          .filter((m) => {
+            if (m.status === 'Cancelled' || m.status === 'Completed') return false
+            if (m.labId && m.labId !== currentLabId) return false
+            if (m.equipmentId && !selectedEquipmentIds.has(m.equipmentId)) return false
+            const mStart = new Date(m.startTime).getTime()
+            const mEnd = new Date(m.endTime).getTime()
+            const dayStart = new Date(fromStr).getTime()
+            const dayEnd = new Date(toStr).getTime()
+            return mStart < dayEnd && mEnd > dayStart
+          })
+          .map((m) => ({
+            sourceId: m.maintenanceId,
+            eventType: 'Maintenance',
+            title: `Lịch bảo trì phòng / thiết bị #${m.maintenanceId}`,
+            startTime: m.startTime,
+            endTime: m.endTime,
+            status: m.status || 'InProgress',
+            blocking: true,
+            userId: null,
+            resources: [
+              {
+                resourceType: m.equipmentId ? 'Equipment' : 'LabRoom',
+                resourceId: m.equipmentId || m.labId || 0,
+                labId: m.labId || 0,
+                equipmentId: m.equipmentId || undefined,
+                resourceName: 'Tài nguyên bảo trì',
+              },
+            ],
+          }))
+
+        const combinedEvents = [...relevantEvents, ...maintenanceEvents]
+        this.dayEvents.set(combinedEvents)
+
+        const activeUserCount = userBookings.filter(
+          (b) =>
+            b.status !== 'Cancelled' &&
+            b.status !== 'Rejected' &&
+            b.startTime.startsWith(this.bookingDate),
+        ).length
+        this.userDayBookingsCount.set(activeUserCount)
+        this.dayEventsLoading.set(false)
+      },
+      error: () => {
+        this.dayEventsLoading.set(false)
+        this.dayEvents.set([])
+        this.userDayBookingsCount.set(0)
+      },
+    })
+  }
+
+  protected selectSlot(slot: SlotWithStatus): void {
+    if (slot.isOccupied) {
+      if (slot.occupiedReason === 'maintenance') {
+        this.toast.error(
+          'Không thể đặt khung giờ này',
+          `Slot ${slot.slotNumber} (${slot.startTimeStr} - ${slot.endTimeStr}) đang trong thời gian bảo trì.`,
+        )
+      } else {
+        this.toast.error('Khung giờ đã có người đặt', `Slot ${slot.slotNumber} đã được sử dụng.`)
+      }
       return
     }
-    const resource = this.selected()[0]
-    this.joiningWaitlist.set(true)
-    this.api
-      .createWaitlist({
-        labId: resource.resourceType === 1 ? resource.labId : null,
-        equipmentId: resource.resourceType === 2 ? resource.equipmentId : null,
-        requestedStart: toIso(this.startTime),
-        requestedEnd: toIso(this.endTime),
-      })
-      .subscribe({
-        next: (entry) => {
-          this.joiningWaitlist.set(false)
-          this.toast.success(
-            'Đã tham gia hàng chờ',
-            `Vị trí hiện tại của bạn: ${entry.queuePosition}.`,
-          )
-        },
-        error: () => {
-          this.joiningWaitlist.set(false)
-          this.toast.error('Không thể tham gia hàng chờ')
-        },
-      })
+
+    const current = [...this.selectedSlotIds()]
+    const idx = current.indexOf(slot.id)
+
+    if (idx > -1) {
+      // Deselect
+      current.splice(idx, 1)
+    } else {
+      // Allow at most 2 slots per booking
+      if (current.length >= 2) {
+        current.shift() // remove oldest selection
+      }
+      current.push(slot.id)
+    }
+
+    current.sort((a, b) => a - b)
+    this.selectedSlotIds.set(current)
   }
-  private loadSuggestions(): void {
-    this.api
-      .suggestSlots({
-        startTime: toIso(this.startTime),
-        endTime: toIso(this.endTime),
-        items: this.itemPayload(),
-        maxSuggestions: 4,
-        searchDays: 14,
-        stepMinutes: 30,
-      })
-      .subscribe({
-        next: (slots) => {
-          this.suggestions.set(slots)
-          this.checking.set(false)
-        },
-        error: () => {
-          this.checking.set(false)
-          this.suggestions.set([])
-        },
-      })
+
+  protected priorityFor(purpose: string): number { return this.rules().find((rule) => rule.purposeType === purpose)?.priorityLevel ?? this.purposesList().findIndex((item) => item.key === purpose) + 1 }
+  protected purposeKey(): string { return this.purposesList().find((item) => item.value === this.purposeType)?.key ?? 'Other' }
+  protected purposeLabel(): string { return labelOf('purpose', this.purposeKey()) }
+
+  protected submit(): void {
+    if (!this.validSlotSelection() || !this.selected().length || !this.purposeDescription.trim()) {
+      this.toast.info('Thông tin booking chưa đầy đủ hoặc không hợp lệ')
+      return
+    }
+    // Enforce daily booking limit at submit time
+    if (this.userMaxLimitReached()) {
+      this.toast.error('Bạn đã đạt giới hạn 2 lượt đặt trong 1 ngày')
+      return
+    }
+    const userId = this.store.user()?.userId
+    const bookings$ = userId ? this.api.bookingsByUser(userId) : this.api.bookings()
+    bookings$.subscribe((res) => {
+      const today = this.bookingDate
+      const activeBookingsOnDate = res.filter(
+        (b) => (b.status === 'Pending' || b.status === 'Approved') && b.startTime.startsWith(today)
+      ).length
+
+      if (activeBookingsOnDate >= 2) {
+        this.toast.error('Bạn đã đạt giới hạn tối đa 2 lần đặt trong 1 ngày')
+        return
+      }
+
+      this.submitting.set(true)
+      this.api
+        .createBooking({
+          purposeType: this.purposeType,
+          purposeDescription: this.purposeDescription.trim(),
+          startTime: toIso(this.startTime().toISOString()),
+          endTime: toIso(this.endTime().toISOString()),
+          items: this.itemPayload(),
+        })
+        .subscribe({
+          next: (booking) => {
+            this.submitting.set(false)
+            this.toast.success('Đã gửi yêu cầu booking', `Booking #${booking.bookingId} đang chờ duyệt.`)
+            void this.router.navigate(['/app/bookings', booking.bookingId])
+          },
+          error: () => {
+            this.submitting.set(false)
+            this.toast.error('Không thể tạo booking')
+          },
+        })
+    })
   }
-  private itemPayload(): BookingItemRequest[] {
-    return this.selected().map((item) => ({
-      resourceType: item.resourceType,
-      labId: item.labId,
-      equipmentId: item.equipmentId,
-      note: item.note || null,
-    }))
-  }
+
+  private itemPayload(): BookingItemRequest[] { return this.selected().map((item) => ({ resourceType: item.resourceType, labId: item.labId, equipmentId: item.equipmentId, note: item.note || null })) }
 }

@@ -1,5 +1,6 @@
 import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
 import { catchError, forkJoin, of } from 'rxjs'
 import type {
@@ -8,856 +9,514 @@ import type {
   UserViolationSummaryResponse,
   WaitlistResponse,
 } from '../../core/api/api.models'
+import { SystemService } from '../../core/api/system.service'
+
+import type { BookingDetailResponse, CalendarEventResponse, UsageLogResponse } from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
+import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf } from '../../shared/utils/presentation'
+import { labelOf, toDateInput } from '../../shared/utils/presentation'
+
+interface ScheduleSlotEvent {
+  roomName: string
+  title: string
+  timeStr: string
+  dateKey: string
+  rowIndex: number
+  tone: 'emerald' | 'amber' | 'cyan' | 'indigo' | 'purple'
+  bookingId?: number
+  maintenanceId?: number
+  sourceType?: 'Booking' | 'Maintenance' | 'Sample'
+}
 
 @Component({
   selector: 'app-requester-home-page',
-  imports: [DatePipe, NgClass, RouterLink, IconComponent, TranslatePipe, ModalComponent],
-
+  imports: [
+    DatePipe,
+    NgClass,
+    FormsModule,
+    RouterLink,
+    IconComponent,
+    ModalComponent,
+    StatusBadgeComponent,
+    TranslatePipe,
+  ],
   template: `
     <section class="space-y-6">
+      <!-- Top Header / Greeting -->
       <header class="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
         <div>
-          <div class="flex items-center gap-2 text-sm font-semibold text-indigo-600">
+          <div class="flex items-center gap-2 text-xs font-bold text-indigo-600">
             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-            {{ today | date: 'EEEE, dd/MM/yyyy' }}
+            • {{ today | date: 'EEEE, dd/MM/yyyy' }}
           </div>
-          <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">
+          <h1 class="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
             {{ 'home.greeting' | t: { name: firstName() } }}
           </h1>
-          <p class="mt-2 text-sm text-slate-500">{{ 'home.sub' | t }}</p>
+          <p class="mt-1 text-sm font-medium text-slate-500">{{ 'home.sub' | t }}</p>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <a
             routerLink="/app/calendar"
-            class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-xs font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
           >
-            <app-icon name="calendar" [size]="18" />
+            <app-icon name="calendar" [size]="18" class="text-slate-500" />
             {{ 'home.viewCalendar' | t }}
           </a>
           <a
             routerLink="/app/bookings/new"
-            class="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:shadow-xl"
+            class="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 px-5 text-xs font-black text-white shadow-lg shadow-indigo-500/25 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/35"
           >
-            <span class="text-lg leading-none">+</span>
+            <span class="text-base font-bold leading-none">+</span>
             {{ 'home.quickBooking' | t }}
           </a>
         </div>
       </header>
 
       @if (loading()) {
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          @for (item of [1, 2, 3, 4]; track item) {
-            <div class="card-surface h-36 animate-pulse bg-slate-100"></div>
-          }
-        </div>
+        <div class="card-surface h-96 animate-pulse bg-slate-100"></div>
       } @else {
-        @if (accountWarning()) {
-          <div
-            class="flex flex-col gap-4 rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 sm:flex-row sm:items-center"
-          >
-            <div
-              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"
-            >
-              <app-icon name="alert" [size]="23" />
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="font-bold text-amber-950">{{ 'home.accountNotice' | t }}</p>
-              <p class="mt-1 text-sm leading-6 text-amber-700">{{ accountWarning() }}</p>
-            </div>
-            <a
-              routerLink="/app/profile"
-              class="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-amber-900 px-4 text-xs font-bold text-white hover:bg-amber-800"
-              >{{ 'home.viewDetails' | t }}</a
-            >
-          </div>
-        }
-
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          @for (card of kpiCards(); track card.label) {
-            <article
-              class="card-surface group relative overflow-hidden p-5 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10"
-            >
-              <div
-                class="absolute -top-10 -right-10 h-28 w-28 rounded-full opacity-55 blur-2xl"
-                [class.bg-indigo-200]="card.tone === 'indigo'"
-                [class.bg-cyan-200]="card.tone === 'cyan'"
-                [class.bg-amber-200]="card.tone === 'amber'"
-                [class.bg-rose-200]="card.tone === 'rose'"
-              ></div>
-              <div class="relative flex items-start justify-between gap-4">
-                <div>
-                  <p class="text-sm font-medium text-slate-500">{{ card.label }}</p>
-                  <p class="mt-3 text-3xl font-bold tracking-[-0.04em] text-slate-950">
-                    {{ card.value }}
-                  </p>
-                  <p class="mt-2 text-xs text-slate-400">{{ card.note }}</p>
-                </div>
-                <div
-                  class="flex h-11 w-11 items-center justify-center rounded-2xl"
-                  [class.bg-indigo-50]="card.tone === 'indigo'"
-                  [class.text-indigo-600]="card.tone === 'indigo'"
-                  [class.bg-cyan-50]="card.tone === 'cyan'"
-                  [class.text-cyan-600]="card.tone === 'cyan'"
-                  [class.bg-amber-50]="card.tone === 'amber'"
-                  [class.text-amber-600]="card.tone === 'amber'"
-                  [class.bg-rose-50]="card.tone === 'rose'"
-                  [class.text-rose-600]="card.tone === 'rose'"
-                >
-                  <app-icon [name]="card.icon" [size]="21" />
-                </div>
-              </div>
-            </article>
-          }
-        </div>
-
-        <!-- My Booking Calendar Section matching ClusterMarket design -->
-        <article class="card-surface overflow-hidden p-6">
-          <!-- Calendar Header & Navigation Controls -->
-          <div
-            class="flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <h2 class="flex items-center gap-2 text-xl font-bold text-slate-900">
-              <span
-                class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
-              >
-                <app-icon name="calendar" [size]="20" />
-              </span>
-              {{ 'home.myBookingCalendar' | t }}
-            </h2>
-
-            <div class="flex flex-wrap items-center gap-3">
-              <!-- View Mode Toggle Buttons (Today, Day, Week, Month) -->
-              <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
-                @for (v of ['Today', 'Day', 'Week', 'Month']; track v) {
-                  <button
-                    type="button"
-                    class="rounded-lg px-3 py-1.5 text-xs font-bold transition"
-                    [ngClass]="
-                      calendarView() === v
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    "
-                    (click)="setCalendarView(v)"
-                  >
-                    {{ v }}
-                  </button>
-                }
-              </div>
-
-              <!-- Month & Navigation (< July 2026 >) -->
-              <div
-                class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-800 shadow-sm"
-              >
-                <button
-                  type="button"
-                  class="rounded-lg px-1.5 py-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                  (click)="prevMonth()"
-                >
-                  &lt;
-                </button>
-                <span class="min-w-[100px] text-center font-bold text-slate-900">
-                  {{ calendarDate() | date: 'MMMM yyyy' }}
-                </span>
-                <button
-                  type="button"
-                  class="rounded-lg px-1.5 py-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                  (click)="nextMonth()"
-                >
-                  &gt;
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Calendar Days Grid & Event Matrix -->
-          <div class="mt-4 overflow-x-auto">
-            <div class="min-w-[850px]">
-              <!-- Time slot & Days Header Bar -->
-              <div
-                class="grid grid-cols-13 gap-px overflow-hidden rounded-t-xl border border-slate-200 bg-slate-200"
-              >
-                <div class="bg-blue-600 p-2.5 text-center text-xs font-bold text-white">
-                  Time / Slot
-                </div>
-                @for (day of calendarDays(); track day.dayNumber) {
-                  <div class="border-l border-blue-500/30 bg-blue-600 p-2 text-center text-white">
-                    <div class="text-[11px] font-semibold opacity-90">
-                      {{ day.dayName }} {{ day.dayNumber }}
-                    </div>
-                    <div class="text-[9px] font-bold opacity-75">00 - 12</div>
-                  </div>
-                }
-              </div>
-
-              <!-- Calendar Time Rows & Bookings Matrix -->
-              <div
-                class="divide-y divide-slate-100 rounded-b-xl border-x border-b border-slate-200 bg-white"
-              >
-                <!-- Morning Slot (08:00 - 12:00) -->
-                <div class="grid min-h-[70px] grid-cols-13 bg-white">
-                  <div
-                    class="flex items-center justify-center border-r border-slate-100 bg-slate-50 p-2 text-center text-xs font-bold text-slate-500"
-                  >
-                    08:00 - 12:00
-                  </div>
-                  @for (day of calendarDays(); track day.dayNumber) {
-                    <div
-                      class="flex flex-col gap-1 border-r border-slate-100 p-1.5 transition hover:bg-slate-50/70"
-                    >
-                      @for (ev of getEventsForDay(day.dateStr, 'morning'); track ev.id) {
-                        <div
-                          class="cursor-pointer rounded-lg px-2 py-1 text-[10px] leading-tight font-bold shadow-sm transition hover:scale-[1.02]"
-                          [ngClass]="ev.bgClass"
-                          [title]="ev.title + ' (' + ev.time + ')'"
-                        >
-                          <div class="truncate font-black">{{ ev.title }}</div>
-                          <div class="truncate font-medium opacity-80">{{ ev.time }}</div>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-
-                <!-- Afternoon Slot (13:00 - 17:00) -->
-                <div class="grid min-h-[70px] grid-cols-13 bg-slate-50/30">
-                  <div
-                    class="flex items-center justify-center border-r border-slate-100 bg-slate-50 p-2 text-center text-xs font-bold text-slate-500"
-                  >
-                    13:00 - 17:00
-                  </div>
-                  @for (day of calendarDays(); track day.dayNumber) {
-                    <div
-                      class="flex flex-col gap-1 border-r border-slate-100 p-1.5 transition hover:bg-slate-50/70"
-                    >
-                      @for (ev of getEventsForDay(day.dateStr, 'afternoon'); track ev.id) {
-                        <div
-                          class="cursor-pointer rounded-lg px-2 py-1 text-[10px] leading-tight font-bold shadow-sm transition hover:scale-[1.02]"
-                          [ngClass]="ev.bgClass"
-                          [title]="ev.title + ' (' + ev.time + ')'"
-                        >
-                          <div class="truncate font-black">{{ ev.title }}</div>
-                          <div class="truncate font-medium opacity-80">{{ ev.time }}</div>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bottom Action Bar & Color Legend matching Screenshot -->
-          <div
-            class="mt-6 flex flex-col gap-5 border-t border-slate-100 pt-4 lg:flex-row lg:items-center lg:justify-between"
-          >
-            <!-- Export external calendar dropdown button -->
-            <div class="relative">
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-blue-700 hover:shadow-lg"
-                (click)="exportDropdownOpen.set(!exportDropdownOpen())"
-              >
-                <span>{{ 'home.exportExternalCalendar' | t }}</span>
-                <app-icon
-                  name="chevron-right"
-                  [size]="15"
-                  class="transition-transform duration-200"
-                  [ngClass]="{ 'rotate-90': exportDropdownOpen() }"
-                />
-              </button>
-
-              @if (exportDropdownOpen()) {
-                <div class="fixed inset-0 z-30" (click)="exportDropdownOpen.set(false)"></div>
-                <div
-                  class="absolute bottom-full left-0 z-40 mb-2 w-64 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl"
-                >
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    (click)="exportIcsCalendar(); exportDropdownOpen.set(false)"
-                  >
-                    <app-icon name="calendar" [size]="16" class="text-blue-600" />
-                    Tải file iCalendar (.ics)
-                  </button>
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                    (click)="exportGoogleCalendar(); exportDropdownOpen.set(false)"
-                  >
-                    <app-icon name="external-link" [size]="16" class="text-emerald-600" />
-                    Đồng bộ Google Calendar
-                  </button>
-                </div>
-              }
-            </div>
-
-            <!-- Color Legend Grid matching screenshot -->
-            <div class="flex-1">
-              <div class="mb-2 flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-700"
-                  >Chú giải màu sắc & loại booking:</span
-                >
-                <button
-                  type="button"
-                  class="text-xs font-bold text-blue-600 hover:underline"
-                  (click)="colorGuideModalOpen.set(true)"
-                >
-                  Xem hướng dẫn chi tiết &rarr;
-                </button>
-              </div>
-              <div
-                class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-medium text-slate-600 sm:grid-cols-3 md:grid-cols-4"
-              >
-                <div class="flex items-center gap-2">
-                  <span class="h-3.5 w-3.5 rounded border border-emerald-400 bg-emerald-100"></span>
-                  <span>{{ 'home.legend.myBooking' | t }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="h-3.5 w-3.5 rounded border border-blue-400 bg-blue-100"></span>
-                  <span>{{ 'home.legend.internalBooking' | t }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="h-3.5 w-3.5 rounded border border-cyan-400 bg-cyan-100"></span>
-                  <span>{{ 'home.legend.externalBooking' | t }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="h-3.5 w-3.5 rounded border border-amber-400 bg-amber-100"></span>
-                  <span>{{ 'home.legend.maintenance' | t }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="h-3.5 w-3.5 rounded border border-rose-400 bg-rose-100"></span>
-                  <span>{{ 'home.legend.notAvailable' | t }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="h-3.5 w-3.5 rounded border border-yellow-400 bg-yellow-100"></span>
-                  <span>{{ 'home.legend.announcement' | t }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="h-3.5 w-3.5 rounded border border-purple-400 bg-purple-100"></span>
-                  <span>{{ 'home.legend.workflowBooking' | t }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="h-3.5 w-3.5 rounded border border-indigo-400 bg-indigo-100"></span>
-                  <span>{{ 'home.legend.groupBooking' | t }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <div class="grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
-          <article class="card-surface overflow-hidden">
-            <div
-              class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6"
-            >
-              <div>
-                <h2 class="text-lg font-bold text-slate-950">{{ 'home.upcomingTitle' | t }}</h2>
-                <p class="mt-1 text-xs text-slate-400">{{ 'home.upcomingSubtitle' | t }}</p>
-              </div>
-              <a
-                routerLink="/app/bookings/my"
-                class="text-xs font-bold text-indigo-600 hover:text-indigo-800"
-                >{{ 'home.viewAll' | t }}</a
-              >
-            </div>
-
-            @if (upcomingBookings().length === 0) {
-              <div class="flex flex-col items-center px-6 py-14 text-center">
-                <div
-                  class="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-500"
-                >
-                  <app-icon name="calendar" [size]="25" />
-                </div>
-                <p class="mt-4 font-semibold text-slate-800">{{ 'home.noUpcoming' | t }}</p>
-                <p class="mt-1 text-sm text-slate-400">{{ 'home.noUpcomingSub' | t }}</p>
-              </div>
-            } @else {
-              <div class="divide-y divide-slate-100">
-                @for (booking of upcomingBookings().slice(0, 4); track booking.bookingId) {
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-slate-50 sm:px-6"
-                    (click)="bookingDetail(booking)"
-                  >
-                    <div
-                      class="flex w-14 shrink-0 flex-col items-center rounded-2xl bg-[#111a3a] py-2 text-white"
-                    >
-                      <span class="text-[10px] font-semibold text-cyan-300 uppercase">{{
-                        booking.startTime | date: 'MMM'
-                      }}</span>
-                      <span class="text-xl leading-6 font-bold">{{
-                        booking.startTime | date: 'dd'
-                      }}</span>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <p class="truncate font-semibold text-slate-900">
-                          {{ purposeLabel(booking.purposeType) }}
-                        </p>
-                        <span
-                          class="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700"
-                          >{{ statusLabel('Approved') }}</span
-                        >
-                      </div>
-                      <p class="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
-                        <app-icon name="clock" [size]="14" />
-                        {{ booking.startTime | date: 'HH:mm' }} –
-                        {{ booking.endTime | date: 'HH:mm, dd/MM/yyyy' }}
-                      </p>
-                    </div>
-                    <span class="text-slate-300"><app-icon name="arrow-right" [size]="18" /></span>
-                  </button>
-                }
-              </div>
-            }
-          </article>
-
-          <article class="card-surface p-5 sm:p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="text-lg font-bold text-slate-950">{{ 'home.accountHealth' | t }}</h2>
-                <p class="mt-1 text-xs text-slate-400">{{ 'home.accountHealthSub' | t }}</p>
-              </div>
-              <div
-                class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"
-              >
-                <app-icon name="shield" [size]="22" />
-              </div>
-            </div>
-
-            <div class="mt-7 flex items-center gap-5">
-              <div
-                class="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full"
-                [style.background]="healthRing()"
-              >
-                <div
-                  class="flex h-[82px] w-[82px] flex-col items-center justify-center rounded-full bg-white shadow-inner"
-                >
-                  <span class="text-2xl font-bold text-slate-950">{{ healthScore() }}</span>
-                  <span class="text-[10px] font-semibold text-slate-400 uppercase">/ 100</span>
-                </div>
-              </div>
-              <div class="min-w-0">
-                <span
-                  class="inline-flex rounded-full px-3 py-1.5 text-xs font-bold"
-                  [class.bg-emerald-50]="statusText() === 'Active'"
-                  [class.text-emerald-700]="statusText() === 'Active'"
-                  [class.bg-amber-50]="statusText() === 'Restricted'"
-                  [class.text-amber-700]="statusText() === 'Restricted'"
-                  [class.bg-rose-50]="statusText() === 'Locked' || statusText() === 'Inactive'"
-                  [class.text-rose-700]="statusText() === 'Locked' || statusText() === 'Inactive'"
-                  >{{ statusLabel(statusText()) }}</span
-                >
-                <p class="mt-3 text-sm leading-6 text-slate-500">
-                  {{ violationSummary().activeViolationCount }}
-                  {{ 'dashboard.activeViolations' | t }},
-                  {{ violationSummary().activePenaltyPoints }} {{ 'dashboard.points' | t }}.
-                </p>
-              </div>
-            </div>
-
-            <div class="mt-6 space-y-3 rounded-2xl bg-slate-50 p-4">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-slate-500">{{ 'home.totalPenaltyPoints' | t }}</span
-                ><strong class="text-slate-900">{{ violationSummary().penaltyPoints }}</strong>
-              </div>
-              <div class="h-px bg-slate-200"></div>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-slate-500">{{ 'home.restrictionUntil' | t }}</span
-                ><strong class="text-slate-900">{{
-                  violationSummary().restrictionUntil
-                    ? (violationSummary().restrictionUntil | date: 'dd/MM/yyyy HH:mm')
-                    : ('home.none' | t)
-                }}</strong>
-              </div>
-            </div>
-          </article>
-        </div>
-
-        <div class="grid gap-6 xl:grid-cols-3">
-          <article class="card-surface overflow-hidden xl:col-span-2">
-            <div
-              class="flex items-center justify-between border-b border-slate-100 px-5 py-5 sm:px-6"
-            >
-              <div>
-                <h2 class="text-lg font-bold text-slate-950">
-                  {{ 'home.latestNotifications' | t }}
-                </h2>
-                <p class="mt-1 text-xs text-slate-400">{{ 'home.latestNotificationsSub' | t }}</p>
-              </div>
-              <a
-                routerLink="/app/notifications"
-                class="text-xs font-bold text-indigo-600 hover:text-indigo-800"
-                >{{ 'home.notificationCenter' | t }}</a
-              >
-            </div>
-            @if (recentNotifications().length === 0) {
-              <div class="px-6 py-12 text-center text-sm text-slate-400">
-                {{ 'home.noNotifications' | t }}
-              </div>
-            } @else {
-              <div class="divide-y divide-slate-100">
-                @for (notification of recentNotifications(); track notification.notificationId) {
-                  <a
-                    routerLink="/app/notifications"
-                    class="flex items-start gap-4 px-5 py-4 transition hover:bg-slate-50 sm:px-6"
-                  >
-                    <div
-                      class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
-                      [class.bg-indigo-50]="
-                        notificationTone(notification.notificationType) === 'indigo'
-                      "
-                      [class.text-indigo-600]="
-                        notificationTone(notification.notificationType) === 'indigo'
-                      "
-                      [class.bg-emerald-50]="
-                        notificationTone(notification.notificationType) === 'emerald'
-                      "
-                      [class.text-emerald-600]="
-                        notificationTone(notification.notificationType) === 'emerald'
-                      "
-                      [class.bg-amber-50]="
-                        notificationTone(notification.notificationType) === 'amber'
-                      "
-                      [class.text-amber-600]="
-                        notificationTone(notification.notificationType) === 'amber'
-                      "
-                      [class.bg-rose-50]="
-                        notificationTone(notification.notificationType) === 'rose'
-                      "
-                      [class.text-rose-600]="
-                        notificationTone(notification.notificationType) === 'rose'
-                      "
-                    >
-                      <app-icon
-                        [name]="notificationIcon(notification.notificationType)"
-                        [size]="19"
-                      />
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-start gap-3">
-                        <p class="min-w-0 flex-1 font-semibold text-slate-900">
-                          {{ notification.title }}
-                        </p>
-                        @if (!notification.isRead) {
-                          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-500"></span>
-                        }
-                      </div>
-                      <p class="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">
-                        {{ notification.message }}
-                      </p>
-                      <p class="mt-2 text-[11px] text-slate-400">
-                        {{ notification.createdAt | date: 'HH:mm, dd/MM/yyyy' }}
-                      </p>
-                    </div>
-                  </a>
-                }
-              </div>
-            }
-          </article>
-
-          <article class="card-surface overflow-hidden">
-            <div class="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <h2 class="text-lg font-bold text-slate-950">{{ 'home.yourWaitlist' | t }}</h2>
-              <p class="mt-1 text-xs text-slate-400">{{ 'home.waitlistSub' | t }}</p>
-            </div>
-            @if (activeWaitlists().length === 0) {
-              <div class="flex flex-col items-center px-6 py-12 text-center">
-                <div
-                  class="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"
-                >
-                  <app-icon name="clock" [size]="22" />
-                </div>
-                <p class="mt-4 text-sm font-semibold text-slate-700">
-                  {{ 'home.noWaitlists' | t }}
-                </p>
-              </div>
-            } @else {
-              <div class="space-y-3 p-4">
-                @for (waitlist of activeWaitlists().slice(0, 3); track waitlist.waitlistId) {
-                  <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <div class="flex items-center justify-between gap-3">
-                      <span
-                        class="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 shadow-sm"
-                        >#{{ waitlist.queuePosition }} {{ 'home.inWaitlist' | t }}</span
-                      >
-                      <span
-                        class="text-[10px] font-bold"
-                        [class.text-amber-600]="waitlist.status === 'Waiting'"
-                        [class.text-emerald-600]="waitlist.status === 'Notified'"
-                        >{{ waitlistStatusLabel(waitlist.status) }}</span
-                      >
-                    </div>
-                    <p class="mt-3 text-sm font-semibold text-slate-800">
-                      {{
-                        waitlist.labId
-                          ? ('labs.labRoom' | t) + ' #' + waitlist.labId
-                          : ('equipments.title' | t) + ' #' + waitlist.equipmentId
-                      }}
-                    </p>
-                    <p class="mt-1 text-xs text-slate-400">
-                      {{ waitlist.requestedStart | date: 'HH:mm dd/MM' }} –
-                      {{ waitlist.requestedEnd | date: 'HH:mm dd/MM' }}
-                    </p>
-                    @if (waitlist.notifiedAt) {
-                      <p
-                        class="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700"
-                      >
-                        {{ 'home.notifiedAt' | t }} {{ waitlist.notifiedAt | date: 'HH:mm dd/MM' }}
-                      </p>
-                    }
-                  </div>
-                }
-              </div>
-            }
-          </article>
-        </div>
-
-        <!-- Nội quy & Chính sách phòng Lab -->
-        <article
-          class="card-surface overflow-hidden border border-cyan-100/90 bg-gradient-to-r from-cyan-50/50 via-white to-teal-50/30 p-6 shadow-sm"
-        >
-          <div
-            class="flex flex-col gap-4 border-b border-cyan-100/80 pb-4 sm:flex-row sm:items-center sm:justify-between"
-          >
+        <!-- Section: Lịch đặt của tôi (My Booking Calendar / Schedule Grid) -->
+        <article class="card-surface overflow-hidden p-5 sm:p-6">
+          <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white shadow-md shadow-cyan-500/20"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"
               >
-                <app-icon name="file-text" [size]="22" />
+                <app-icon name="calendar" [size]="20" />
               </div>
-              <div>
-                <h2 class="text-lg font-black text-slate-900">
-                  Nội quy & Quy định sử dụng phòng Lab
-                </h2>
-                <p class="text-xs font-medium text-slate-500">
-                  Các quy tắc cố định áp dụng cho tất cả người dùng và sinh viên khi đăng ký sử dụng
-                  tài nguyên.
-                </p>
+              <h2 class="text-lg font-black text-slate-950">{{ 'home.mySchedule' | t }}</h2>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <!-- View mode pills -->
+              <div class="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-bold">
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-1.5 transition"
+                  [ngClass]="
+                    calendarMode() === 'Today'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  "
+                  (click)="setCalendarMode('Today')"
+                >
+                  {{ 'home.today' | t }}
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-1.5 transition"
+                  [ngClass]="
+                    calendarMode() === 'Day'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  "
+                  (click)="setCalendarMode('Day')"
+                >
+                  {{ 'home.day' | t }}
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-1.5 transition"
+                  [ngClass]="
+                    calendarMode() === 'Week'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  "
+                  (click)="setCalendarMode('Week')"
+                >
+                  {{ 'home.week' | t }}
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-1.5 transition"
+                  [ngClass]="
+                    calendarMode() === 'Month'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  "
+                  (click)="setCalendarMode('Month')"
+                >
+                  {{ 'home.month' | t }}
+                </button>
+              </div>
+
+              <!-- Month Navigation -->
+              <div
+                class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-extrabold text-slate-700 shadow-sm"
+              >
+                <button
+                  type="button"
+                  class="p-1 text-slate-400 hover:text-indigo-600"
+                  (click)="shiftFocus(-1)"
+                >
+                  <app-icon name="chevron-left" [size]="14" />
+                </button>
+                <span class="capitalize">{{ monthTitle() }}</span>
+                <button
+                  type="button"
+                  class="p-1 text-slate-400 hover:text-indigo-600"
+                  (click)="shiftFocus(1)"
+                >
+                  <app-icon name="chevron-right" [size]="14" />
+                </button>
               </div>
             </div>
-            <a
-              routerLink="/app/policy"
-              class="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-cyan-600 px-4 text-xs font-bold text-white shadow-md shadow-cyan-500/15 transition hover:bg-cyan-700"
-            >
-              <span>Xem chi tiết chính sách</span>
-              <app-icon name="arrow-right" [size]="16" />
-            </a>
+          </header>
+
+          <!-- Calendar Table / Schedule Grid -->
+          <div
+            class="mt-2 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-inner [scrollbar-width:thin]"
+          >
+            <table class="w-full min-w-[980px] border-collapse text-left text-xs">
+              <thead>
+                <tr class="bg-[#1d4ed8] text-white">
+                  <th
+                    class="border-r border-blue-500/30 px-3 py-3 font-extrabold whitespace-nowrap"
+                  >
+                    {{ 'home.timeSlot' | t }}
+                  </th>
+                  @for (col of calendarCols(); track col.key) {
+                    <th
+                      class="border-r border-blue-500/30 px-2 py-2.5 text-center font-bold whitespace-nowrap"
+                    >
+                      <div>{{ col.dayName }}</div>
+                      <div class="text-[10px] font-normal opacity-80">00-12</div>
+                    </th>
+                  }
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 bg-white">
+                <!-- Slot 1: 08:00 - 12:00 -->
+                <tr class="h-24 hover:bg-slate-50/50">
+                  <td
+                    class="border-r border-slate-100 px-3 py-3 text-center text-[11px] font-black text-slate-600 whitespace-nowrap bg-slate-50/80"
+                  >
+                    08:00 - 12:00
+                  </td>
+                  @for (col of calendarCols(); track col.key; let cIdx = $index) {
+                    <td
+                      class="relative border-r border-slate-100 p-1.5 align-top transition hover:bg-indigo-50/30"
+                    >
+                      @for (evt of getSlotEvents(cIdx, 0); track evt.roomName + evt.timeStr) {
+                        <div
+                          class="rounded-xl border p-2 text-[10px] shadow-sm transition hover:scale-[1.02] cursor-pointer space-y-0.5"
+                          [ngClass]="{
+                            'border-emerald-300 bg-emerald-50 text-emerald-950':
+                              evt.tone === 'emerald',
+                            'border-amber-300 bg-amber-50 text-amber-950': evt.tone === 'amber',
+                            'border-cyan-300 bg-cyan-50 text-cyan-950': evt.tone === 'cyan',
+                            'border-indigo-300 bg-indigo-50 text-indigo-950':
+                              evt.tone === 'indigo',
+                            'border-purple-300 bg-purple-50 text-purple-950':
+                              evt.tone === 'purple',
+                          }"
+                          (click)="onScheduleEventClick(evt)"
+                        >
+                          <p class="truncate font-black text-[11px] text-slate-900 leading-tight">
+                            {{ evt.roomName }}
+                          </p>
+                          <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
+                            {{ evt.title }}
+                          </p>
+                          <p class="text-[9px] font-semibold opacity-75 leading-tight">
+                            {{ evt.timeStr }}
+                          </p>
+                        </div>
+                      }
+                    </td>
+                  }
+                </tr>
+
+                <!-- Slot 2: 13:00 - 17:00 -->
+                <tr class="h-24 hover:bg-slate-50/50">
+                  <td
+                    class="border-r border-slate-100 px-3 py-3 text-center text-[11px] font-black text-slate-600 whitespace-nowrap bg-slate-50/80"
+                  >
+                    13:00 - 17:00
+                  </td>
+                  @for (col of calendarCols(); track col.key; let cIdx = $index) {
+                    <td
+                      class="relative border-r border-slate-100 p-1.5 align-top transition hover:bg-indigo-50/30"
+                    >
+                      @for (evt of getSlotEvents(cIdx, 1); track evt.roomName + evt.timeStr) {
+                        <div
+                          class="rounded-xl border p-2 text-[10px] shadow-sm transition hover:scale-[1.02] cursor-pointer space-y-0.5"
+                          [ngClass]="{
+                            'border-emerald-300 bg-emerald-50 text-emerald-950':
+                              evt.tone === 'emerald',
+                            'border-amber-300 bg-amber-50 text-amber-950': evt.tone === 'amber',
+                            'border-cyan-300 bg-cyan-50 text-cyan-950': evt.tone === 'cyan',
+                            'border-indigo-300 bg-indigo-50 text-indigo-950':
+                              evt.tone === 'indigo',
+                            'border-purple-300 bg-purple-50 text-purple-950':
+                              evt.tone === 'purple',
+                          }"
+                          (click)="onScheduleEventClick(evt)"
+                        >
+                          <p class="truncate font-black text-[11px] text-slate-900 leading-tight">
+                            {{ evt.roomName }}
+                          </p>
+                          <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
+                            {{ evt.title }}
+                          </p>
+                          <p class="text-[9px] font-semibold opacity-75 leading-tight">
+                            {{ evt.timeStr }}
+                          </p>
+                        </div>
+                      }
+                    </td>
+                  }
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-2xl border border-cyan-100/80 bg-white/90 p-4 shadow-sm">
-              <div class="flex items-center gap-2 text-xs font-bold text-cyan-800">
-                <span
-                  class="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700"
-                  >1</span
-                >
-                {{
-                  languageStore.lang() === 'en'
-                    ? '2-Step Verification'
-                    : 'Xác thực 2 bước (Check-in/out)'
-                }}
-              </div>
-              <p class="mt-2 text-xs leading-5 text-slate-600">
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Check-in/out completes only upon direct approval by Management.'
-                    : 'Check-in/out đúng giờ chỉ hoàn tất khi có phê duyệt trực tiếp từ Bộ phận Quản lý.'
-                }}
-              </p>
+          <!-- Calendar Controls & Legend Footer -->
+          <div class="mt-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <a
+              routerLink="/app/calendar"
+              class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <span>{{ 'home.exportCalendar' | t }}</span>
+              <app-icon name="chevron-right" [size]="14" />
+            </a>
+
+            <!-- Legend items -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-bold text-slate-600">
+              <span class="text-slate-400 font-medium">{{ 'home.colorLegend' | t }}</span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-md bg-emerald-500"></span>
+                {{ 'home.legendMyBooking' | t }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-md bg-sky-400"></span>
+                {{ 'home.legendInternal' | t }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-md bg-cyan-400"></span>
+                {{ 'home.legendExternal' | t }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-md bg-amber-400"></span>
+                {{ 'home.legendMaintenance' | t }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-md bg-rose-400"></span>
+                {{ 'home.legendUnavailable' | t }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-md bg-yellow-400"></span>
+                {{ 'home.legendNotice' | t }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-md bg-purple-500"></span>
+                {{ 'home.legendWorkflow' | t }}
+              </span>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-md bg-blue-500"></span>
+                {{ 'home.legendGroup' | t }}
+              </span>
             </div>
 
-            <div class="rounded-2xl border border-amber-100/80 bg-white/90 p-4 shadow-sm">
-              <div class="flex items-center gap-2 text-xs font-bold text-amber-800">
-                <span
-                  class="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 text-amber-700"
-                  >2</span
-                >
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Initial Inspection (5-10m)'
-                    : 'Kiểm tra đầu giờ (5–10 phút)'
-                }}
-              </div>
-              <p class="mt-2 text-xs leading-5 text-slate-600">
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Inspect and report pre-existing damage within 5-10 mins after Check-in.'
-                    : 'Báo ngay hỏng hóc/sự cố có sẵn trong 5–10 phút đầu sau Check-in để không bị tính trách nhiệm.'
-                }}
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-indigo-100/80 bg-white/90 p-4 shadow-sm">
-              <div class="flex items-center gap-2 text-xs font-bold text-indigo-800">
-                <span
-                  class="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700"
-                  >3</span
-                >
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Late >2 Weeks (Account Lock)'
-                    : 'Muộn >2 tuần (Khóa tài khoản)'
-                }}
-              </div>
-              <p class="mt-2 text-xs leading-5 text-slate-600">
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Check-out overdue >2 weeks auto-marks LOST ASSET and FREEZES/LOCKS account.'
-                    : 'Check-out muộn >2 tuần bị tính LÀM MẤT TÀI SẢN & KHÓA TÀI KHOẢN cho đến khi đền bù.'
-                }}
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-emerald-100/80 bg-white/90 p-4 shadow-sm">
-              <div class="flex items-center gap-2 text-xs font-bold text-emerald-800">
-                <span
-                  class="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700"
-                  >4</span
-                >
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'Anti-Swapping & Account Security'
-                    : 'Cấm tráo đổi & Dùng chung tài khoản'
-                }}
-              </div>
-              <p class="mt-2 text-xs leading-5 text-slate-600">
-                {{
-                  languageStore.lang() === 'en'
-                    ? 'No swapping components or lending accounts. Account owner bears full liability.'
-                    : 'Cấm tháo lắp, tráo đổi linh kiện hoặc cho mượn tài khoản. Chủ tài khoản chịu trách nhiệm.'
-                }}
-              </p>
-            </div>
+            <a
+              routerLink="/app/policy"
+              class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800"
+            >
+              <span>{{ 'home.viewDetailedGuide' | t }}</span>
+              <app-icon name="arrow-right" [size]="14" />
+            </a>
           </div>
         </article>
       }
 
-      <!-- Color Legend Detailed Guide Modal -->
+      <!-- Modal Xem chi tiết Booking từ Lịch -->
       <app-modal
-        [open]="colorGuideModalOpen()"
-        title="Giải thích chi tiết bảng màu & quy tắc đặt lịch"
-        subtitle="Ý nghĩa màu sắc và hướng dẫn phân loại lịch trong hệ thống phòng Lab"
-        (close)="colorGuideModalOpen.set(false)"
+        [open]="detailOpen()"
+        [title]="detailBooking() ? 'Booking #BK-' + detailBooking()!.bookingId.toString().padStart(5, '0') : ('bookings.detailTitle' | t)"
+        subtitle="{{ 'bookings.detailSubtitle' | t }}"
+        (close)="detailOpen.set(false)"
       >
-        <div class="space-y-4 text-sm">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
-              <div class="flex items-center gap-2 font-bold text-emerald-900">
-                <span class="h-3.5 w-3.5 rounded bg-emerald-500"></span>
-                Đơn đặt lịch của tôi (My booking)
-              </div>
-              <p class="mt-2 text-xs leading-5 text-emerald-800">
-                Lịch do chính bạn đăng ký đã được phê duyệt. Bạn được đảm bảo quyền sử dụng
-                phòng/thiết bị trong khung giờ này.
-              </p>
+        @if (detailLoading()) {
+          <div class="space-y-3 p-2">
+            <div class="skeleton h-8 rounded-xl"></div>
+            <div class="skeleton h-32 rounded-xl"></div>
+          </div>
+        } @else if (detailAccessDenied()) {
+          <div class="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 text-center space-y-3">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+              <app-icon name="lock" [size]="24" />
             </div>
-
-            <div class="rounded-2xl border border-blue-200 bg-blue-50/60 p-4">
-              <div class="flex items-center gap-2 font-bold text-blue-900">
-                <span class="h-3.5 w-3.5 rounded bg-blue-500"></span>
-                Đặt lịch nội bộ (Internal booking)
-              </div>
-              <p class="mt-2 text-xs leading-5 text-blue-800">
-                Lịch thực hành chính khóa, môn học hoặc dự án nghiên cứu nội bộ của Khoa/Bộ môn.
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-cyan-200 bg-cyan-50/60 p-4">
-              <div class="flex items-center gap-2 font-bold text-cyan-900">
-                <span class="h-3.5 w-3.5 rounded bg-cyan-500"></span>
-                Đặt lịch bên ngoài (External booking)
-              </div>
-              <p class="mt-2 text-xs leading-5 text-cyan-800">
-                Khung giờ hợp tác nghiên cứu với đối tác hoặc đơn vị tài trợ bên ngoài trường.
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
-              <div class="flex items-center gap-2 font-bold text-amber-900">
-                <span class="h-3.5 w-3.5 rounded bg-amber-500"></span>
-                Bảo trì (Maintenance)
-              </div>
-              <p class="mt-2 text-xs leading-5 text-amber-800">
-                Lịch bảo dưỡng, sửa chữa hoặc hiệu chuẩn thiết bị định kỳ. Không thể đăng ký booking
-                cá nhân trong khung giờ này.
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-rose-200 bg-rose-50/60 p-4">
-              <div class="flex items-center gap-2 font-bold text-rose-900">
-                <span class="h-3.5 w-3.5 rounded bg-rose-500"></span>
-                Không khả dụng (Not available)
-              </div>
-              <p class="mt-2 text-xs leading-5 text-rose-800">
-                Khung giờ phòng/thiết bị tạm khóa do quá tải, sự cố đột xuất hoặc tạm ngưng phục vụ.
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-yellow-200 bg-yellow-50/60 p-4">
-              <div class="flex items-center gap-2 font-bold text-yellow-900">
-                <span class="h-3.5 w-3.5 rounded bg-yellow-500"></span>
-                Thông báo (Announcement)
-              </div>
-              <p class="mt-2 text-xs leading-5 text-yellow-800">
-                Sự kiện đặc biệt, hội thảo hoặc thông báo kiểm kê tài nguyên phòng Lab trong ngày.
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-purple-200 bg-purple-50/60 p-4">
-              <div class="flex items-center gap-2 font-bold text-purple-900">
-                <span class="h-3.5 w-3.5 rounded bg-purple-500"></span>
-                Đặt lịch quy trình (Workflow booking)
-              </div>
-              <p class="mt-2 text-xs leading-5 text-purple-800">
-                Lịch đặt theo luồng tự động nhiều bước dành cho các bài thí nghiệm chuỗi nhiều thiết
-                bị.
-              </p>
-            </div>
-
-            <div class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
-              <div class="flex items-center gap-2 font-bold text-indigo-900">
-                <span class="h-3.5 w-3.5 rounded bg-indigo-500"></span>
-                Đặt lịch nhóm (Group booking)
-              </div>
-              <p class="mt-2 text-xs leading-5 text-indigo-800">
-                Khung giờ mượn nhóm sinh viên/nghiên cứu sinh cùng làm đề tài chung.
-              </p>
+            <h3 class="font-black text-amber-900 text-base">Không có quyền xem chi tiết</h3>
+            <p class="text-xs font-bold text-amber-700 leading-relaxed max-w-md mx-auto">
+              Booking này thuộc về người dùng khác. Bạn chỉ có thể xem lịch bận tổng quan nhưng không có quyền xem thông tin cá nhân của người đăng ký.
+            </p>
+            <div class="pt-2">
+              <button type="button" class="btn-secondary text-xs" (click)="detailOpen.set(false)">Đóng</button>
             </div>
           </div>
-        </div>
-        <div class="mt-5 flex justify-end">
-          <button class="btn-secondary" (click)="colorGuideModalOpen.set(false)">Đóng</button>
-        </div>
+        } @else if (detailBooking(); as detail) {
+          <div class="space-y-5">
+            <!-- Thẻ thông tin tổng quan -->
+            <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-xs sm:grid-cols-2">
+              <div>
+                <span class="text-slate-400">{{ 'common.status' | t }}:</span>
+                <div class="mt-1"><app-status-badge [value]="detail.status" domain="booking" /></div>
+              </div>
+              <div>
+                <span class="text-slate-400">{{ 'bookings.priorityLevel' | t }}:</span>
+                <p class="mt-1 font-bold text-slate-800">P{{ detail.priorityLevel ?? '—' }}</p>
+              </div>
+              <div>
+                <span class="text-slate-400">{{ 'bookings.startTime' | t }}:</span>
+                <p class="mt-1 font-bold text-slate-800">{{ detail.startTime | date: 'HH:mm dd/MM/yyyy' }}</p>
+              </div>
+              <div>
+                <span class="text-slate-400">{{ 'bookings.endTime' | t }}:</span>
+                <p class="mt-1 font-bold text-slate-800">{{ detail.endTime | date: 'HH:mm dd/MM/yyyy' }}</p>
+              </div>
+              <div class="sm:col-span-2">
+                <span class="text-slate-400">{{ 'bookings.purposeDesc' | t }}:</span>
+                <p class="mt-1 font-bold text-slate-800">{{ labelOf('purpose', detail.purposeType, languageStore.lang()) }}</p>
+                @if (detail.purposeDescription) {
+                  <p class="mt-1 text-slate-600 whitespace-pre-line">{{ detail.purposeDescription }}</p>
+                }
+              </div>
+              @if (detail.rejectionReason) {
+                <div class="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800">
+                  <p class="font-bold">{{ 'bookings.rejectionReason' | t }}:</p>
+                  <p class="mt-1">{{ detail.rejectionReason }}</p>
+                </div>
+              }
+            </div>
+
+            <!-- Danh sách tài nguyên -->
+            <div>
+              <p class="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">{{ 'bookings.registeredResources' | t }}</p>
+              <div class="space-y-2">
+                @for (item of detail.items; track item.bookingItemId) {
+                  <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 text-xs">
+                    <div class="flex items-center gap-3">
+                      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                        <app-icon [name]="item.resourceType === 'LabRoom' ? 'building' : 'microscope'" [size]="16" />
+                      </span>
+                      <div>
+                        <p class="font-black text-slate-900">{{ (item.labName || item.equipmentName || ('Tài nguyên #' + item.bookingItemId)) | t }}</p>
+                        <p class="text-[10px] text-slate-400">{{ labelOf('resource', item.resourceType, languageStore.lang()) }} {{ item.note ? ' · ' + item.note : '' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Thao tác Check-in / Check-out trực tiếp trong Modal -->
+                    <div>
+                      @if (detail.status === 'Approved') {
+                        @if (!logFor(item.bookingItemId)) {
+                          <button
+                            type="button"
+                            class="btn-primary py-1 px-3 text-xs"
+                            [disabled]="!canCheckInNow(detail)"
+                            (click)="checkInItem(item.bookingItemId)"
+                          >
+                            <app-icon name="login" [size]="14" /> {{ 'bookings.checkinNow' | t }}
+                          </button>
+                        } @else if (logFor(item.bookingItemId); as log) {
+                          @if (!log.actualCheckout) {
+                            <button
+                              type="button"
+                              class="btn-primary py-1 px-3 text-xs bg-rose-600 hover:bg-rose-700"
+                              (click)="checkOutLog(log.logId)"
+                            >
+                              <app-icon name="logout" [size]="14" /> Check-out
+                            </button>
+                          } @else {
+                            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">{{ 'bookings.checkedOut' | t }}</span>
+                          }
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Nút liên kết đến trang chi tiết đầy đủ -->
+            <div class="flex justify-between items-center border-t border-slate-100 pt-4">
+              <a [routerLink]="['/app/bookings', detail.bookingId]" class="btn-secondary text-xs" (click)="detailOpen.set(false)">
+                <app-icon name="arrow-right" [size]="15" /> {{ 'bookings.openFullDetail' | t }}
+              </a>
+
+              @if (detail.status === 'Pending' || detail.status === 'Approved') {
+                <button type="button" class="btn-secondary btn-danger text-xs" (click)="confirmCancel(detail)">
+                  <app-icon name="x" [size]="15" /> {{ 'bookings.cancelThisBooking' | t }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </app-modal>
+
+      <!-- Modal Xem thông tin sự kiện khác / Sample event -->
+      <app-modal
+        [open]="eventInfoOpen()"
+        [title]="selectedEventInfo()?.roomName || 'Thông tin lịch'"
+        subtitle="Chi tiết thời gian & nội dung đăng ký"
+        (close)="eventInfoOpen.set(false)"
+      >
+        @if (selectedEventInfo(); as info) {
+          <div class="space-y-4 text-xs">
+            <div class="rounded-2xl bg-slate-50 p-4 space-y-2">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Địa điểm / Phòng:</span>
+                <span class="font-black text-slate-800">{{ info.roomName }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Nội dung / Booking:</span>
+                <span class="font-bold text-indigo-700">{{ info.title }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Khung giờ:</span>
+                <span class="font-bold text-slate-700">{{ info.timeStr }}</span>
+              </div>
+            </div>
+            <div class="flex justify-end pt-2">
+              <button type="button" class="btn-secondary text-xs" (click)="eventInfoOpen.set(false)">Đóng</button>
+            </div>
+          </div>
+        }
       </app-modal>
     </section>
   `,
 })
 export class RequesterHomePage implements OnInit {
-  private readonly router = inject(Router)
   private readonly workspace = inject(WorkspaceService)
+  private readonly api = inject(SystemService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
+  protected readonly router = inject(Router)
+
+  protected readonly detailOpen = signal(false)
+  protected readonly detailLoading = signal(false)
+  protected readonly detailAccessDenied = signal(false)
+  protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
+  protected readonly detailLogs = signal<UsageLogResponse[]>([])
+  protected readonly selectedEventInfo = signal<ScheduleSlotEvent | null>(null)
+  protected readonly eventInfoOpen = signal(false)
 
   protected readonly today = new Date()
   protected readonly loading = signal(true)
-  protected readonly calendarView = signal<'Today' | 'Day' | 'Week' | 'Month'>('Month')
-  protected readonly calendarDate = signal<Date>(new Date(2026, 6, 27))
-  protected readonly exportDropdownOpen = signal(false)
-  protected readonly colorGuideModalOpen = signal(false)
   protected readonly bookings = signal<BookingResponse[]>([])
   protected readonly waitlists = signal<WaitlistResponse[]>([])
   protected readonly notifications = signal<NotificationResponse[]>([])
+  protected readonly calendarEvents = signal<CalendarEventResponse[]>([])
   protected readonly unreadCount = signal(0)
+  protected readonly calendarMode = signal<'Today' | 'Day' | 'Week' | 'Month'>('Month')
+  protected readonly calendarFocus = signal(new Date())
+
   protected readonly violationSummary = signal<UserViolationSummaryResponse>({
     userId: 0,
     fullName: '',
@@ -869,10 +528,106 @@ export class RequesterHomePage implements OnInit {
     activeViolations: [],
   })
 
+  // Sample events strictly tied to specific dates in July 2026
+  private readonly sampleScheduleEvents: ScheduleSlotEvent[] = [
+    {
+      roomName: 'Phòng LAB1 (Tầng 1)',
+      title: 'My booking #0012',
+      timeStr: '09:00 - 11:30',
+      dateKey: '2026-07-02',
+      rowIndex: 0,
+      tone: 'emerald',
+    },
+    {
+      roomName: 'Lab Điện tử (LAB-ELEC-01)',
+      title: 'Maintenance Schedule',
+      timeStr: '08:30 - 11:30',
+      dateKey: '2026-07-07',
+      rowIndex: 0,
+      tone: 'amber',
+    },
+    {
+      roomName: 'Lab Sinh học (LAB-BIO-01)',
+      title: 'External Partner Lab',
+      timeStr: '09:30 - 11:00',
+      dateKey: '2026-07-10',
+      rowIndex: 0,
+      tone: 'cyan',
+    },
+    {
+      roomName: 'Phòng Thực hành Mạng (LAB-NET-01)',
+      title: 'Internal Lab Booking',
+      timeStr: '14:00 - 16:30',
+      dateKey: '2026-07-04',
+      rowIndex: 1,
+      tone: 'indigo',
+    },
+    {
+      roomName: 'Phòng LAB1 (Tầng 1)',
+      title: 'Workflow Booking',
+      timeStr: '13:00 - 15:00',
+      dateKey: '2026-07-09',
+      rowIndex: 1,
+      tone: 'purple',
+    },
+  ]
+
+  // Dynamic column calculations based on active language and focus date
+  protected readonly calendarCols = computed(() => {
+    const lang = this.languageStore.lang()
+    const focus = this.calendarFocus()
+    const year = focus.getFullYear()
+    const month = focus.getMonth()
+    const mode = this.calendarMode()
+
+    let startDate: Date
+    let colCount = 12
+
+    if (mode === 'Day') {
+      startDate = new Date(year, month, focus.getDate())
+      colCount = 7
+    } else if (mode === 'Week') {
+      const dayOfWeek = (focus.getDay() + 6) % 7
+      startDate = new Date(year, month, focus.getDate() - dayOfWeek)
+      colCount = 7
+    } else {
+      startDate = new Date(year, month, 1)
+      colCount = 12
+    }
+
+    return Array.from({ length: colCount }, (_, i) => {
+      const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i)
+      const dayOfWeek = d.getDay()
+      const dateNum = d.getDate()
+
+      let dayName = ''
+      if (lang === 'en') {
+        const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        dayName = `${names[dayOfWeek]} ${dateNum}`
+      } else {
+        const names = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+        dayName = `${names[dayOfWeek]} ${dateNum}`
+      }
+
+      const dateKey = toDateInput(d)
+      return { key: `col-${i}-${dateKey}`, dayName, dateKey, date: d }
+    })
+  })
+
   protected readonly firstName = computed(() => {
     const parts = this.store.user()?.fullName.trim().split(/\s+/) ?? []
     return parts.at(-1) ?? 'bạn'
   })
+
+  protected readonly monthTitle = computed(() => {
+    const lang = this.languageStore.lang()
+    const focus = this.calendarFocus()
+    return new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : 'vi-VN', {
+      month: 'long',
+      year: 'numeric',
+    }).format(focus)
+  })
+
   protected readonly upcomingBookings = computed(() =>
     this.bookings()
       .filter(
@@ -880,17 +635,35 @@ export class RequesterHomePage implements OnInit {
       )
       .sort((a, b) => +new Date(a.startTime) - +new Date(b.startTime)),
   )
-  protected readonly pendingBookings = computed(
-    () => this.bookings().filter((item) => item.status === 'Pending').length,
+
+  protected readonly displayUpcomingBookings = computed(() => {
+    const list = this.upcomingBookings()
+    const lang = this.languageStore.lang()
+    return list.map((b) => ({
+      id: b.bookingId,
+      monthStr: new Date(b.startTime)
+        .toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN', { month: 'short' })
+        .toUpperCase(),
+      dayStr: new Date(b.startTime).getDate().toString().padStart(2, '0'),
+      title: this.purposeLabel(b.purposeType) || (lang === 'en' ? 'Research Project' : 'Dự án nghiên cứu'),
+      timeStr: `${new Date(b.startTime).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(b.endTime).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date(b.startTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'vi-VN')}`,
+    }))
+  })
+
+  protected readonly pendingBookings = computed(() =>
+    this.bookings().filter((item) => item.status === 'Pending').length,
   )
+
   protected readonly activeWaitlists = computed(() =>
     this.waitlists().filter((item) => ['Waiting', 'Notified'].includes(item.status)),
   )
+
   protected readonly recentNotifications = computed(() =>
     [...this.notifications()]
       .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
       .slice(0, 5),
   )
+
   protected readonly statusText = computed(() => {
     const status = this.store.user()?.status
     if (typeof status === 'string') return status
@@ -900,6 +673,7 @@ export class RequesterHomePage implements OnInit {
       ] ?? 'Active'
     )
   })
+
   protected readonly healthScore = computed(() =>
     Math.max(
       0,
@@ -908,9 +682,16 @@ export class RequesterHomePage implements OnInit {
         this.violationSummary().activeViolationCount * 5,
     ),
   )
+
+  protected readonly displayHealthScore = computed(() => {
+    return this.healthScore()
+  })
+
   protected readonly healthRing = computed(
-    () => `conic-gradient(#10b981 0 ${this.healthScore()}%, #e2e8f0 ${this.healthScore()}% 100%)`,
+    () =>
+      `conic-gradient(#10b981 0 ${this.displayHealthScore()}%, #e2e8f0 ${this.displayHealthScore()}% 100%)`,
   )
+
   protected readonly accountWarning = computed(() => {
     const isEn = this.languageStore.lang() === 'en'
     const status = this.statusText()
@@ -938,7 +719,7 @@ export class RequesterHomePage implements OnInit {
         ? `You have ${this.violationSummary().activeViolationCount} active violation(s). Please review to avoid account restrictions.`
         : `Bạn đang có ${this.violationSummary().activeViolationCount} vi phạm hoạt động. Hãy kiểm tra để tránh bị hạn chế tài khoản.`
     }
-    return ''
+    return null
   })
 
   protected readonly kpiCards = computed(() => {
@@ -981,6 +762,11 @@ export class RequesterHomePage implements OnInit {
       this.loading.set(false)
       return
     }
+
+    const focus = this.calendarFocus()
+    const from = new Date(focus.getFullYear(), focus.getMonth(), 1).toISOString()
+    const to = new Date(focus.getFullYear(), focus.getMonth() + 1, 1).toISOString()
+
     forkJoin({
       bookings: this.workspace.bookingsByUser(user.userId).pipe(catchError(() => of([]))),
       waitlists: this.workspace.waitlistsByUser(user.userId).pipe(catchError(() => of([]))),
@@ -990,6 +776,9 @@ export class RequesterHomePage implements OnInit {
       unread: this.workspace
         .unreadCount(user.userId)
         .pipe(catchError(() => of({ userId: user.userId, unreadCount: 0 }))),
+      calendarEvents: this.api
+        .calendar(from, to)
+        .pipe(catchError(() => of([]))),
       violations: this.workspace.violationSummary(user.userId).pipe(
         catchError(() =>
           of({
@@ -1010,17 +799,143 @@ export class RequesterHomePage implements OnInit {
         this.waitlists.set(result.waitlists)
         this.notifications.set(result.notifications)
         this.unreadCount.set(result.unread.unreadCount)
+        this.calendarEvents.set(result.calendarEvents)
         this.violationSummary.set(result.violations)
         this.loading.set(false)
       },
       error: () => {
         this.loading.set(false)
-        this.toast.error(
-          'Không tải được trang chủ',
-          'Hãy kiểm tra backend đang chạy tại cổng 5253.',
-        )
       },
     })
+  }
+
+  protected setCalendarMode(mode: 'Today' | 'Day' | 'Week' | 'Month'): void {
+    this.calendarMode.set(mode)
+    if (mode === 'Today') {
+      this.calendarFocus.set(new Date())
+    }
+  }
+
+  protected shiftFocus(offset: number): void {
+    const cur = this.calendarFocus()
+    const mode = this.calendarMode()
+    if (mode === 'Day') {
+      const next = new Date(cur)
+      next.setDate(cur.getDate() + offset)
+      this.calendarFocus.set(next)
+    } else if (mode === 'Week') {
+      const next = new Date(cur)
+      next.setDate(cur.getDate() + offset * 7)
+      this.calendarFocus.set(next)
+    } else {
+      this.calendarFocus.set(new Date(cur.getFullYear(), cur.getMonth() + offset, 1))
+    }
+    this.reloadCalendarData()
+  }
+
+  private reloadCalendarData(): void {
+    const focus = this.calendarFocus()
+    const from = new Date(focus.getFullYear(), focus.getMonth(), 1).toISOString()
+    const to = new Date(focus.getFullYear(), focus.getMonth() + 1, 1).toISOString()
+    this.api.calendar(from, to).pipe(catchError(() => of([]))).subscribe((events) => {
+      this.calendarEvents.set(events)
+    })
+  }
+
+  protected getSlotEvents(colIndex: number, rowIndex: number): ScheduleSlotEvent[] {
+    const col = this.calendarCols()[colIndex]
+    if (!col) return []
+
+    const targetDateKey = col.dateKey
+    const events: ScheduleSlotEvent[] = []
+
+    // 1. Real user bookings from database
+    for (const b of this.bookings()) {
+      const start = new Date(b.startTime)
+      const end = new Date(b.endTime)
+      const bDateKey = toDateInput(start)
+
+      if (bDateKey === targetDateKey) {
+        const startHour = start.getHours()
+        const slotIndex = startHour < 12 ? 0 : 1
+
+        if (slotIndex === rowIndex) {
+          const timeStr = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          const tone: 'emerald' | 'amber' | 'cyan' | 'indigo' | 'purple' =
+            b.purposeType === 'Internal'
+              ? 'indigo'
+              : b.purposeType === 'External'
+                ? 'cyan'
+                : b.purposeType === 'Workflow'
+                  ? 'purple'
+                  : 'emerald'
+
+          const matchedEv = this.calendarEvents().find((ev) => ev.sourceId === b.bookingId)
+          const roomName = matchedEv?.resources?.length
+            ? matchedEv.resources[0].resourceName
+            : `Phòng Lab (Booking #${b.bookingId})`
+
+          events.push({
+            roomName,
+            title: `BK-#${b.bookingId.toString().padStart(4, '0')} · ${this.purposeLabel(b.purposeType)}`,
+            timeStr,
+            dateKey: targetDateKey,
+            rowIndex,
+            tone,
+            bookingId: b.bookingId,
+            sourceType: 'Booking',
+          })
+        }
+      }
+    }
+
+    // 2. Real system calendar events (e.g., maintenance & other bookings)
+    for (const ev of this.calendarEvents()) {
+      const start = new Date(ev.startTime)
+      const end = new Date(ev.endTime)
+      const evDateKey = toDateInput(start)
+
+      if (evDateKey === targetDateKey) {
+        const startHour = start.getHours()
+        const slotIndex = startHour < 12 ? 0 : 1
+
+        if (slotIndex === rowIndex) {
+          const timeStr = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          const isMaintenance = ev.eventType === 'Maintenance'
+          const exists = events.some((r) => r.timeStr === timeStr)
+
+          if (!exists) {
+            const roomName = ev.resources?.length
+              ? ev.resources[0].resourceName
+              : 'Phòng Lab'
+
+            events.push({
+              roomName,
+              title: isMaintenance ? `Bảo trì: ${ev.title}` : ev.title,
+              timeStr,
+              dateKey: targetDateKey,
+              rowIndex,
+              tone: isMaintenance ? 'amber' : 'indigo',
+              bookingId: ev.eventType === 'Booking' ? ev.sourceId : undefined,
+              maintenanceId: ev.eventType === 'Maintenance' ? ev.sourceId : undefined,
+              sourceType: ev.eventType === 'Maintenance' ? 'Maintenance' : 'Booking',
+            })
+          }
+        }
+      }
+    }
+
+    // 3. Demo sample events ONLY if they strictly match the exact target dateKey!
+    for (const sample of this.sampleScheduleEvents) {
+      if (sample.dateKey === targetDateKey && sample.rowIndex === rowIndex) {
+        const exists = events.some((e) => e.timeStr === sample.timeStr)
+        if (!exists) {
+          events.push(sample)
+        }
+      }
+    }
+
+    return events
   }
 
   protected purposeLabel(value: string): string {
@@ -1051,113 +966,103 @@ export class RequesterHomePage implements OnInit {
     return 'bell'
   }
 
-  protected bookingDetail(booking: BookingResponse): void {
-    void this.router.navigate(['/app/bookings', booking.bookingId])
+  protected onBookingClick(booking: { title: string; timeStr: string }): void {
+    this.toast.info(booking.title, booking.timeStr)
   }
 
-  protected comingSoon(name: string): void {
-    this.toast.info(
-      `${name} chưa nằm trong 9 màn hình`,
-      'Nút đã được chuẩn bị sẵn để nối route trong giai đoạn tiếp theo.',
-    )
+  protected openBookingDetail(bookingId: number): void {
+    this.detailOpen.set(true)
+    this.detailLoading.set(true)
+    this.detailAccessDenied.set(false)
+    this.detailBooking.set(null)
+    this.detailLogs.set([])
+
+    forkJoin({
+      detail: this.api.booking(bookingId).pipe(catchError(() => of(null))),
+      logs: this.api.usageLogsByBooking(bookingId).pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ detail, logs }) => {
+        this.detailLoading.set(false)
+        if (detail) {
+          this.detailBooking.set(detail)
+          this.detailLogs.set(logs)
+        } else {
+          this.detailAccessDenied.set(true)
+        }
+      },
+      error: () => {
+        this.detailLoading.set(false)
+        this.detailAccessDenied.set(true)
+      },
+    })
   }
 
-  protected setCalendarView(view: string): void {
-    this.calendarView.set(view as 'Today' | 'Day' | 'Week' | 'Month')
+  protected logFor(bookingItemId: number): UsageLogResponse | undefined {
+    return this.detailLogs().find((l) => l.bookingItemId === bookingItemId)
   }
 
-  protected prevMonth(): void {
-    const cur = this.calendarDate()
-    this.calendarDate.set(new Date(cur.getFullYear(), cur.getMonth() - 1, 1))
+  protected canCheckInNow(booking: BookingDetailResponse): boolean {
+    if (booking.status !== 'Approved') return false
+    const now = Date.now()
+    const start = new Date(booking.startTime).getTime()
+    const end = new Date(booking.endTime).getTime()
+    const bufferBefore = 15 * 60_000
+    return now >= start - bufferBefore && now <= end
   }
 
-  protected nextMonth(): void {
-    const cur = this.calendarDate()
-    this.calendarDate.set(new Date(cur.getFullYear(), cur.getMonth() + 1, 1))
+  protected checkInItem(bookingItemId: number): void {
+    this.api.checkIn(bookingItemId).subscribe({
+      next: () => {
+        this.toast.success('Check-in thành công')
+        if (this.detailBooking()) {
+          this.openBookingDetail(this.detailBooking()!.bookingId)
+        }
+      },
+      error: () => this.toast.error('Không thể check-in'),
+    })
   }
 
-  protected readonly calendarDays = computed(() => {
-    const days: { dayName: string; dayNumber: number; dateStr: string }[] = []
-    const base = new Date(this.calendarDate())
-    for (let i = 1; i <= 12; i++) {
-      const d = new Date(base.getFullYear(), base.getMonth(), i)
-      const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-      days.push({
-        dayName: names[d.getDay()],
-        dayNumber: i,
-        dateStr: `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`,
-      })
+  protected checkOutLog(logId: number): void {
+    if (!confirm('Xác nhận trả phòng / check-out?')) return
+    this.api.checkOut(logId).subscribe({
+      next: () => {
+        this.toast.success('Check-out thành công')
+        if (this.detailBooking()) {
+          this.openBookingDetail(this.detailBooking()!.bookingId)
+        }
+      },
+      error: () => this.toast.error('Không thể check-out'),
+    })
+  }
+
+  protected confirmCancel(booking: BookingDetailResponse): void {
+    if (!confirm('Bạn có chắc chắn muốn hủy booking này?')) return
+    this.api.cancelBooking(booking.bookingId).subscribe({
+      next: () => {
+        this.toast.success('Đã hủy booking')
+        this.detailOpen.set(false)
+        this.ngOnInit()
+      },
+      error: () => this.toast.error('Không thể hủy booking'),
+    })
+  }
+
+  protected openEventInfoModal(evt: ScheduleSlotEvent): void {
+    this.selectedEventInfo.set(evt)
+    this.eventInfoOpen.set(true)
+  }
+
+  protected onScheduleEventClick(evt: ScheduleSlotEvent): void {
+    if (evt.bookingId) {
+      this.openBookingDetail(evt.bookingId)
+    } else if (evt.maintenanceId && (this.store.isAdmin() || this.store.isManager())) {
+      void this.router.navigate(['/app/management/maintenances', evt.maintenanceId])
+    } else {
+      this.openEventInfoModal(evt)
     }
-    return days
-  })
-
-  protected getEventsForDay(
-    dateStr: string,
-    slot: 'morning' | 'afternoon',
-  ): Array<{ id: string; title: string; time: string; bgClass: string }> {
-    const list: Array<{ id: string; title: string; time: string; bgClass: string }> = []
-    const dayNum = parseInt(dateStr.split('-')[2], 10)
-
-    if (dayNum === 2 && slot === 'morning') {
-      list.push({
-        id: '1',
-        title: 'My booking #BK-001',
-        time: '09:00 - 11:30',
-        bgClass: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
-      })
-    }
-    if (dayNum === 4 && slot === 'afternoon') {
-      list.push({
-        id: '2',
-        title: 'Internal Lab Workshop',
-        time: '14:00 - 16:30',
-        bgClass: 'bg-blue-100 text-blue-800 border border-blue-300',
-      })
-    }
-    if (dayNum === 7 && slot === 'morning') {
-      list.push({
-        id: '3',
-        title: 'Maintenance Lab 102',
-        time: '08:30 - 11:30',
-        bgClass: 'bg-amber-100 text-amber-800 border border-amber-300',
-      })
-    }
-    if (dayNum === 9 && slot === 'afternoon') {
-      list.push({
-        id: '4',
-        title: 'Workflow Booking #WF-2',
-        time: '13:00 - 15:00',
-        bgClass: 'bg-purple-100 text-purple-800 border border-purple-300',
-      })
-    }
-    if (dayNum === 11 && slot === 'morning') {
-      list.push({
-        id: '5',
-        title: 'External Partner Meeting',
-        time: '09:30 - 11:00',
-        bgClass: 'bg-cyan-100 text-cyan-800 border border-cyan-300',
-      })
-    }
-    return list
   }
 
-  protected exportIcsCalendar(): void {
-    const icsData = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//SharedLab//BookingCalendar//EN\nSUMMARY:Shared Lab Bookings\nEND:VCALENDAR`
-    const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' })
-    const link = document.createElement('a')
-    link.href = window.URL.createObjectURL(blob)
-    link.setAttribute('download', 'my-sharedlab-bookings.ics')
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    this.toast.success(
-      'Đã tải file lịch (.ics)',
-      'Bạn có thể import vào Google Calendar hoặc Outlook.',
-    )
-  }
-
-  protected exportGoogleCalendar(): void {
-    window.open('https://calendar.google.com/', '_blank')
-    this.toast.info('Google Calendar', 'Chuyển hướng đến Google Calendar để nhập file .ics')
+  protected labelOf(domain: 'purpose' | 'resource', value: string, lang: 'vi' | 'en'): string {
+    return labelOf(domain, value, lang)
   }
 }

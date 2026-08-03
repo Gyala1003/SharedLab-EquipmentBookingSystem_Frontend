@@ -56,7 +56,7 @@ import type { UpsertUserInput, User } from './users.types'
                       <td class="py-2 text-slate-500">{{ u.email }}</td>
                       <td class="py-2 text-slate-500">{{ u.role }}</td>
                       <td class="py-2 text-right">
-                        <button class="text-brand-600 mr-3 hover:underline" (click)="openEdit(u)">
+                        <button class="mr-3 text-brand-600 hover:underline" (click)="openEdit(u)">
                           {{ 'users.edit' | translate }}
                         </button>
                         <button class="text-red-600 hover:underline" (click)="store.remove(u.id)">

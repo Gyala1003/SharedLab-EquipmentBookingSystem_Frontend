@@ -2,11 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { SystemService } from '../../core/api/system.service'
-import type {
-  EquipmentResponse,
-  LabRoomResponse,
-  WaitlistResponse,
-} from '../../core/api/system.models'
+import type { EquipmentResponse, LabRoomResponse, WaitlistResponse } from '../../core/api/system.models'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
@@ -18,28 +14,13 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-waitlists-management-page',
-  imports: [
-    DatePipe,
-    NgClass,
-    FormsModule,
-    PageHeaderComponent,
-    IconComponent,
-    StatusBadgeComponent,
-    DataStateComponent,
-    TranslatePipe,
-  ],
+  imports: [DatePipe, NgClass, FormsModule, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header
-        [title]="'manageWaitlists.title' | t"
-        [subtitle]="'manageWaitlists.subtitle' | t"
-      />
+      <app-page-header [title]="'manageWaitlists.title' | t" [subtitle]="'manageWaitlists.subtitle' | t" />
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         @for (tab of tabs(); track tab.value) {
-          <button
-            class="kpi-card text-left transition hover:-translate-y-1"
-            (click)="status = tab.value"
-          >
+          <button class="kpi-card text-left transition hover:-translate-y-1" (click)="status = tab.value">
             <p class="text-xs font-bold text-slate-400">{{ tab.label }}</p>
             <p class="mt-2 text-3xl font-black" [ngClass]="tab.className">{{ count(tab.value) }}</p>
           </button>
@@ -64,47 +45,24 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
             }
           </select>
         </div>
-        <div>
-          <label class="field-label">{{ 'common.from' | t }}</label
-          ><input class="input-shell" type="datetime-local" [(ngModel)]="requestedStart" />
-        </div>
-        <div>
-          <label class="field-label">{{ 'common.to' | t }}</label
-          ><input class="input-shell" type="datetime-local" [(ngModel)]="requestedEnd" />
-        </div>
+        <div><label class="field-label">{{ 'common.from' | t }}</label><input class="input-shell" type="datetime-local" [(ngModel)]="requestedStart" /></div>
+        <div><label class="field-label">{{ 'common.to' | t }}</label><input class="input-shell" type="datetime-local" [(ngModel)]="requestedEnd" /></div>
         <div class="flex items-end">
-          <button class="btn-primary w-full" (click)="loadQueue()">
-            <app-icon name="filter" [size]="17" /> {{ 'manageWaitlists.filterQueue' | t }}
-          </button>
+          <button class="btn-primary w-full" (click)="loadQueue()"><app-icon name="filter" [size]="17" /> {{ 'manageWaitlists.filterQueue' | t }}</button>
         </div>
       </div>
       <article class="card-surface overflow-hidden">
         <header class="flex items-center justify-between border-b border-slate-100 px-5 py-5">
-          <div>
-            <h2 class="font-black text-slate-950">{{ 'manageWaitlists.title' | t }}</h2>
-            <p class="mt-1 text-xs text-slate-400">
-              {{ filtered().length }} {{ 'common.records' | t }}
-            </p>
-          </div>
+          <div><h2 class="font-black text-slate-950">{{ 'manageWaitlists.title' | t }}</h2><p class="mt-1 text-xs text-slate-400">{{ filtered().length }} {{ 'common.records' | t }}</p></div>
           <div class="flex gap-2">
-            <button class="btn-secondary" (click)="loadAll()">
-              <app-icon name="refresh" [size]="16" /> {{ 'common.all' | t }}
-            </button>
-            <button class="btn-primary" [disabled]="!canNotify()" (click)="notifyNext()">
-              <app-icon name="bell" [size]="16" /> {{ 'manageWaitlists.notifyNext' | t }}
-            </button>
+            <button class="btn-secondary" (click)="loadAll()"><app-icon name="refresh" [size]="16" /> {{ 'common.all' | t }}</button>
+            <button class="btn-primary" [disabled]="!canNotify()" (click)="notifyNext()"><app-icon name="bell" [size]="16" /> {{ 'manageWaitlists.notifyNext' | t }}</button>
           </div>
         </header>
         @if (loading()) {
           <div class="p-6"><div class="skeleton h-80 rounded-2xl"></div></div>
         } @else if (filtered().length === 0) {
-          <div class="p-6">
-            <app-data-state
-              [title]="'manageWaitlists.emptyTitle' | t"
-              [message]="'manageWaitlists.emptySub' | t"
-              icon="clock"
-            />
-          </div>
+          <div class="p-6"><app-data-state [title]="'manageWaitlists.emptyTitle' | t" [message]="'manageWaitlists.emptySub' | t" icon="clock" /></div>
         } @else {
           <div class="overflow-x-auto">
             <table class="table-shell">
@@ -123,48 +81,20 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
               <tbody>
                 @for (item of filtered(); track item.waitlistId) {
                   <tr>
-                    <td>
-                      <span
-                        class="flex h-10 min-w-10 items-center justify-center rounded-2xl bg-violet-50 px-3 font-black text-violet-700"
-                        >#{{ item.queuePosition }}</span
-                      >
-                    </td>
+                    <td><span class="flex h-10 min-w-10 items-center justify-center rounded-2xl bg-violet-50 px-3 font-black text-violet-700">#{{ item.queuePosition }}</span></td>
                     <td class="font-black text-slate-900">#WL-{{ item.waitlistId }}</td>
                     <td>User #{{ item.userId }}</td>
-                    <td>
-                      <p class="font-bold text-slate-800">{{ resourceName(item) }}</p>
-                    </td>
-                    <td>
-                      <p class="font-bold text-slate-700">
-                        {{ item.requestedStart | date: 'HH:mm dd/MM' }}
-                      </p>
-                      <p class="mt-1 text-xs text-slate-400">
-                        {{ item.requestedEnd | date: 'HH:mm dd/MM' }}
-                      </p>
-                    </td>
-                    <td>
-                      {{ item.notifiedAt ? (item.notifiedAt | date: 'HH:mm dd/MM/yyyy') : '—' }}
-                    </td>
+                    <td><p class="font-bold text-slate-800">{{ resourceName(item) }}</p></td>
+                    <td><p class="font-bold text-slate-700">{{ item.requestedStart | date: 'HH:mm dd/MM' }}</p><p class="mt-1 text-xs text-slate-400">{{ item.requestedEnd | date: 'HH:mm dd/MM' }}</p></td>
+                    <td>{{ item.notifiedAt ? (item.notifiedAt | date: 'HH:mm dd/MM/yyyy') : '—' }}</td>
                     <td><app-status-badge [value]="item.status" domain="waitlist" /></td>
                     <td>
                       <div class="flex gap-2">
                         @if (item.status === 'Waiting' || item.status === 'Notified') {
-                          <button
-                            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700"
-                            title="Hủy"
-                            (click)="cancel(item)"
-                          >
-                            <app-icon name="x" [size]="16" />
-                          </button>
+                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700" title="Hủy" (click)="cancel(item)"><app-icon name="x" [size]="16" /></button>
                         }
                         @if (item.status === 'Notified') {
-                          <button
-                            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700"
-                            title="Cho hết hạn"
-                            (click)="expire(item)"
-                          >
-                            <app-icon name="clock" [size]="16" />
-                          </button>
+                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700" title="Cho hết hạn" (click)="expire(item)"><app-icon name="clock" [size]="16" /></button>
                         }
                       </div>
                     </td>
@@ -194,36 +124,14 @@ export class WaitlistsManagementPage implements OnInit {
 
   protected readonly tabs = computed(() => [
     { value: '', label: this.languageStore.t('common.all'), className: 'text-slate-950' },
-    {
-      value: 'Waiting',
-      label: this.languageStore.lang() === 'en' ? 'Waiting' : 'Đang chờ',
-      className: 'text-amber-600',
-    },
-    {
-      value: 'Notified',
-      label: this.languageStore.lang() === 'en' ? 'Notified' : 'Đã thông báo',
-      className: 'text-emerald-600',
-    },
-    {
-      value: 'Booked',
-      label: this.languageStore.lang() === 'en' ? 'Booked' : 'Đã booking',
-      className: 'text-indigo-600',
-    },
-    {
-      value: 'Expired',
-      label: this.languageStore.lang() === 'en' ? 'Expired' : 'Hết hạn',
-      className: 'text-rose-600',
-    },
+    { value: 'Waiting', label: this.languageStore.lang() === 'en' ? 'Waiting' : 'Đang chờ', className: 'text-amber-600' },
+    { value: 'Notified', label: this.languageStore.lang() === 'en' ? 'Notified' : 'Đã thông báo', className: 'text-emerald-600' },
+    { value: 'Booked', label: this.languageStore.lang() === 'en' ? 'Booked' : 'Đã booking', className: 'text-indigo-600' },
+    { value: 'Expired', label: this.languageStore.lang() === 'en' ? 'Expired' : 'Hết hạn', className: 'text-rose-600' },
   ])
 
-  protected readonly equipmentOptions = computed(() =>
-    this.labId ? this.equipments().filter((x) => x.labId === this.labId) : this.equipments(),
-  )
-  protected readonly filtered = computed(() =>
-    this.items()
-      .filter((x) => !this.status || x.status === this.status)
-      .sort((a, b) => a.queuePosition - b.queuePosition),
-  )
+  protected readonly equipmentOptions = computed(() => (this.labId ? this.equipments().filter((x) => x.labId === this.labId) : this.equipments()))
+  protected readonly filtered = computed(() => this.items().filter((x) => !this.status || x.status === this.status).sort((a, b) => a.queuePosition - b.queuePosition))
 
   ngOnInit(): void {
     this.api.labs().subscribe((x) => this.labs.set(x))
@@ -236,12 +144,8 @@ export class WaitlistsManagementPage implements OnInit {
   }
 
   protected resourceName(item: WaitlistResponse): string {
-    if (item.labId)
-      return this.labs().find((x) => x.labId === item.labId)?.labName ?? `Phòng #${item.labId}`
-    return (
-      this.equipments().find((x) => x.equipmentId === item.equipmentId)?.equipmentName ??
-      `Thiết bị #${item.equipmentId}`
-    )
+    if (item.labId) return this.labs().find((x) => x.labId === item.labId)?.labName ?? `Phòng #${item.labId}`
+    return this.equipments().find((x) => x.equipmentId === item.equipmentId)?.equipmentName ?? `Thiết bị #${item.equipmentId}`
   }
 
   protected canNotify(): boolean {
@@ -268,40 +172,26 @@ export class WaitlistsManagementPage implements OnInit {
       return
     }
     this.loading.set(true)
-    this.api
-      .waitlistQueue({
-        labId: this.equipmentId ? undefined : (this.labId ?? undefined),
-        equipmentId: this.equipmentId ?? undefined,
-        requestedStart: toIso(this.requestedStart),
-        requestedEnd: toIso(this.requestedEnd),
-      })
-      .subscribe({
-        next: (x) => {
-          this.items.set(x)
-          this.loading.set(false)
-        },
-        error: () => {
-          this.loading.set(false)
-          this.toast.error('Không tải được queue')
-        },
-      })
+    this.api.waitlistQueue({ labId: this.labId ?? undefined, equipmentId: this.equipmentId ?? undefined, requestedStart: toIso(this.requestedStart), requestedEnd: toIso(this.requestedEnd) }).subscribe({
+      next: (x) => {
+        this.items.set(x)
+        this.loading.set(false)
+      },
+      error: () => {
+        this.loading.set(false)
+        this.toast.error('Không tải được queue')
+      },
+    })
   }
 
   protected notifyNext(): void {
-    this.api
-      .notifyNextWaitlist({
-        labId: this.labId,
-        equipmentId: this.equipmentId,
-        requestedStart: toIso(this.requestedStart),
-        requestedEnd: toIso(this.requestedEnd),
-      })
-      .subscribe({
-        next: () => {
-          this.toast.success('Đã thông báo người tiếp theo')
-          this.loadQueue()
-        },
-        error: () => this.toast.error('Không thể thông báo người tiếp theo'),
-      })
+    this.api.notifyNextWaitlist({ labId: this.labId, equipmentId: this.equipmentId, requestedStart: toIso(this.requestedStart), requestedEnd: toIso(this.requestedEnd) }).subscribe({
+      next: () => {
+        this.toast.success('Đã thông báo người tiếp theo')
+        this.loadQueue()
+      },
+      error: () => this.toast.error('Không thể thông báo người tiếp theo'),
+    })
   }
 
   protected cancel(item: WaitlistResponse): void {

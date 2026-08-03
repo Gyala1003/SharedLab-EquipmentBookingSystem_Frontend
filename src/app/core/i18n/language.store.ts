@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
+import { env } from '../config/env'
 import { translations } from './translations'
 
 export type SupportedLocale = 'vi' | 'en'
@@ -27,7 +28,7 @@ export class LanguageStore {
 
   t(key: string, params?: Record<string, string | number>): string {
     const item = translations[key]
-    let result = item ? item[this.lang()] || item.vi || key : key
+    let result = item ? (item[this.lang()] || item.vi || key) : key
     if (params) {
       for (const [k, v] of Object.entries(params)) {
         result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
@@ -40,7 +41,7 @@ export class LanguageStore {
     try {
       localStorage.setItem(this.key, l)
       localStorage.setItem('app.locale', l)
-    } catch {}
+    } catch { }
     document.documentElement.lang = l
     if (this.translate) {
       this.translate.use(l)
@@ -49,11 +50,12 @@ export class LanguageStore {
 
   private resolveInitialLang(): SupportedLocale {
     try {
-      const stored = (localStorage.getItem('app.lang') ||
-        localStorage.getItem('app.locale')) as SupportedLocale
+      const stored = (localStorage.getItem('app.lang') || localStorage.getItem('app.locale')) as SupportedLocale
       if (stored === 'vi' || stored === 'en') return stored
-    } catch {}
-    const nav = typeof navigator !== 'undefined' ? (navigator.language.split('-')[0] ?? '') : ''
-    return nav === 'vi' ? 'vi' : 'en'
+    } catch { }
+    const defaultLoc = (env.defaultLocale as SupportedLocale) || 'vi'
+    return defaultLoc === 'vi' || defaultLoc === 'en' ? defaultLoc : 'vi'
   }
 }
+
+
