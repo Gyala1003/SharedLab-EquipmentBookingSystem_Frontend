@@ -59,7 +59,7 @@ import { labelOf } from '../../shared/utils/presentation'
               <p class="mt-4 min-h-12 text-sm leading-6 text-slate-600">{{ item.incidentDescription || ('common.noData' | t) }}</p>
               <div class="mt-4 rounded-2xl bg-slate-50 p-4">
                 <div class="flex items-center justify-between text-xs">
-                  <span class="text-slate-400">Thiết bị ảnh hưởng</span>
+                  <span class="text-slate-400">{{ 'incidents.affectedEquipment' | t }}</span>
                   <strong class="text-slate-700">{{ item.affectedEquipmentId ? '#' + item.affectedEquipmentId : '—' }}</strong>
                 </div>
                 <div class="mt-3 flex items-center justify-between text-xs">
@@ -69,7 +69,7 @@ import { labelOf } from '../../shared/utils/presentation'
               </div>
               @if (item.incidentReviewNote) {
                 <div class="mt-4 rounded-2xl border border-slate-200 p-4">
-                  <p class="text-[10px] font-black uppercase text-slate-400">Ghi chú xét duyệt</p>
+                  <p class="text-[10px] font-black uppercase text-slate-400">{{ 'incidents.reviewNote' | t }}</p>
                   <p class="mt-2 text-sm text-slate-600">{{ item.incidentReviewNote }}</p>
                 </div>
               }
@@ -86,11 +86,11 @@ import { labelOf } from '../../shared/utils/presentation'
       <app-modal [open]="reviewOpen()" [title]="reviewAction === 'confirm' ? ('incidents.confirm' | t) : ('incidents.reject' | t)" [subtitle]="selected() ? 'UsageLog #' + selected()!.logId : ''" (close)="reviewOpen.set(false)">
         @if (reviewAction === 'confirm') {
           <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-            <strong>Warning:</strong> confirmed incidents may generate automatic violations and penalty points.
+            {{ 'incidents.confirmWarning' | t }}
           </div>
         }
-        <label class="field-label">Ghi chú xét duyệt</label>
-        <textarea class="textarea-shell" [(ngModel)]="reviewNote" placeholder="Kết quả kiểm tra, bằng chứng hoặc hướng xử lý..."></textarea>
+        <label class="field-label">{{ 'incidents.reviewNote' | t }}</label>
+        <textarea class="textarea-shell" [(ngModel)]="reviewNote" placeholder="{{ 'incidents.reviewPlaceholder' | t }}"></textarea>
         <div class="mt-5 flex justify-end gap-2">
           <button class="btn-secondary" (click)="reviewOpen.set(false)">{{ 'common.cancel' | t }}</button>
           <button class="btn-primary" (click)="review()">{{ 'common.apply' | t }}</button>

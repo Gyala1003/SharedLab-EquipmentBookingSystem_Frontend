@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
+import { env } from '../config/env'
 import { translations } from './translations'
 
 export type SupportedLocale = 'vi' | 'en'
@@ -52,8 +53,9 @@ export class LanguageStore {
       const stored = (localStorage.getItem('app.lang') || localStorage.getItem('app.locale')) as SupportedLocale
       if (stored === 'vi' || stored === 'en') return stored
     } catch { }
-    const nav = typeof navigator !== 'undefined' ? (navigator.language.split('-')[0] ?? '') : ''
-    return nav === 'vi' ? 'vi' : 'en'
+    const defaultLoc = (env.defaultLocale as SupportedLocale) || 'vi'
+    return defaultLoc === 'vi' || defaultLoc === 'en' ? defaultLoc : 'vi'
   }
 }
+
 

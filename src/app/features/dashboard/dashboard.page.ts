@@ -1,11 +1,14 @@
 import { DecimalPipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import type {
   CategoryCountResponse,
   DashboardResponse,
   ResourceUtilizationResponse,
 } from '../../core/api/api.models'
+import { SystemService } from '../../core/api/system.service'
+import type { PolicyResponse } from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
@@ -14,6 +17,28 @@ import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
+
+const SEED_POLICY_VI: PolicyResponse = {
+  generalRules: [
+    'Xác thực qua người duyệt: Mọi lượt Check-in (Nhận) và Check-out (Trả) đúng giờ chỉ được tính là hoàn thành sau khi có sự xác thực/phê duyệt trực tiếp từ Bộ phận Quản lý.',
+    'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo ngay hỏng hóc/sự cố có sẵn cho Bộ phận duyệt trong 5–10 phút đầu.',
+    'Quy định Check-out & Mất tài sản: Trả phòng/thiết bị đúng thời gian đã đăng ký. Check-out muộn quá 02 tuần sẽ tự động ghi nhận là LÀM MẤT TÀI SẢN và bị ĐÓNG BĂNG/KHÓA TÀI KHOẢN HOÀN TOÀN.',
+    'Trách nhiệm bảo quản & Hỏng hóc: Người mượn chịu trách nhiệm toàn bộ đối với phòng học và thiết bị. Nếu bị hư hỏng mà không có chứng minh lý do khách quan, người mượn phải bồi thường toàn bộ chi phí.',
+    'Quản lý tài khoản & Nghiêm cấm tráo đổi: Nghiêm cấm tự ý tháo lắp, thay thế, tráo đổi linh kiện hoặc cho mượn/dùng chung tài khoản. Chủ tài khoản phải chịu trách nhiệm trước nhà trường.',
+  ],
+  categories: [],
+}
+
+const SEED_POLICY_EN: PolicyResponse = {
+  generalRules: [
+    '2-Step Verification: All Check-in (Receive) and Check-out (Return) entries are completed only upon direct verification/approval from Management.',
+    'Initial Inspection: Immediately inspect all room and equipment conditions upon Check-in. Report any pre-existing damage within 5–10 minutes.',
+    'Overdue & Lost Asset: Overdue Checkout >2 weeks is automatically logged as LOST ASSET, causing an immediate ACCOUNT FREEZE/LOCK until compensated.',
+    'Asset Care Responsibility: Borrowers bear full responsibility for room spaces and equipment, including full repair/replacement costs for unverified damage.',
+    'Account Integrity & Anti-Swapping: Component swapping and account sharing are strictly prohibited; account owners bear full institutional liability.',
+  ],
+  categories: [],
+}
 
 const EMPTY_DASHBOARD: DashboardResponse = {
   from: '',
@@ -37,7 +62,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [FormsModule, DecimalPipe, IconComponent, TranslatePipe],
+  imports: [FormsModule, DecimalPipe, RouterLink, IconComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
@@ -120,22 +145,12 @@ const EMPTY_DASHBOARD: DashboardResponse = {
           </div>
 
           <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-xs font-bold text-cyan-800">1. {{ languageStore.lang() === 'en' ? '2-Step Verification' : 'Xác thực 2 bước (Check-in/out)' }}</p>
-              <p class="mt-1 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Check-in/out is completed only upon direct approval by Management.' : 'Lượt Check-in/out chỉ được tính hoàn thành khi có phê duyệt trực tiếp từ Bộ phận Quản lý.' }}</p>
-            </div>
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-xs font-bold text-amber-800">2. {{ languageStore.lang() === 'en' ? 'Initial Inspection (5-10m)' : 'Kiểm tra đầu giờ (5–10 phút)' }}</p>
-              <p class="mt-1 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Inspect and report pre-existing damage within 5-10 mins after Check-in.' : 'Báo ngay sự cố/hỏng hóc có sẵn trong 5–10 phút đầu sau khi Check-in.' }}</p>
-            </div>
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-xs font-bold text-indigo-800">3. {{ languageStore.lang() === 'en' ? 'Late >2 Weeks (Account Lock)' : 'Muộn >2 tuần (Khóa tài khoản)' }}</p>
-              <p class="mt-1 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'Check-out overdue >2 weeks auto-marks LOST ASSET and FREEZES/LOCKS account.' : 'Check-out muộn >2 tuần bị tự động tính LÀM MẤT TÀI SẢN & ĐÓNG BĂNG/KHÓA TÀI KHOẢN.' }}</p>
-            </div>
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-              <p class="text-xs font-bold text-emerald-800">4. {{ languageStore.lang() === 'en' ? 'Anti-Swapping & Account Security' : 'Cấm tráo đổi & Dùng chung tài khoản' }}</p>
-              <p class="mt-1 text-xs text-slate-600 leading-5">{{ languageStore.lang() === 'en' ? 'No swapping components or lending accounts. Account owner bears full liability.' : 'Nghiêm cấm tháo lắp, tráo đổi thiết bị hoặc dùng chung tài khoản. Chủ tài khoản chịu trách nhiệm.' }}</p>
-            </div>
+            @for (rule of activePolicyRules().slice(0, 4); track $index) {
+              <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                <p class="text-xs font-bold text-cyan-800">{{ rule.title }}</p>
+                <p class="mt-1 text-xs text-slate-600 leading-5">{{ rule.desc }}</p>
+              </div>
+            }
           </div>
         </article>
 
@@ -334,11 +349,44 @@ const EMPTY_DASHBOARD: DashboardResponse = {
 })
 export class DashboardPage implements OnInit {
   private readonly workspace = inject(WorkspaceService)
+  private readonly systemApi = inject(SystemService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
   protected readonly dashboard = signal<DashboardResponse>(EMPTY_DASHBOARD)
+  protected readonly customPolicy = signal<PolicyResponse | null>(null)
   protected readonly loading = signal(true)
+
+  protected readonly activePolicyRules = computed<Array<{ title: string; desc: string }>>(() => {
+    const lang = this.languageStore.lang()
+    const custom = this.customPolicy()
+    let rawRules: string[] = []
+
+    if (custom && custom.generalRules && custom.generalRules.length > 0) {
+      const isViSeed = custom.generalRules[0]?.startsWith('Xác thực qua') || !custom.categories || custom.categories.length === 0
+      const isEnSeed = custom.generalRules[0]?.startsWith('2-Step Verification')
+      if (lang === 'en' && (isViSeed || isEnSeed)) rawRules = SEED_POLICY_EN.generalRules
+      else if (lang === 'vi' && (isViSeed || isEnSeed)) rawRules = SEED_POLICY_VI.generalRules
+      else rawRules = custom.generalRules
+    } else {
+      rawRules = (lang === 'en' ? SEED_POLICY_EN : SEED_POLICY_VI).generalRules
+    }
+
+    return rawRules.map((ruleStr, index) => {
+      const colonIdx = ruleStr.indexOf(':')
+      if (colonIdx !== -1) {
+        return {
+          title: `${index + 1}. ${ruleStr.substring(0, colonIdx).trim()}`,
+          desc: ruleStr.substring(colonIdx + 1).trim(),
+        }
+      }
+      return {
+        title: `${index + 1}. ${this.languageStore.t('policy.generalRules')}`,
+        desc: ruleStr.trim(),
+      }
+    })
+  })
+
   protected readonly activePreset = signal(30)
   protected readonly chartColors = ['#6366f1', '#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e']
   protected readonly presets = [
@@ -395,6 +443,10 @@ export class DashboardPage implements OnInit {
   protected readonly statusDonut = computed(() => this.buildDonut(this.dashboard().bookingStatusCounts))
 
   ngOnInit(): void {
+    this.systemApi.getPolicy().subscribe({
+      next: (res) => this.customPolicy.set(res),
+      error: () => {},
+    })
     this.applyPreset(30)
   }
 

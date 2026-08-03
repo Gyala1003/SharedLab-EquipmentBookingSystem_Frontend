@@ -6,7 +6,8 @@ import { translations } from './translations'
 export class TranslatePipe implements PipeTransform {
   private readonly languageStore = inject(LanguageStore)
 
-  transform(key: string, params?: Record<string, string | number>): string {
+  transform(key: string | null | undefined, params?: Record<string, string | number>): string {
+    if (!key) return ''
     const entry = translations[key]
     let result = entry ? (entry[this.languageStore.lang()] || entry.vi || key) : key
     if (params) {

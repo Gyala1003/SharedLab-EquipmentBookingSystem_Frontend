@@ -168,13 +168,13 @@ const SEED_POLICY_EN: PolicyResponse = {
                     }
                   </div>
                 } @empty {
-                  <div class="p-5 text-center text-xs font-semibold text-slate-400">Chưa có hành vi nào trong hạng mục này.</div>
+                  <div class="p-5 text-center text-xs font-semibold text-slate-400">{{ 'Chưa có hành vi nào trong hạng mục này.' | t }}</div>
                 }
               </div>
               @if (store.isAdmin()) { <div class="border-t border-slate-100 p-4"><button type="button" class="btn-secondary w-full" (click)="addItem(categoryIndex)"><app-icon name="plus" [size]="16" /> {{ 'policy.addItem' | t }}</button></div> }
             </article>
           } @empty {
-            <p class="text-sm font-semibold text-slate-400">Chưa có hạng mục chính sách nào.</p>
+            <p class="text-sm font-semibold text-slate-400">{{ 'Chưa có hạng mục chính sách nào.' | t }}</p>
           }
         </div>
 
@@ -193,8 +193,16 @@ export class PolicyPage implements OnInit {
   protected readonly customPolicy = signal<PolicyResponse | null>(null)
 
   protected readonly activePolicy = computed<PolicyResponse>(() => {
-    if (this.customPolicy()) return this.customPolicy()!
-    return this.languageStore.lang() === 'en' ? SEED_POLICY_EN : SEED_POLICY_VI
+    const lang = this.languageStore.lang()
+    const custom = this.customPolicy()
+    if (custom) {
+      const isViSeed = custom.generalRules[0]?.startsWith('Xác thực qua') || !custom.categories || custom.categories.length === 0
+      const isEnSeed = custom.generalRules[0]?.startsWith('2-Step Verification')
+      if (lang === 'en' && (isViSeed || isEnSeed)) return SEED_POLICY_EN
+      if (lang === 'vi' && (isViSeed || isEnSeed)) return SEED_POLICY_VI
+      return custom
+    }
+    return lang === 'en' ? SEED_POLICY_EN : SEED_POLICY_VI
   })
 
   ngOnInit(): void {

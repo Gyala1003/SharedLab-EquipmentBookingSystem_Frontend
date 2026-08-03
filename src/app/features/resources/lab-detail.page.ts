@@ -6,6 +6,7 @@ import { forkJoin } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { CalendarEventResponse, EquipmentResponse, LabRoomDetailResponse, MaintenanceResponse, UserManagementResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
@@ -15,18 +16,18 @@ import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-lab-detail-page',
-  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent],
+  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       @if (loading()) {
         <div class="card-surface p-7"><div class="skeleton h-7 w-2/5 rounded"></div><div class="skeleton mt-4 h-52 rounded-3xl"></div></div>
       } @else if (!lab()) {
-        <app-data-state title="Không tìm thấy phòng lab" message="Phòng lab có thể đã bị xóa hoặc bạn không có quyền truy cập." icon="building"><a routerLink="/app/labs" class="btn-primary mt-5">Về danh sách</a></app-data-state>
+        <app-data-state [title]="'lab.notFoundTitle' | t" [message]="'lab.notFoundMsg' | t" icon="building"><a routerLink="/app/labs" class="btn-primary mt-5">{{ 'lab.backToList' | t }}</a></app-data-state>
       } @else {
-        <app-page-header [title]="lab()!.labName" [subtitle]="lab()!.roomCode + ' · ' + lab()!.location">
-          <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab()!.labId }" class="btn-primary"><app-icon name="calendar-plus" [size]="17" /> Đặt cả phòng</a>
-          @if (store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> Lên lịch bảo trì</a> }
-          @if (store.isAdmin()) { <button class="btn-secondary" (click)="openEdit()"><app-icon name="edit" [size]="17" /> Chỉnh sửa</button> }
+        <app-page-header [title]="lab()!.labName | t" [subtitle]="lab()!.roomCode + ' · ' + (lab()!.location | t)">
+          <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab()!.labId }" class="btn-primary"><app-icon name="calendar-plus" [size]="17" /> {{ 'lab.bookFullRoom' | t }}</a>
+          @if (store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> {{ 'lab.scheduleMaintenance' | t }}</a> }
+          @if (store.isAdmin()) { <button class="btn-secondary" (click)="openEdit()"><app-icon name="edit" [size]="17" /> {{ 'lab.edit' | t }}</button> }
         </app-page-header>
 
         <div class="grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
@@ -34,27 +35,27 @@ import { ToastService } from '../../shared/ui/toast.service'
             <div class="relative h-64 bg-gradient-to-br from-[#111a3a] via-indigo-950 to-violet-800 sm:h-80">
               @if (lab()!.imageUrl) { <img [src]="lab()!.imageUrl" [alt]="lab()!.labName" class="h-full w-full object-cover" /> <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"></div> }
               @else { <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 20% 25%, #a78bfa, transparent 32%), radial-gradient(circle at 80% 80%, #22d3ee, transparent 28%)"></div><div class="absolute inset-0 flex items-center justify-center text-white/25"><app-icon name="building" [size]="110" /></div> }
-              <div class="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-4 p-6"><div><p class="text-xs font-black uppercase tracking-[.2em] text-cyan-300">{{ lab()!.roomCode }}</p><p class="mt-2 text-2xl font-black text-white">{{ lab()!.labName }}</p></div><app-status-badge [value]="lab()!.status" domain="lab" /></div>
+              <div class="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-4 p-6"><div><p class="text-xs font-black uppercase tracking-[.2em] text-cyan-300">{{ lab()!.roomCode }}</p><p class="mt-2 text-2xl font-black text-white">{{ lab()!.labName | t }}</p></div><app-status-badge [value]="lab()!.status" domain="lab" /></div>
             </div>
-            <div class="grid gap-px bg-slate-100 sm:grid-cols-3"><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">Vị trí</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.location }}</p></div><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">Sức chứa</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.capacity }} người</p></div><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">Quản lý</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.managerName || 'Chưa phân công' }}</p></div></div>
+            <div class="grid gap-px bg-slate-100 sm:grid-cols-3"><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'lab.location' | t }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.location | t }}</p></div><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'lab.capacity' | t }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.capacity }} {{ 'common.people' | t }}</p></div><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'lab.manager' | t }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.managerName || ('lab.unassigned' | t) }}</p></div></div>
           </article>
 
-          <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">Tổng quan</p><h2 class="mt-2 text-xl font-black text-slate-950">Không gian nghiên cứu</h2><p class="mt-4 text-sm leading-7 text-slate-500">{{ lab()!.description || 'Chưa có mô tả cho phòng lab này.' }}</p><div class="mt-6 rounded-2xl bg-slate-50 p-4"><p class="text-xs font-black text-slate-700">Hướng dẫn sử dụng</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-500">{{ lab()!.usageGuideline || 'Liên hệ LabManager để được hướng dẫn trước khi sử dụng.' }}</p></div><a routerLink="/app/calendar" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary mt-5 w-full"><app-icon name="calendar" [size]="17" /> Xem lịch phòng</a></article>
+          <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">{{ 'lab.overview' | t }}</p><h2 class="mt-2 text-xl font-black text-slate-950">{{ 'lab.researchSpace' | t }}</h2><p class="mt-4 text-sm leading-7 text-slate-500">{{ (lab()!.description ?? '') | t }}</p><div class="mt-6 rounded-2xl bg-slate-50 p-4"><p class="text-xs font-black text-slate-700">{{ 'lab.usageGuideline' | t }}</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-500">{{ (lab()!.usageGuideline ?? '') | t }}</p></div><a routerLink="/app/calendar" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary mt-5 w-full"><app-icon name="calendar" [size]="17" /> {{ 'lab.viewSchedule' | t }}</a></article>
         </div>
 
-        <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">Điểm danh nhanh bằng QR</p><h2 class="mt-2 text-xl font-black text-slate-950">Quét mã để vào phòng</h2>@if (qrImageUrl()) { <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start"><img [src]="qrImageUrl()" alt="QR điểm danh" class="h-[180px] w-[180px] shrink-0 rounded-2xl border border-slate-200 bg-white p-2" /><p class="text-sm leading-6 text-slate-500">In mã này dán tại cửa phòng lab, người dùng quét bằng camera điện thoại sẽ được đưa thẳng vào trang Chi tiết booking để điểm danh.</p></div> } @else { <p class="mt-4 text-sm leading-6 text-slate-500">Bạn chưa có booking đang trong khung giờ hoạt động tại phòng này nên chưa thể tạo mã QR điểm danh.</p> }</article>
+        <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">{{ 'lab.qrCheckinHeader' | t }}</p><h2 class="mt-2 text-xl font-black text-slate-950">{{ 'lab.qrCheckinTitle' | t }}</h2>@if (qrImageUrl()) { <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start"><img [src]="qrImageUrl()" alt="QR điểm danh" class="h-[180px] w-[180px] shrink-0 rounded-2xl border border-slate-200 bg-white p-2" /><p class="text-sm leading-6 text-slate-500">{{ 'lab.qrCheckinMsg' | t }}</p></div> } @else { <p class="mt-4 text-sm leading-6 text-slate-500">{{ 'lab.qrNoActiveBooking' | t }}</p> }</article>
 
-        <div class="flex gap-2 overflow-x-auto rounded-2xl bg-white p-1.5 shadow-sm">@for (item of tabs; track item.key) { <button type="button" class="shrink-0 rounded-xl px-4 py-2.5 text-xs font-black" [ngClass]="tab() === item.key ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500 hover:bg-slate-50'" (click)="tab.set(item.key)">{{ item.label }} <span class="ml-1 opacity-65">{{ item.count }}</span></button> }</div>
+        <div class="flex gap-2 overflow-x-auto rounded-2xl bg-white p-1.5 shadow-sm">@for (item of tabs; track item.key) { <button type="button" class="shrink-0 rounded-xl px-4 py-2.5 text-xs font-black" [ngClass]="tab() === item.key ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500 hover:bg-slate-50'" (click)="tab.set(item.key)">{{ item.labelKey | t }} <span class="ml-1 opacity-65">{{ item.count }}</span></button> }</div>
 
         @if (tab() === 'equipment') {
-          @if (equipments().length === 0) { <app-data-state title="Phòng chưa có thiết bị" message="Admin có thể bổ sung thiết bị từ màn hình quản lý thiết bị." icon="microscope" /> }
-          @else { <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">@for (item of equipments(); track item.equipmentId) { <a [routerLink]="['/app/equipments', item.equipmentId]" class="card-surface group flex items-center gap-4 p-5 transition hover:-translate-y-1"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="microscope" [size]="22" /></div><div class="min-w-0 flex-1"><p class="truncate font-black text-slate-900">{{ item.equipmentName }}</p><div class="mt-2"><app-status-badge [value]="item.status" domain="equipment" /></div></div><app-icon name="arrow-right" [size]="18" /></a> }</div> }
+          @if (equipments().length === 0) { <app-data-state [title]="'lab.emptyEquipmentTitle' | t" [message]="'lab.emptyEquipmentMsg' | t" icon="microscope" /> }
+          @else { <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">@for (item of equipments(); track item.equipmentId) { <a [routerLink]="['/app/equipments', item.equipmentId]" class="card-surface group flex items-center gap-4 p-5 transition hover:-translate-y-1"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600"><app-icon name="microscope" [size]="22" /></div><div class="min-w-0 flex-1"><p class="truncate font-black text-slate-900">{{ item.equipmentName | t }}</p><div class="mt-2"><app-status-badge [value]="item.status" domain="equipment" /></div></div><app-icon name="arrow-right" [size]="18" /></a> }</div> }
         } @else if (tab() === 'schedule') {
-          @if (events().length === 0) { <app-data-state title="Không có lịch trong 30 ngày tới" message="Phòng hiện chưa có booking hoặc bảo trì trong khoảng thời gian này." icon="calendar" /> }
+          @if (events().length === 0) { <app-data-state [title]="'lab.emptyScheduleTitle' | t" [message]="'lab.emptyScheduleMsg' | t" icon="calendar" /> }
           @else { <div class="card-surface divide-y divide-slate-100">@for (event of events(); track event.eventType + event.sourceId) { <button class="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-slate-50" (click)="openEvent(event)"><div class="flex h-11 w-11 items-center justify-center rounded-2xl" [ngClass]="event.eventType === 'Maintenance' ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600'"><app-icon [name]="event.eventType === 'Maintenance' ? 'wrench' : 'calendar'" [size]="20" /></div><div class="min-w-0 flex-1"><p class="truncate font-black text-slate-900">{{ event.title }}</p><p class="mt-1 text-xs text-slate-400">{{ event.startTime | date:'HH:mm dd/MM/yyyy' }} – {{ event.endTime | date:'HH:mm dd/MM/yyyy' }}</p></div><app-status-badge [value]="event.status" [domain]="event.eventType === 'Maintenance' ? 'maintenance' : 'booking'" /></button> }</div> }
         } @else {
-          @if (maintenances().length === 0) { <app-data-state title="Chưa có lịch bảo trì" message="Không có lịch bảo trì trực tiếp hoặc thiết bị thuộc phòng trong dữ liệu hiện tại." icon="wrench" /> }
-          @else { <div class="grid gap-4 md:grid-cols-2">@for (item of maintenances(); track item.maintenanceId) { <a [routerLink]="['/app/management/maintenances', item.maintenanceId]" class="card-surface flex items-center gap-4 p-5 hover:-translate-y-1"><div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"><app-icon name="wrench" [size]="21" /></div><div class="min-w-0 flex-1"><p class="font-black text-slate-900">Bảo trì #{{ item.maintenanceId }}</p><p class="mt-1 text-xs text-slate-400">{{ item.startTime | date:'HH:mm dd/MM' }} – {{ item.endTime | date:'HH:mm dd/MM' }}</p></div><app-status-badge [value]="item.status" domain="maintenance" /></a> }</div> }
+          @if (maintenances().length === 0) { <app-data-state [title]="'lab.emptyMaintenanceTitle' | t" [message]="'lab.emptyMaintenanceMsg' | t" icon="wrench" /> }
+          @else { <div class="grid gap-4 md:grid-cols-2">@for (item of maintenances(); track item.maintenanceId) { <a [routerLink]="['/app/management/maintenances', item.maintenanceId]" class="card-surface flex items-center gap-4 p-5 hover:-translate-y-1"><div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"><app-icon name="wrench" [size]="21" /></div><div class="min-w-0 flex-1"><p class="font-black text-slate-900">{{ 'lab.maintenanceItem' | t: { id: item.maintenanceId } }}</p><p class="mt-1 text-xs text-slate-400">{{ item.startTime | date:'HH:mm dd/MM' }} – {{ item.endTime | date:'HH:mm dd/MM' }}</p></div><app-status-badge [value]="item.status" domain="maintenance" /></a> }</div> }
         }
 
         <app-modal [open]="editOpen()" title="Chỉnh sửa phòng lab" subtitle="RoomCode không thể sửa bằng API hiện tại." (close)="editOpen.set(false)">
@@ -80,9 +81,9 @@ export class LabDetailPage implements OnInit {
   protected readonly editOpen = signal(false)
   protected readonly tab = signal<'equipment' | 'schedule' | 'maintenance'>('equipment')
   protected readonly tabs = [
-    { key: 'equipment' as const, label: 'Thiết bị', count: 0 },
-    { key: 'schedule' as const, label: 'Lịch tài nguyên', count: 0 },
-    { key: 'maintenance' as const, label: 'Bảo trì', count: 0 },
+    { key: 'equipment' as const, labelKey: 'lab.tabs.equipment', count: 0 },
+    { key: 'schedule' as const, labelKey: 'lab.tabs.schedule', count: 0 },
+    { key: 'maintenance' as const, labelKey: 'lab.tabs.maintenance', count: 0 },
   ]
   protected editForm = { labName: '', location: '', capacity: 1, description: '', imageUrl: '', usageGuideline: '' }
   protected managerId: number | null = null

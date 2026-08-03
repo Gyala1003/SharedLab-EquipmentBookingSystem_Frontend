@@ -89,9 +89,9 @@ export class AuthStore {
     return roles.some((r) => {
       const target = r.trim().toLowerCase().replace(/[\s_]+/g, '')
       if (target === rawRole) return true
-      if (target === 'admin' && (rawRole === 'admin' || rawRole === 'administrator')) return true
-      if (target === 'labmanager' && (rawRole === 'labmanager' || rawRole === 'manager')) return true
-      if (target === 'requester' && (rawRole === 'requester' || rawRole === 'student')) return true
+      if (target === 'admin' && (rawRole === 'admin' || rawRole === 'administrator' || rawRole.includes('quantri'))) return true
+      if (target === 'labmanager' && (rawRole === 'labmanager' || rawRole === 'manager' || rawRole.includes('quanly'))) return true
+      if (target === 'requester' && (rawRole === 'requester' || rawRole === 'student' || rawRole.includes('sinhvien') || rawRole.includes('nguoidung'))) return true
       return false
     })
   }

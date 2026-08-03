@@ -48,13 +48,13 @@ import { ToastService } from '../../shared/ui/toast.service'
                 }
               </div>
               <div class="p-5">
-                <p class="truncate text-base font-black text-slate-950">{{ item.equipmentName }}</p>
-                <p class="mt-2 flex items-center gap-2 truncate text-xs text-slate-400"><app-icon name="building" [size]="15" /> {{ labName(item.labId) }}</p>
+                <p class="truncate text-base font-black text-slate-950">{{ item.equipmentName | t }}</p>
+                <p class="mt-2 flex items-center gap-2 truncate text-xs text-slate-400"><app-icon name="building" [size]="15" /> {{ labName(item.labId) | t }}</p>
                 <div class="mt-5 flex gap-2">
                   <a [routerLink]="['/app/equipments', item.equipmentId]" class="btn-primary flex-1">{{ 'common.details' | t }}</a>
-                  <a routerLink="/app/bookings/new" [queryParams]="{ equipmentId: item.equipmentId, labId: item.labId }" class="btn-secondary px-3"><app-icon name="calendar-plus" [size]="18" /></a>
+                  <a routerLink="/app/bookings/new" [queryParams]="{ equipmentId: item.equipmentId, labId: item.labId }" class="btn-secondary px-3" title="{{ 'sidebar.quickBooking' | t }}"><app-icon name="calendar-plus" [size]="18" /></a>
                   @if (store.isAdmin()) {
-                    <button type="button" class="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100" title="Chỉnh sửa" (click)="openEdit(item)"><app-icon name="edit" [size]="17" /></button>
+                    <button type="button" class="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100" title="{{ 'equipment.edit' | t }}" (click)="openEdit(item)"><app-icon name="edit" [size]="17" /></button>
                   }
                 </div>
               </div>
@@ -63,7 +63,7 @@ import { ToastService } from '../../shared/ui/toast.service'
         </div>
       }
 
-      @if (totalPages() > 1) { <div class="flex justify-center gap-2"><button class="btn-secondary" [disabled]="page() <= 1" (click)="page.set(page()-1); load()">Trước</button><span class="rounded-xl bg-white px-4 py-3 text-xs font-black">{{ page() }}/{{ totalPages() }}</span><button class="btn-secondary" [disabled]="page() >= totalPages()" (click)="page.set(page()+1); load()">Sau</button></div> }
+      @if (totalPages() > 1) { <div class="flex justify-center gap-2"><button class="btn-secondary" [disabled]="page() <= 1" (click)="page.set(page()-1); load()">{{ 'common.prev' | t }}</button><span class="rounded-xl bg-white px-4 py-3 text-xs font-black">{{ page() }}/{{ totalPages() }}</span><button class="btn-secondary" [disabled]="page() >= totalPages()" (click)="page.set(page()+1); load()">{{ 'common.next' | t }}</button></div> }
 
       <!-- Modal Tạo thiết bị -->
       <app-modal [open]="createOpen()" title="Thêm thiết bị mới" subtitle="Thiết bị phải thuộc một phòng lab đang tồn tại." (close)="createOpen.set(false)">

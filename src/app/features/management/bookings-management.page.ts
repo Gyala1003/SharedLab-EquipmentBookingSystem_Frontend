@@ -27,7 +27,7 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
       <!-- KPI Cards -->
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         @for (card of cards(); track card.status) {
-          <button type="button" class="kpi-card text-left transition hover:-translate-y-1" [class.ring-2]="status === card.status" [class.ring-violet-400]="status === card.status" (click)="status = card.status">
+          <button type="button" class="kpi-card text-left transition hover:-translate-y-1" [class.ring-2]="status() === card.status" [class.ring-violet-400]="status() === card.status" (click)="status.set(card.status)">
             <p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ card.label }}</p>
             <p class="mt-2 text-3xl font-black" [class]="card.className">{{ card.count }}</p>
           </button>
@@ -35,22 +35,39 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
       </div>
 
       <!-- Filters -->
-      <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_1fr_auto_auto]">
+      <div class="card-surface p-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto_auto]">
         <div>
           <label class="field-label">{{ 'common.search' | t }}</label>
-          <input class="input-shell" [(ngModel)]="keyword" [placeholder]="'manageBookings.searchPlaceholder' | t" />
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><app-icon name="search" [size]="16" /></span>
+            <input class="input-shell pl-9" [ngModel]="keyword()" (ngModelChange)="keyword.set($event)" placeholder="{{ 'bookings.searchPlaceholder' | t }}" />
+          </div>
         </div>
         <div>
           <label class="field-label">{{ 'common.status' | t }}</label>
-          <select class="input-shell" [(ngModel)]="status">
-            <option value="">{{ 'common.all' | t }}</option>
+          <select class="input-shell" [ngModel]="status()" (ngModelChange)="status.set($event)">
+            <option value="">{{ 'common.allStatuses' | t }}</option>
             @for (tab of statuses(); track tab.value) { <option [value]="tab.value">{{ tab.label }}</option> }
           </select>
         </div>
-        <div><label class="field-label">{{ 'common.from' | t }}</label><input class="input-shell" type="date" [(ngModel)]="from" /></div>
-        <div><label class="field-label">{{ 'common.to' | t }}</label><input class="input-shell" type="date" [(ngModel)]="to" /></div>
-        <div class="flex items-end"><button class="btn-secondary w-full" (click)="reset()"><app-icon name="refresh" [size]="17" /> {{ 'common.reset' | t }}</button></div>
-        <div class="flex items-end"><button class="btn-primary w-full" (click)="load()"><app-icon name="refresh" [size]="17" /> {{ 'common.refresh' | t }}</button></div>
+        <div>
+          <label class="field-label">{{ 'common.from' | t }}</label>
+          <input class="input-shell" type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'common.to' | t }}</label>
+          <input class="input-shell" type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+        </div>
+        <div class="flex items-end">
+          <button class="btn-secondary w-full" (click)="reset()">
+            <app-icon name="refresh" [size]="17" /> {{ 'common.reset' | t }}
+          </button>
+        </div>
+        <div class="flex items-end">
+          <button class="btn-primary w-full" (click)="load()">
+            <app-icon name="refresh" [size]="17" /> {{ 'common.reload' | t }}
+          </button>
+        </div>
       </div>
 
       <!-- Table -->
@@ -67,43 +84,67 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
             <table class="table-shell">
               <thead>
                 <tr>
-                  <th>Booking</th>
-                  <th>{{ 'nav.users' | t }}</th>
-                  <th>{{ 'common.purpose' | t }}</th>
-                  <th>{{ 'common.from' | t }}</th>
-                  <th>{{ 'common.priority' | t }}</th>
+                  <th>{{ 'bookings.bookingCode' | t }}</th>
+                  <th>{{ 'bookings.user' | t }}</th>
+                  <th>{{ 'bookings.resource' | t }} / {{ 'bookings.purpose' | t }}</th>
+                  <th>{{ 'bookings.usageTime' | t }}</th>
+                  <th>{{ 'bookings.priority' | t }}</th>
                   <th>{{ 'common.status' | t }}</th>
-                  <th>{{ 'common.action' | t }}</th>
+                  <th class="text-right">{{ 'common.actions' | t }}</th>
                 </tr>
               </thead>
               <tbody>
                 @for (item of filtered(); track item.bookingId) {
                   <tr>
+                    <!-- Mã Booking -->
                     <td>
-                      <button class="font-black text-cyan-700 hover:text-cyan-900" (click)="openDetail(item)">#BK-{{ item.bookingId.toString().padStart(5,'0') }}</button>
-                      <p class="mt-1 text-xs text-slate-400">{{ item.createdAt | date:'dd/MM/yyyy' }}</p>
+                      <button class="font-black text-cyan-700 hover:text-cyan-900 hover:underline" (click)="openDetail(item)">
+                        #BK-{{ item.bookingId.toString().padStart(5, '0') }}
+                      </button>
+                      <p class="mt-0.5 text-[11px] text-slate-400">{{ item.createdAt | date:'dd/MM/yyyy' }}</p>
                     </td>
-                    <td><p class="font-bold text-slate-800">User #{{ item.userId }}</p></td>
-                    <td>{{ labelOf('purpose', item.purposeType, languageStore.lang()) }}</td>
-                    <td><p class="font-bold text-slate-700">{{ item.startTime | date:'HH:mm dd/MM' }}</p><p class="mt-1 text-xs text-slate-400">{{ item.endTime | date:'HH:mm dd/MM' }}</p></td>
-                    <td><span class="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-700">P{{ item.priorityLevel ?? '—' }}</span></td>
-                    <td><app-status-badge [value]="item.status" domain="booking" /></td>
+
+                    <!-- Người đặt -->
                     <td>
-                      <div class="flex items-center gap-1.5">
+                      <p class="font-bold text-slate-800">{{ item.userName || ('User #' + item.userId) }}</p>
+                      <p class="mt-0.5 text-[11px] text-slate-400">ID: {{ item.userId }}</p>
+                    </td>
+
+                    <!-- Tài nguyên / Mục đích -->
+                    <td>
+                      <p class="font-bold text-slate-700">{{ labelOf('purpose', item.purposeType, languageStore.lang()) }}</p>
+                    </td>
+
+                    <!-- Thời gian -->
+                    <td>
+                      <p class="font-bold text-slate-700">{{ item.startTime | date:'HH:mm dd/MM/yyyy' }}</p>
+                      <p class="mt-0.5 text-[11px] text-slate-400">{{ 'common.to' | t }} {{ item.endTime | date:'HH:mm dd/MM/yyyy' }}</p>
+                    </td>
+
+                    <!-- Ưu tiên -->
+                    <td>
+                      <span class="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-700">P{{ item.priorityLevel ?? '—' }}</span>
+                    </td>
+
+                    <!-- Trạng thái -->
+                    <td>
+                      <app-status-badge [value]="item.status" domain="booking" />
+                    </td>
+
+                    <!-- Thao tác -->
+                    <td class="text-right">
+                      <div class="flex items-center justify-end gap-1.5">
                         <button class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50" (click)="openDetail(item)">
-                          <app-icon name="eye" [size]="15" /> Chi tiết
+                          <app-icon name="eye" [size]="15" /> {{ 'common.detail' | t }}
                         </button>
                         @if (item.status === 'Pending') {
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" title="Duyệt" (click)="quickAction(item,'approve')"><app-icon name="check" [size]="16" /></button>
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" title="Từ chối" (click)="openReject(item)"><app-icon name="x" [size]="16" /></button>
+                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" [title]="'common.approved' | t" (click)="quickAction(item,'approve')"><app-icon name="check" [size]="16" /></button>
+                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" [title]="'incidents.reject' | t" (click)="openReject(item)"><app-icon name="x" [size]="16" /></button>
                         }
                         @if (item.status === 'Approved') {
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" title="Hoàn thành" (click)="quickAction(item,'complete')"><app-icon name="check" [size]="16" /></button>
+                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" [title]="'common.completed' | t" (click)="quickAction(item,'complete')"><app-icon name="check" [size]="16" /></button>
                           <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" title="NoShow" (click)="quickAction(item,'no-show')"><app-icon name="alert" [size]="16" /></button>
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" title="Hủy booking" (click)="quickAction(item,'cancel')"><app-icon name="x" [size]="16" /></button>
-                        }
-                        @if (item.status === 'Pending' || item.status === 'Approved') {
-                          <!-- cancel already in Approved section, Pending has reject -->
+                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" [title]="'common.cancel' | t" (click)="quickAction(item,'cancel')"><app-icon name="x" [size]="16" /></button>
                         }
                       </div>
                     </td>
@@ -117,49 +158,49 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
     </section>
 
     <!-- Modal Từ chối booking -->
-    <app-modal [open]="rejectOpen()" title="Từ chối booking" subtitle="Nhập lý do từ chối để người dùng biết." (close)="rejectOpen.set(false)">
+    <app-modal [open]="rejectOpen()" [title]="'manageBookings.rejectTitle' | t" [subtitle]="'manageBookings.rejectSubtitle' | t" (close)="rejectOpen.set(false)">
       <div class="grid gap-4">
         <div>
-          <label class="field-label">Lý do từ chối *</label>
-          <textarea class="textarea-shell" [(ngModel)]="rejectReason" placeholder="Khung giờ này thiết bị đang bảo trì, vui lòng chọn khung giờ khác..."></textarea>
+          <label class="field-label">{{ 'manageBookings.rejectReasonLabel' | t }}</label>
+          <textarea class="textarea-shell" [(ngModel)]="rejectReason" placeholder="{{ 'manageBookings.rejectReasonPlaceholder' | t }}"></textarea>
         </div>
         <div class="flex justify-end gap-2">
-          <button type="button" class="btn-secondary" (click)="rejectOpen.set(false)">Hủy</button>
-          <button class="btn-primary bg-rose-600 hover:bg-rose-700" [disabled]="actioning()" (click)="confirmReject()">{{ actioning() ? 'Đang gửi...' : 'Xác nhận từ chối' }}</button>
+          <button type="button" class="btn-secondary" (click)="rejectOpen.set(false)">{{ 'common.cancel' | t }}</button>
+          <button class="btn-primary bg-rose-600 hover:bg-rose-700" [disabled]="actioning()" (click)="confirmReject()">{{ actioning() ? ('manageBookings.rejectingBtn' | t) : ('manageBookings.confirmRejectBtn' | t) }}</button>
         </div>
       </div>
     </app-modal>
 
     <!-- Modal Chi tiết booking -->
-    <app-modal [open]="detailOpen()" [title]="detailBooking() ? '#BK-' + detailBooking()!.bookingId.toString().padStart(5,'0') : 'Chi tiết'" subtitle="Thông tin đầy đủ của booking." (close)="detailOpen.set(false)">
+    <app-modal [open]="detailOpen()" [title]="detailBooking() ? '#BK-' + detailBooking()!.bookingId.toString().padStart(5,'0') : ('common.detail' | t)" [subtitle]="'bookings.detailSubtitle' | t" (close)="detailOpen.set(false)">
       @if (detailLoading()) {
         <div class="space-y-3"><div class="skeleton h-8 rounded-xl"></div><div class="skeleton h-20 rounded-xl"></div><div class="skeleton h-12 rounded-xl"></div></div>
       } @else if (detailBooking()) {
         <div class="grid gap-4">
           <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-2">
-            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Người đặt</p><p class="mt-1 font-black text-slate-900">{{ detailBooking()!.userName || 'User #' + detailBooking()!.userId }}</p></div>
-            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Trạng thái</p><div class="mt-1"><app-status-badge [value]="detailBooking()!.status" domain="booking" /></div></div>
-            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Mục đích</p><p class="mt-1 font-bold text-slate-800">{{ labelOf('purpose', detailBooking()!.purposeType, languageStore.lang()) }}</p></div>
-            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Ưu tiên</p><p class="mt-1 font-bold text-slate-800">P{{ detailBooking()!.priorityLevel ?? '—' }}</p></div>
-            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Bắt đầu</p><p class="mt-1 font-bold text-slate-800">{{ detailBooking()!.startTime | date:'HH:mm dd/MM/yyyy' }}</p></div>
-            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Kết thúc</p><p class="mt-1 font-bold text-slate-800">{{ detailBooking()!.endTime | date:'HH:mm dd/MM/yyyy' }}</p></div>
+            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ 'bookings.user' | t }}</p><p class="mt-1 font-black text-slate-900">{{ detailBooking()!.userName || 'User #' + detailBooking()!.userId }}</p></div>
+            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ 'common.status' | t }}</p><div class="mt-1"><app-status-badge [value]="detailBooking()!.status" domain="booking" /></div></div>
+            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ 'bookings.purpose' | t }}</p><p class="mt-1 font-bold text-slate-800">{{ labelOf('purpose', detailBooking()!.purposeType, languageStore.lang()) }}</p></div>
+            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ 'bookings.priority' | t }}</p><p class="mt-1 font-bold text-slate-800">P{{ detailBooking()!.priorityLevel ?? '—' }}</p></div>
+            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ 'bookings.startTime' | t }}</p><p class="mt-1 font-bold text-slate-800">{{ detailBooking()!.startTime | date:'HH:mm dd/MM/yyyy' }}</p></div>
+            <div><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ 'bookings.endTime' | t }}</p><p class="mt-1 font-bold text-slate-800">{{ detailBooking()!.endTime | date:'HH:mm dd/MM/yyyy' }}</p></div>
             @if (detailBooking()!.purposeDescription) {
-              <div class="sm:col-span-2"><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">Mô tả mục đích</p><p class="mt-1 text-sm text-slate-700">{{ detailBooking()!.purposeDescription }}</p></div>
+              <div class="sm:col-span-2"><p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ 'bookings.purposeDesc' | t }}</p><p class="mt-1 text-sm text-slate-700">{{ detailBooking()!.purposeDescription }}</p></div>
             }
             @if (detailBooking()!.rejectionReason) {
-              <div class="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3"><p class="text-[10px] font-black uppercase tracking-[.14em] text-rose-500">Lý do từ chối</p><p class="mt-1 text-sm text-rose-800">{{ detailBooking()!.rejectionReason }}</p></div>
+              <div class="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3"><p class="text-[10px] font-black uppercase tracking-[.14em] text-rose-500">{{ 'bookings.rejectionReason' | t }}</p><p class="mt-1 text-sm text-rose-800">{{ detailBooking()!.rejectionReason }}</p></div>
             }
           </div>
           @if (detailBooking()!.items && detailBooking()!.items.length > 0) {
             <div>
-              <p class="mb-2 text-xs font-black uppercase tracking-[.14em] text-slate-400">Tài nguyên đặt</p>
+              <p class="mb-2 text-xs font-black uppercase tracking-[.14em] text-slate-400">{{ 'bookings.registeredResources' | t }}</p>
               <div class="divide-y divide-slate-100 rounded-2xl border border-slate-100 bg-white">
                 @for (item of detailBooking()!.items; track item.bookingItemId) {
                   <div class="flex items-center gap-3 px-4 py-3">
                     <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><app-icon [name]="item.resourceType === 'Lab' ? 'building' : 'microscope'" [size]="18" /></div>
                     <div class="flex-1">
-                      <p class="text-sm font-black text-slate-900">{{ item.labName || item.equipmentName || ('Tài nguyên #' + (item.labId || item.equipmentId)) }}</p>
-                      <p class="text-xs text-slate-400">{{ item.resourceType }}{{ item.note ? ' · ' + item.note : '' }}</p>
+                      <p class="text-sm font-black text-slate-900">{{ (item.labName || item.equipmentName || ('Tài nguyên #' + (item.labId || item.equipmentId))) | t }}</p>
+                      <p class="text-xs text-slate-400">{{ labelOf('resource', item.resourceType, languageStore.lang()) }}{{ item.note ? ' · ' + item.note : '' }}</p>
                     </div>
                   </div>
                 }
@@ -168,15 +209,15 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
           }
           <!-- Action buttons in detail modal -->
           <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-            <a [routerLink]="['/app/bookings', detailBooking()!.bookingId]" class="btn-secondary flex-1"><app-icon name="arrow-right" [size]="16" /> Xem trang đầy đủ</a>
+            <a [routerLink]="['/app/bookings', detailBooking()!.bookingId]" class="btn-secondary flex-1"><app-icon name="arrow-right" [size]="16" /> {{ 'manageBookings.fullDetailBtn' | t }}</a>
             @if (detailBooking()!.status === 'Pending') {
-              <button class="btn-primary bg-emerald-600 hover:bg-emerald-700" [disabled]="actioning()" (click)="quickAction(detailBooking()!,'approve')"><app-icon name="check" [size]="16" /> Duyệt</button>
-              <button class="btn-primary bg-rose-600 hover:bg-rose-700" [disabled]="actioning()" (click)="openReject(detailBooking()!)"><app-icon name="x" [size]="16" /> Từ chối</button>
+              <button class="btn-primary bg-emerald-600 hover:bg-emerald-700" [disabled]="actioning()" (click)="quickAction(detailBooking()!,'approve')"><app-icon name="check" [size]="16" /> {{ 'common.approved' | t }}</button>
+              <button class="btn-primary bg-rose-600 hover:bg-rose-700" [disabled]="actioning()" (click)="openReject(detailBooking()!)"><app-icon name="x" [size]="16" /> {{ 'incidents.reject' | t }}</button>
             }
             @if (detailBooking()!.status === 'Approved') {
-              <button class="btn-primary bg-emerald-600 hover:bg-emerald-700" [disabled]="actioning()" (click)="quickAction(detailBooking()!,'complete')"><app-icon name="check" [size]="16" /> Hoàn thành</button>
+              <button class="btn-primary bg-emerald-600 hover:bg-emerald-700" [disabled]="actioning()" (click)="quickAction(detailBooking()!,'complete')"><app-icon name="check" [size]="16" /> {{ 'common.completed' | t }}</button>
               <button class="btn-secondary" [disabled]="actioning()" (click)="quickAction(detailBooking()!,'no-show')"><app-icon name="alert" [size]="16" /> NoShow</button>
-              <button class="btn-secondary btn-danger" [disabled]="actioning()" (click)="quickAction(detailBooking()!,'cancel')"><app-icon name="x" [size]="16" /> Hủy</button>
+              <button class="btn-secondary btn-danger" [disabled]="actioning()" (click)="quickAction(detailBooking()!,'cancel')"><app-icon name="x" [size]="16" /> {{ 'common.cancel' | t }}</button>
             }
           </div>
         </div>
@@ -197,10 +238,10 @@ export class BookingsManagementPage implements OnInit {
   protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
   protected rejectTarget: BookingResponse | null = null
   protected rejectReason = ''
-  protected keyword = ''
-  protected status = ''
-  protected from = ''
-  protected to = ''
+  protected readonly keyword = signal('')
+  protected readonly status = signal('')
+  protected readonly from = signal('')
+  protected readonly to = signal('')
   protected readonly labelOf = labelOf
   protected readonly statuses = computed(() => [
     { value: 'Pending', label: labelOf('booking', 'Pending', this.languageStore.lang()) },
@@ -211,14 +252,31 @@ export class BookingsManagementPage implements OnInit {
     { value: 'NoShow', label: labelOf('booking', 'NoShow', this.languageStore.lang()) }
   ])
   protected readonly filtered = computed(() => {
-    const needle = this.keyword.trim().toLowerCase()
+    const needle = this.keyword().trim().toLowerCase()
+    const status = this.status()
+    const from = this.from()
+    const to = this.to()
     return [...this.items()].filter((item) => {
       const date = toDateInput(new Date(item.startTime))
-      return (!this.status || item.status === this.status) &&
-        (!this.from || date >= this.from) &&
-        (!this.to || date <= this.to) &&
-        (!needle || String(item.bookingId).includes(needle) || String(item.userId).includes(needle) ||
-          labelOf('purpose', item.purposeType, this.languageStore.lang()).toLowerCase().includes(needle))
+      // Filter by status
+      if (status && item.status !== status) return false
+      // Filter by date range
+      if (from && date < from) return false
+      if (to && date > to) return false
+      // Search filter
+      if (needle) {
+        const bkCode = `bk-${item.bookingId.toString().padStart(5, '0')}`
+        const bookingIdStr = String(item.bookingId)
+        const userIdStr = String(item.userId)
+        const userName = (item.userName || '').toLowerCase()
+        const purposeStr = labelOf('purpose', item.purposeType, this.languageStore.lang()).toLowerCase()
+        const statusStr = labelOf('booking', item.status, this.languageStore.lang()).toLowerCase()
+        const matched = bkCode.includes(needle) || bookingIdStr.includes(needle) ||
+          userIdStr.includes(needle) || userName.includes(needle) ||
+          purposeStr.includes(needle) || statusStr.includes(needle)
+        if (!matched) return false
+      }
+      return true
     }).sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
   })
   protected readonly cards = computed(() => [
@@ -241,7 +299,7 @@ export class BookingsManagementPage implements OnInit {
     })
   }
 
-  protected reset(): void { this.keyword = ''; this.status = ''; this.from = ''; this.to = '' }
+  protected reset(): void { this.keyword.set(''); this.status.set(''); this.from.set(''); this.to.set('') }
 
   protected openDetail(item: BookingResponse): void {
     this.detailBooking.set(null)

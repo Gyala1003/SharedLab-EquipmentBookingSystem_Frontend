@@ -144,7 +144,16 @@
                     (click)="userMenuOpen.set(false)"
                   >
                     <app-icon name="user" [size]="17" class="text-slate-400" />
-                    <span>Profile</span>
+                    <span>{{ 'header.profile' | t }}</span>
+                  </a>
+
+                  <a
+                    routerLink="/app/bookings/my"
+                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                    (click)="userMenuOpen.set(false)"
+                  >
+                    <app-icon name="calendar" [size]="17" class="text-slate-400" />
+                    <span>{{ 'nav.items.myBookings' | t }}</span>
                   </a>
 
                   <a
@@ -154,7 +163,7 @@
                   >
                     <div class="flex items-center gap-3">
                       <app-icon name="bell" [size]="17" class="text-slate-400" />
-                      <span>Notifications</span>
+                      <span>{{ 'header.notifications' | t }}</span>
                     </div>
                     @if (badge.count() > 0) {
                       <span
@@ -171,7 +180,7 @@
                     (click)="onSupportClick()"
                   >
                     <app-icon name="help-circle" [size]="17" class="text-slate-400" />
-                    <span>Support</span>
+                    <span>{{ 'header.support' | t }}</span>
                   </button>
                 </nav>
 
@@ -183,7 +192,7 @@
                   (click)="logout()"
                 >
                   <app-icon name="logout" [size]="17" class="text-rose-500" />
-                  <span>Log out</span>
+                  <span>{{ 'sidebar.logout' | t }}</span>
                 </button>
               }
             </div>

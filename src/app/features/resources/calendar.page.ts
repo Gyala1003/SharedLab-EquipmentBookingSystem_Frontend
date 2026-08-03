@@ -54,7 +54,7 @@ interface CalendarDay {
                 <div class="flex items-center justify-between"><span class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-black" [ngClass]="isToday(day.date) ? 'bg-violet-600 text-white' : 'text-slate-600'">{{ day.date.getDate() }}</span><span class="text-[10px] font-bold text-slate-300">{{ day.events.length || '' }}</span></div>
                 <div class="mt-2 space-y-1.5">
                   @for (event of day.events.slice(0, 3); track event.eventType + event.sourceId) {
-                    <button type="button" class="block w-full truncate rounded-lg border px-2 py-1.5 text-left text-[10px] font-bold" [ngClass]="event.eventType === 'Maintenance' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-indigo-200 bg-indigo-50 text-indigo-700'" (click)="openEvent(event)">{{ event.startTime | date:'HH:mm' }} · {{ event.title }}</button>
+                    <button type="button" class="block w-full truncate rounded-lg border px-2 py-1.5 text-left text-[10px] font-bold" [ngClass]="event.eventType === 'Maintenance' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-indigo-200 bg-indigo-50 text-indigo-700'" (click)="openEvent(event)">{{ event.startTime | date:'HH:mm' }} · {{ event.title | t }}</button>
                   }
                   @if (day.events.length > 3) { <p class="px-1 text-[10px] font-bold text-slate-400">+{{ day.events.length - 3 }} {{ 'calendar.eventsInPeriod' | t }}</p> }
                 </div>
@@ -68,7 +68,7 @@ interface CalendarDay {
             @for (event of filteredEvents(); track event.eventType + event.sourceId) {
               <button type="button" class="flex w-full flex-col gap-4 px-5 py-5 text-left transition hover:bg-slate-50 sm:flex-row sm:items-center sm:px-6" (click)="openEvent(event)">
                 <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" [ngClass]="event.eventType === 'Maintenance' ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600'"><app-icon [name]="event.eventType === 'Maintenance' ? 'wrench' : 'calendar'" [size]="21" /></div>
-                <div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2"><p class="font-black text-slate-900">{{ event.title }}</p><app-status-badge [value]="event.status" [domain]="event.eventType === 'Maintenance' ? 'maintenance' : 'booking'" /></div><p class="mt-1 text-sm text-slate-500">{{ event.startTime | date:'HH:mm dd/MM/yyyy' }} – {{ event.endTime | date:'HH:mm dd/MM/yyyy' }}</p><p class="mt-2 truncate text-xs text-slate-400">{{ resourceText(event) }}</p></div>
+                <div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2"><p class="font-black text-slate-900">{{ event.title | t }}</p><app-status-badge [value]="event.status" [domain]="event.eventType === 'Maintenance' ? 'maintenance' : 'booking'" /></div><p class="mt-1 text-sm text-slate-500">{{ event.startTime | date:'HH:mm dd/MM/yyyy' }} – {{ event.endTime | date:'HH:mm dd/MM/yyyy' }}</p><p class="mt-2 truncate text-xs text-slate-400">{{ resourceText(event) }}</p></div>
                 <span class="text-slate-300"><app-icon name="arrow-right" [size]="19" /></span>
               </button>
             }

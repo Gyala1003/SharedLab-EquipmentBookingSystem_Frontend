@@ -25,13 +25,89 @@ import { labelOf } from '../../shared/utils/presentation'
         <app-page-header [title]="'Booking #BK-' + booking()!.bookingId.toString().padStart(5,'0')" [subtitle]="labelOf('purpose', booking()!.purposeType) + ' · Tạo lúc ' + (booking()!.createdAt | date:'HH:mm dd/MM/yyyy')">
           @if (canApprove()) { <button class="btn-primary" (click)="action('approve')"><app-icon name="check" [size]="17" /> Duyệt</button><button class="btn-secondary btn-danger" (click)="rejectOpen.set(true)"><app-icon name="x" [size]="17" /> Từ chối</button> }
           @if (canCancel()) { <button class="btn-secondary btn-danger" (click)="action('cancel')"><app-icon name="x" [size]="17" /> Hủy booking</button> }
+          @if (isOwnBooking()) { <a routerLink="/app/bookings/my" class="btn-secondary"><app-icon name="arrow-left" [size]="17" /> Booking của tôi</a> }
         </app-page-header>
+
+        <!-- Banner: Requester đang xem booking của người khác -->
+        @if (store.isRequester() && !isOwnBooking()) {
+          <div class="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-bold text-blue-800">
+            <app-icon name="eye" [size]="18" class="shrink-0 text-blue-500" />
+            <span>Bạn đang xem booking của người khác — chỉ có thể xem thông tin, không thể thực hiện thao tác.</span>
+          </div>
+        }
 
         <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
           <div class="space-y-6">
             <article class="card-surface p-5 sm:p-7"><div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-[10px] font-black uppercase tracking-[.16em] text-slate-400">Trạng thái hiện tại</p><div class="mt-2"><app-status-badge [value]="booking()!.status" domain="booking" /></div></div><div class="grid grid-cols-2 gap-3 sm:grid-cols-3"><div class="rounded-2xl bg-violet-50 px-4 py-3 text-center"><p class="text-[10px] font-black uppercase text-violet-500">Ưu tiên</p><p class="mt-1 text-xl font-black text-violet-800">P{{ booking()!.priorityLevel ?? '—' }}</p></div><div class="rounded-2xl bg-cyan-50 px-4 py-3 text-center"><p class="text-[10px] font-black uppercase text-cyan-500">Tài nguyên</p><p class="mt-1 text-xl font-black text-cyan-800">{{ booking()!.items.length }}</p></div><div class="col-span-2 rounded-2xl bg-slate-50 px-4 py-3 text-center sm:col-span-1"><p class="text-[10px] font-black uppercase text-slate-400">Thời lượng</p><p class="mt-1 text-xl font-black text-slate-800">{{ durationHours() }}h</p></div></div></div><div class="mt-6 grid gap-4 sm:grid-cols-2"><div class="rounded-2xl border border-slate-200 p-5"><p class="text-xs font-black text-slate-400">Bắt đầu</p><p class="mt-2 text-lg font-black text-slate-900">{{ booking()!.startTime | date:'HH:mm' }}</p><p class="mt-1 text-sm text-slate-500">{{ booking()!.startTime | date:'EEEE, dd/MM/yyyy' }}</p></div><div class="rounded-2xl border border-slate-200 p-5"><p class="text-xs font-black text-slate-400">Kết thúc</p><p class="mt-2 text-lg font-black text-slate-900">{{ booking()!.endTime | date:'HH:mm' }}</p><p class="mt-1 text-sm text-slate-500">{{ booking()!.endTime | date:'EEEE, dd/MM/yyyy' }}</p></div></div><div class="mt-5 rounded-2xl bg-slate-50 p-5"><p class="text-xs font-black text-slate-700">Mô tả mục đích</p><p class="mt-2 whitespace-pre-line text-sm leading-7 text-slate-500">{{ booking()!.purposeDescription || 'Không có mô tả.' }}</p></div>@if (booking()!.rejectionReason) { <div class="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-5"><p class="text-xs font-black text-rose-800">Lý do từ chối</p><p class="mt-2 text-sm leading-6 text-rose-700">{{ booking()!.rejectionReason }}</p></div> }</article>
 
-            <article class="card-surface overflow-hidden"><header class="border-b border-slate-100 px-5 py-5 sm:px-6"><h2 class="text-lg font-black text-slate-950">Tài nguyên trong booking</h2><p class="mt-1 text-xs text-slate-400">Check-in, check-out và báo sự cố theo từng BookingItem</p></header><div class="divide-y divide-slate-100">@for (item of booking()!.items; track item.bookingItemId) { <div class="p-5 sm:p-6"><div class="flex flex-col gap-4 sm:flex-row sm:items-center"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" [ngClass]="item.resourceType === 'LabRoom' ? 'bg-violet-50 text-violet-600' : 'bg-cyan-50 text-cyan-600'"><app-icon [name]="item.resourceType === 'LabRoom' ? 'building' : 'microscope'" [size]="22" /></div><div class="min-w-0 flex-1"><p class="font-black text-slate-900">{{ item.labName || item.equipmentName || 'Tài nguyên #' + item.bookingItemId }}</p><p class="mt-1 text-xs text-slate-400">{{ labelOf('resource', item.resourceType) }} · Item #{{ item.bookingItemId }}</p><p class="mt-2 text-sm text-slate-500">{{ item.note || 'Không có ghi chú.' }}</p></div><div class="flex flex-wrap gap-2">@if (!logFor(item.bookingItemId) && canCheckIn()) { <button class="btn-primary" (click)="openCheckIn(item)"><app-icon name="login" [size]="16" /> Check-in</button> } @if (isMissedNoShow(item.bookingItemId)) { <span class="rounded-full bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">Đã quá giờ, không check-in — booking sẽ được ghi nhận Không đến</span> } @if (logFor(item.bookingItemId); as log) { @if (!log.actualCheckout) { <button class="btn-primary" (click)="openCheckOut(log)"><app-icon name="logout" [size]="16" /> Check-out</button><button class="btn-secondary" (click)="openIncident(log)"><app-icon name="alert" [size]="16" /> Báo sự cố</button> } @else { <span class="rounded-full bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">Đã hoàn tất</span> } }</div></div>@if (logFor(item.bookingItemId); as log) { <div class="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-3"><div><p class="text-[10px] font-black uppercase text-slate-400">Check-in</p><p class="mt-1 text-xs font-bold text-slate-700">{{ log.actualCheckin | date:'HH:mm dd/MM/yyyy' }}</p></div><div><p class="text-[10px] font-black uppercase text-slate-400">Check-out</p><p class="mt-1 text-xs font-bold text-slate-700">{{ log.actualCheckout ? (log.actualCheckout | date:'HH:mm dd/MM/yyyy') : 'Chưa checkout' }}</p></div><div><p class="text-[10px] font-black uppercase text-slate-400">Sự cố</p><p class="mt-1 text-xs font-bold text-slate-700">{{ labelOf('incidentType', log.incidentStatus) }} · {{ labelOf('incident', log.incidentReviewStatus) }}</p></div></div> }</div> }</div></article>
+            <article class="card-surface overflow-hidden">
+              <header class="border-b border-slate-100 px-5 py-5 sm:px-6">
+                <h2 class="text-lg font-black text-slate-950">Tài nguyên trong booking</h2>
+                <p class="mt-1 text-xs text-slate-400">Check-in, check-out và báo sự cố theo từng BookingItem</p>
+              </header>
+              <div class="divide-y divide-slate-100">
+                @for (item of booking()!.items; track item.bookingItemId) {
+                  <div class="p-5 sm:p-6">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" [ngClass]="item.resourceType === 'LabRoom' ? 'bg-violet-50 text-violet-600' : 'bg-cyan-50 text-cyan-600'">
+                        <app-icon [name]="item.resourceType === 'LabRoom' ? 'building' : 'microscope'" [size]="22" />
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="font-black text-slate-900">{{ item.labName || item.equipmentName || 'Tài nguyên #' + item.bookingItemId }}</p>
+                        <p class="mt-1 text-xs text-slate-400">{{ labelOf('resource', item.resourceType) }} · Item #{{ item.bookingItemId }}</p>
+                        <p class="mt-2 text-sm text-slate-500">{{ item.note || 'Không có ghi chú.' }}</p>
+                      </div>
+                      <div class="flex flex-wrap items-center gap-2">
+                        @if (booking()!.status === 'Approved') {
+                          <!-- Chưa check-in -->
+                          @if (!logFor(item.bookingItemId)) {
+                            @if (isMissedNoShow(item.bookingItemId)) {
+                              <span class="rounded-full bg-rose-50 px-3 py-2 text-xs font-black text-rose-700">Đã quá giờ, không check-in</span>
+                            } @else {
+                              <button
+                                class="btn-primary"
+                                [disabled]="!canCheckInNow()"
+                                [title]="!canCheckInNow() ? 'Chưa đến giờ check-in (Mở trước 15 phút giờ bắt đầu)' : ''"
+                                (click)="openCheckIn(item)"
+                              >
+                                <app-icon name="login" [size]="16" /> Check-in
+                              </button>
+                              @if (isUpcomingBooking()) {
+                                <span class="text-xs font-bold text-slate-400">(Chưa đến giờ)</span>
+                              }
+                            }
+                          }
+                          <!-- Đã check-in -->
+                          @if (logFor(item.bookingItemId); as log) {
+                            @if (!log.actualCheckout) {
+                              <button class="btn-primary" (click)="openCheckOut(log)">
+                                <app-icon name="logout" [size]="16" /> Check-out
+                              </button>
+                              <button class="btn-secondary" (click)="openIncident(log)">
+                                <app-icon name="alert" [size]="16" /> Báo sự cố
+                              </button>
+                            } @else {
+                              <span class="rounded-full bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">
+                                <app-icon name="check" [size]="14" /> Đã hoàn tất (Checked-out)
+                              </span>
+                            }
+                          }
+                        } @else {
+                          <span class="text-xs font-bold text-slate-400">Trạng thái: {{ labelOf('booking', booking()!.status) }}</span>
+                        }
+                      </div>
+                    </div>
+                    @if (logFor(item.bookingItemId); as log) {
+                      <div class="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-3">
+                        <div><p class="text-[10px] font-black uppercase text-slate-400">Check-in</p><p class="mt-1 text-xs font-bold text-slate-700">{{ log.actualCheckin | date:'HH:mm dd/MM/yyyy' }}</p></div>
+                        <div><p class="text-[10px] font-black uppercase text-slate-400">Check-out</p><p class="mt-1 text-xs font-bold text-slate-700">{{ log.actualCheckout ? (log.actualCheckout | date:'HH:mm dd/MM/yyyy') : 'Chưa checkout' }}</p></div>
+                        <div><p class="text-[10px] font-black uppercase text-slate-400">Sự cố</p><p class="mt-1 text-xs font-bold text-slate-700">{{ labelOf('incidentType', log.incidentStatus) }} · {{ labelOf('incident', log.incidentReviewStatus) }}</p></div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </article>
 
             @if (violations().length) { <article class="card-surface overflow-hidden"><header class="border-b border-slate-100 px-5 py-5"><h2 class="font-black text-slate-950">Vi phạm liên quan</h2></header><div class="divide-y divide-slate-100">@for (item of violations(); track item.violationId) { <div class="flex items-center gap-4 px-5 py-4"><div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-600"><app-icon name="alert" [size]="18" /></div><div class="min-w-0 flex-1"><p class="font-black text-slate-800">{{ labelOf('violationType', item.violationType) }}</p><p class="mt-1 text-xs text-slate-400">{{ item.loggedAt | date:'HH:mm dd/MM/yyyy' }} · +{{ item.penaltyPointsAdded }} điểm</p></div><app-status-badge [value]="item.status" domain="violation" /></div> }</div></article> }
           </div>
@@ -77,8 +153,21 @@ export class BookingDetailPage implements OnInit {
   ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('bookingId')); this.load() }
   // Quyền duyệt/từ chối booking chuyển hẳn cho LabManager theo yêu cầu nghiệp vụ mới, Admin không còn thao tác này
   protected canApprove(): boolean { return Boolean(this.store.isManager() && this.booking()?.status === 'Pending') }
+  protected isOwnBooking(): boolean { return this.booking()?.userId === this.store.user()?.userId }
   protected canCancel(): boolean { const item = this.booking(); return Boolean(item && ['Pending','Approved'].includes(item.status) && (item.userId === this.store.user()?.userId || this.store.isManager())) }
   protected canCheckIn(): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; const now = Date.now(); return now >= +new Date(item.startTime)-15*60_000 && now <= +new Date(item.endTime) }
+  protected canCheckInNow(): boolean {
+    const item = this.booking()
+    if (!item || item.status !== 'Approved') return false
+    if (!this.isOwnBooking() && !this.store.isManager()) return false
+    const now = Date.now()
+    return now >= +new Date(item.startTime) - 15 * 60_000 && now <= +new Date(item.endTime)
+  }
+  protected isUpcomingBooking(): boolean {
+    const item = this.booking()
+    if (!item || item.status !== 'Approved') return false
+    return Date.now() < +new Date(item.startTime) - 15 * 60_000
+  }
   protected canManageConcluded(): boolean { return Boolean(this.store.isManager() && this.booking()?.status === 'Approved') }
   protected isMissedNoShow(itemId: number): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; return Date.now() > +new Date(item.endTime) && !this.logFor(itemId) }
   protected checkoutLateMinutes(): number { const item = this.booking(); if (!item) return 0; const deadline = +new Date(item.endTime) + 15*60_000; return Math.max(0, Math.round((Date.now()-deadline)/60_000)) }
@@ -94,8 +183,7 @@ export class BookingDetailPage implements OnInit {
   protected confirmCheckout(): void { const log = this.checkOutLog; const item = this.booking(); if (!log || !item) return; const actualCheckoutIso = new Date().toISOString(); this.checkOutOpen.set(false); this.api.checkOut(log.logId, actualCheckoutIso).subscribe({ next: () => { this.toast.success('Check-out thành công'); this.checkLateAndReportViolation(item, actualCheckoutIso); this.load() }, error: () => this.toast.error('Không thể check-out') }) }
   protected continueUsing(): void { this.checkOutOpen.set(false) }
   private checkLateAndReportViolation(booking: BookingDetailResponse, actualCheckoutIso: string): void { const deadline = +new Date(booking.endTime) + 15*60_000; if (+new Date(actualCheckoutIso) <= deadline) return; this.api.createViolation({ userId: booking.userId, bookingId: booking.bookingId, violationType: 2 }).subscribe({ next: () => this.toast.info('Đã ghi nhận vi phạm trả phòng muộn (tạm thời tính ở Frontend, sẽ điều chỉnh khi Backend hỗ trợ)'), error: () => {} }) }
-  private markNoShowIfMissed(): void { if (this.noShowChecked) return; const item = this.booking(); if (!item || item.status !== 'Approved') return; const hasMissed = item.items.some((bi) => this.isMissedNoShow(bi.bookingItemId)); if (!hasMissed) return; this.noShowChecked = true; this.api.noShowBooking(this.id).subscribe({ next: () => { this.toast.info('Booking đã được đánh dấu Không đến do quá giờ mà chưa check-in'); this.load() }, error: () => console.warn('Không thể tự động đánh dấu NoShow, có thể do phân quyền — cần LabManager xử lý thủ công') }) }
   protected openIncident(log: UsageLogResponse): void { this.incidentLogId = log.logId; this.incidentStatus = 2; this.incidentDescription = ''; this.affectedEquipmentId = null; this.incidentOpen.set(true) }
   protected reportIncident(): void { this.api.reportIncident(this.incidentLogId, { incidentStatus: this.incidentStatus, incidentDescription: this.incidentDescription.trim(), affectedEquipmentId: this.affectedEquipmentId }).subscribe({ next: () => { this.incidentOpen.set(false); this.toast.success('Đã gửi báo cáo sự cố'); this.load() }, error: () => this.toast.error('Không thể gửi báo cáo sự cố') }) }
-  private load(): void { this.loading.set(true); forkJoin({ booking: this.api.booking(this.id), logs: this.api.usageLogsByBooking(this.id), violations: this.api.violationsByBooking(this.id) }).subscribe({ next: ({ booking, logs, violations }) => { this.booking.set(booking); this.logs.set(logs); this.violations.set(violations); this.loading.set(false); this.markNoShowIfMissed() }, error: () => { this.booking.set(null); this.loading.set(false) } }) }
+  private load(): void { this.loading.set(true); forkJoin({ booking: this.api.booking(this.id), logs: this.api.usageLogsByBooking(this.id), violations: this.api.violationsByBooking(this.id) }).subscribe({ next: ({ booking, logs, violations }) => { this.booking.set(booking); this.logs.set(logs); this.violations.set(violations); this.loading.set(false) }, error: () => { this.booking.set(null); this.loading.set(false) } }) }
 }

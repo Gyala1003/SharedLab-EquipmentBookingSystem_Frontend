@@ -240,13 +240,17 @@ export class AppLayoutComponent implements OnInit {
       labelKey: 'nav.groups.overview',
       items: [
         { labelKey: 'nav.items.home', icon: 'home', route: '/app/home', roles: ['Requester'] },
-        {
-          labelKey: 'nav.items.dashboard',
-          icon: 'dashboard',
-          route: '/app/dashboard',
-          roles: ['Admin'],
-        },
+        { labelKey: 'nav.items.dashboard', icon: 'dashboard', route: '/app/dashboard', roles: ['Admin'] },
         { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar' },
+      ],
+    },
+    {
+      labelKey: 'nav.groups.personal',
+      roles: ['Requester'],
+      items: [
+        { labelKey: 'nav.items.myBookings', icon: 'calendar', route: '/app/bookings/my', roles: ['Requester'] },
+        { labelKey: 'nav.items.myWaitlist', icon: 'clock', route: '/app/waitlists/my', roles: ['Requester'] },
+        { labelKey: 'nav.items.violations', icon: 'shield', route: '/app/violations/my', roles: ['Requester'] },
       ],
     },
     {
@@ -255,9 +259,16 @@ export class AppLayoutComponent implements OnInit {
         { labelKey: 'nav.items.labs', icon: 'building', route: '/app/labs' },
         { labelKey: 'nav.items.equipments', icon: 'microscope', route: '/app/equipments' },
         {
+          labelKey: 'nav.items.allBookings',
+          icon: 'calendar-plus',
+          route: '/app/management/bookings',
+          roles: ['LabManager', 'Admin'],
+        },
+        {
           labelKey: 'nav.items.maintenances',
           icon: 'wrench',
           route: '/app/management/maintenances',
+          roles: ['LabManager', 'Admin'],
         },
         { labelKey: 'nav.items.policy', icon: 'file-text', route: '/app/policy' },
       ],
@@ -270,11 +281,6 @@ export class AppLayoutComponent implements OnInit {
           labelKey: 'nav.items.pendingBookings',
           icon: 'check-circle',
           route: '/app/management/bookings/pending',
-        },
-        {
-          labelKey: 'nav.items.manageBookings',
-          icon: 'calendar',
-          route: '/app/management/bookings',
         },
         {
           labelKey: 'nav.items.incidents',
@@ -305,11 +311,28 @@ export class AppLayoutComponent implements OnInit {
 
   protected readonly visibleGroups = computed(() => {
     this.languageStore.lang()
+    const user = this.store.user()
+    const isManager = this.store.isManager()
+    const isAdmin = this.store.isAdmin()
+
     return this.groups
-      .filter((group) => !group.roles || this.store.hasRole(group.roles as readonly any[]))
+      .filter((group) => {
+        if (group.labelKey === 'nav.groups.personal' && (isManager || isAdmin)) {
+          return false
+        }
+        if (group.roles && !this.store.hasRole(group.roles as readonly any[])) {
+          return false
+        }
+        return true
+      })
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => !item.roles || this.store.hasRole(item.roles as readonly any[])),
+        items: group.items.filter((item) => {
+          if (item.roles && !this.store.hasRole(item.roles as readonly any[])) {
+            return false
+          }
+          return true
+        }),
       }))
       .filter((group) => group.items.length > 0)
   })

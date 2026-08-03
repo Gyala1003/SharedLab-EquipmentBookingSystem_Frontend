@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import type { Observable } from 'rxjs'
+import { Observable, of } from 'rxjs'
+import { catchError } from 'rxjs/operators'
 import { env } from '../config/env'
 import type {
   AuditLogResponse,
@@ -414,7 +415,18 @@ export class SystemService {
 
   // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
   getPolicy(): Observable<PolicyResponse> {
-    return this.http.get<PolicyResponse>(`${this.base}/Policies`)
+    return this.http.get<PolicyResponse>(`${this.base}/Policies`).pipe(
+      catchError(() =>
+        of({
+          generalRules: [
+            'Xác thực qua người duyệt: Mọi lượt Check-in (Nhận) và Check-out (Trả) đúng giờ chỉ được tính là hoàn thành sau khi có sự xác thực/phê duyệt trực tiếp từ Bộ phận Quản lý.',
+            'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo ngay hỏng hóc/sự cố có sẵn cho Bộ phận duyệt trong 5–10 phút đầu.',
+            'Quy định Check-out & Mất tài sản: Trả phòng/thiết bị đúng thời gian đã đăng ký. Check-out muộn quá 02 tuần sẽ tự động ghi nhận là LÀM MẤT TÀI SẢN và bị ĐÓNG BĂNG/KHÓA TÀI KHOẢN HOÀN TOÀN.',
+          ],
+          categories: [],
+        }),
+      ),
+    )
   }
 
   // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
