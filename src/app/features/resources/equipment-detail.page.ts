@@ -23,10 +23,20 @@ import { ToastService } from '../../shared/ui/toast.service'
       @else if (!item()) { <app-data-state [title]="'equipment.notFoundTitle' | t" [message]="'equipment.notFoundMsg' | t" icon="microscope"><a routerLink="/app/equipments" class="btn-primary mt-5">{{ 'lab.backToList' | t }}</a></app-data-state> }
       @else {
         <app-page-header [title]="item()!.equipmentName | t" [subtitle]="('nav.items.equipments' | t) + ' #' + item()!.equipmentId + ' · ' + (((lab()?.labName ?? '') | t) || ('nav.items.labs' | t) + ' #' + item()!.labId)">
-          <a routerLink="/app/bookings/new" [queryParams]="{ labId: item()!.labId, equipmentId: item()!.equipmentId }" class="btn-primary"><app-icon name="calendar-plus" [size]="17" /> {{ 'equipment.book' | t }}</a>
+          @if (!store.isManager() && !store.isAdmin()) { <a routerLink="/app/bookings/new" [queryParams]="{ labId: item()!.labId, equipmentId: item()!.equipmentId }" class="btn-primary" [class.opacity-50]="item()!.status !== 'Available'"><app-icon name="calendar-plus" [size]="17" /> {{ 'equipment.book' | t }}</a> }
           @if (store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ equipmentId: item()!.equipmentId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> {{ 'equipment.scheduleMaintenance' | t }}</a> }
           @if (store.isAdmin()) { <button class="btn-secondary" (click)="openEdit()"><app-icon name="edit" [size]="17" /> {{ 'equipment.edit' | t }}</button> }
         </app-page-header>
+
+        @if (item()!.status !== 'Available') {
+          <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 flex items-center gap-3">
+            <app-icon name="wrench" [size]="20" class="text-amber-600 shrink-0" />
+            <div>
+              <p class="font-black text-sm">{{ 'equipment.underMaintenanceTitle' | t }}</p>
+              <p class="text-xs text-amber-800/80">{{ 'equipment.underMaintenanceMsg' | t }}</p>
+            </div>
+          </div>
+        }
 
         <div class="grid gap-6 xl:grid-cols-[.8fr_1.2fr]">
           <article class="card-surface overflow-hidden"><div class="relative flex h-80 items-center justify-center bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900">@if (item()!.imageUrl) { <img [src]="item()!.imageUrl" [alt]="item()!.equipmentName" class="h-full w-full object-cover" /> } @else { <div class="absolute inset-0 opacity-35" style="background-image:radial-gradient(circle at 25% 20%,#8b5cf6,transparent 30%),radial-gradient(circle at 75% 80%,#06b6d4,transparent 28%)"></div><div class="relative flex h-32 w-32 items-center justify-center rounded-[38px] border border-white/15 bg-white/10 text-white backdrop-blur"><app-icon name="microscope" [size]="62" /></div> }<div class="absolute left-5 top-5"><app-status-badge [value]="item()!.status" domain="equipment" /></div></div></article>
@@ -60,7 +70,7 @@ export class EquipmentDetailPage implements OnInit {
   protected form = { labId: 0, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
   private id = 0
 
-  ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('equipmentId')); this.api.equipment(this.id).subscribe({ next: (item) => { this.item.set(item); const from = new Date(); const to = new Date(); to.setDate(to.getDate()+30); forkJoin({ lab: this.api.lab(item.labId), maintenances: this.api.maintenancesByEquipment(this.id), events: this.api.calendar(from.toISOString(), to.toISOString(), undefined, this.id) }).subscribe({ next: ({ lab, maintenances, events }) => { this.lab.set(lab); this.maintenances.set(maintenances); this.events.set(events); this.loading.set(false) }, error: () => this.loading.set(false) }) }, error: () => { this.loading.set(false); this.item.set(null) } }) }
+  ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('equipmentId')); this.api.equipment(this.id).subscribe({ next: (item) => { this.item.set(item); const from = new Date(); const to = new Date(); to.setDate(to.getDate() + 30); forkJoin({ lab: this.api.lab(item.labId), maintenances: this.api.maintenancesByEquipment(this.id), events: this.api.calendar(from.toISOString(), to.toISOString(), undefined, this.id) }).subscribe({ next: ({ lab, maintenances, events }) => { this.lab.set(lab); this.maintenances.set(maintenances); this.events.set(events); this.loading.set(false) }, error: () => this.loading.set(false) }) }, error: () => { this.loading.set(false); this.item.set(null) } }) }
   protected openEdit(): void { const item = this.item(); if (!item) return; this.form = { labId: item.labId, equipmentName: item.equipmentName, modelSpecs: item.modelSpecs ?? '', imageUrl: item.imageUrl ?? '', usageGuideline: item.usageGuideline ?? '' }; this.editOpen.set(true); if (!this.labs().length) this.api.labs().subscribe((items) => this.labs.set(items)) }
   protected save(): void { this.saving.set(true); this.api.updateEquipment(this.id, { labId: this.form.labId, equipmentName: this.form.equipmentName, modelSpecs: this.form.modelSpecs || null, imageUrl: this.form.imageUrl || null, usageGuideline: this.form.usageGuideline || null }).subscribe({ next: () => { this.saving.set(false); this.editOpen.set(false); this.toast.success('Đã cập nhật thiết bị'); window.location.reload() }, error: () => { this.saving.set(false); this.toast.error('Không thể cập nhật thiết bị') } }) }
   protected remove(): void { if (!confirm('Ngừng sử dụng thiết bị này?')) return; this.api.deleteEquipment(this.id).subscribe({ next: () => { this.toast.success('Đã ngừng sử dụng thiết bị'); void this.router.navigate(['/app/equipments']) }, error: () => this.toast.error('Không thể ngừng sử dụng thiết bị') }) }

@@ -1,7 +1,7 @@
 import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { RouterLink } from '@angular/router'
+import { Router, RouterLink } from '@angular/router'
 import { catchError, forkJoin, of } from 'rxjs'
 import type {
   BookingResponse,
@@ -11,14 +11,16 @@ import type {
 } from '../../core/api/api.models'
 import { SystemService } from '../../core/api/system.service'
 
-import type { CalendarEventResponse } from '../../core/api/system.models'
+import type { BookingDetailResponse, CalendarEventResponse, UsageLogResponse } from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { IconComponent } from '../../shared/ui/icon'
+import { ModalComponent } from '../../shared/ui/modal'
+import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toDateInput } from '../../shared/utils/presentation'
+import { labelOf, toDateInput, getCheckInWindowInfo } from '../../shared/utils/presentation'
 
 interface ScheduleSlotEvent {
   roomName: string
@@ -27,11 +29,23 @@ interface ScheduleSlotEvent {
   dateKey: string
   rowIndex: number
   tone: 'emerald' | 'amber' | 'cyan' | 'indigo' | 'purple'
+  bookingId?: number
+  maintenanceId?: number
+  sourceType?: 'Booking' | 'Maintenance' | 'Sample'
 }
 
 @Component({
   selector: 'app-requester-home-page',
-  imports: [DatePipe, NgClass, FormsModule, RouterLink, IconComponent, TranslatePipe],
+  imports: [
+    DatePipe,
+    NgClass,
+    FormsModule,
+    RouterLink,
+    IconComponent,
+    ModalComponent,
+    StatusBadgeComponent,
+    TranslatePipe,
+  ],
   template: `
     <section class="space-y-6">
       <!-- Top Header / Greeting -->
@@ -205,7 +219,7 @@ interface ScheduleSlotEvent {
                           (click)="onScheduleEventClick(evt)"
                         >
                           <p class="truncate font-black text-[11px] text-slate-900 leading-tight">
-                            {{ evt.roomName }}
+                            {{ evt.roomName | t }}
                           </p>
                           <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
                             {{ evt.title }}
@@ -246,7 +260,7 @@ interface ScheduleSlotEvent {
                           (click)="onScheduleEventClick(evt)"
                         >
                           <p class="truncate font-black text-[11px] text-slate-900 leading-tight">
-                            {{ evt.roomName }}
+                            {{ evt.roomName | t }}
                           </p>
                           <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
                             {{ evt.title }}
@@ -320,6 +334,160 @@ interface ScheduleSlotEvent {
           </div>
         </article>
       }
+
+      <!-- Modal Xem chi tiết Booking từ Lịch -->
+      <app-modal
+        [open]="detailOpen()"
+        [title]="detailBooking() ? 'Booking #BK-' + detailBooking()!.bookingId.toString().padStart(5, '0') : ('bookings.detailTitle' | t)"
+        subtitle="{{ 'bookings.detailSubtitle' | t }}"
+        (close)="detailOpen.set(false)"
+      >
+        @if (detailLoading()) {
+          <div class="space-y-3 p-2">
+            <div class="skeleton h-8 rounded-xl"></div>
+            <div class="skeleton h-32 rounded-xl"></div>
+          </div>
+        } @else if (detailAccessDenied()) {
+          <div class="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 text-center space-y-3">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+              <app-icon name="lock" [size]="24" />
+            </div>
+            <h3 class="font-black text-amber-900 text-base">Không có quyền xem chi tiết</h3>
+            <p class="text-xs font-bold text-amber-700 leading-relaxed max-w-md mx-auto">
+              Booking này thuộc về người dùng khác. Bạn chỉ có thể xem lịch bận tổng quan nhưng không có quyền xem thông tin cá nhân của người đăng ký.
+            </p>
+            <div class="pt-2">
+              <button type="button" class="btn-secondary text-xs" (click)="detailOpen.set(false)">Đóng</button>
+            </div>
+          </div>
+        } @else if (detailBooking(); as detail) {
+          <div class="space-y-5">
+            <!-- Thẻ thông tin tổng quan -->
+            <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-xs sm:grid-cols-2">
+              <div>
+                <span class="text-slate-400">{{ 'common.status' | t }}:</span>
+                <div class="mt-1"><app-status-badge [value]="detail.status" domain="booking" /></div>
+              </div>
+              <div>
+                <span class="text-slate-400">{{ 'bookings.priorityLevel' | t }}:</span>
+                <p class="mt-1 font-bold text-slate-800">P{{ detail.priorityLevel ?? '—' }}</p>
+              </div>
+              <div>
+                <span class="text-slate-400">{{ 'bookings.startTime' | t }}:</span>
+                <p class="mt-1 font-bold text-slate-800">{{ detail.startTime | date: 'HH:mm dd/MM/yyyy' }}</p>
+              </div>
+              <div>
+                <span class="text-slate-400">{{ 'bookings.endTime' | t }}:</span>
+                <p class="mt-1 font-bold text-slate-800">{{ detail.endTime | date: 'HH:mm dd/MM/yyyy' }}</p>
+              </div>
+              <div class="sm:col-span-2">
+                <span class="text-slate-400">{{ 'bookings.purposeDesc' | t }}:</span>
+                <p class="mt-1 font-bold text-slate-800">{{ labelOf('purpose', detail.purposeType, languageStore.lang()) }}</p>
+                @if (detail.purposeDescription) {
+                  <p class="mt-1 text-slate-600 whitespace-pre-line">{{ detail.purposeDescription }}</p>
+                }
+              </div>
+              @if (detail.rejectionReason) {
+                <div class="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800">
+                  <p class="font-bold">{{ 'bookings.rejectionReason' | t }}:</p>
+                  <p class="mt-1">{{ detail.rejectionReason }}</p>
+                </div>
+              }
+            </div>
+
+            <!-- Danh sách tài nguyên -->
+            <div>
+              <p class="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">{{ 'bookings.registeredResources' | t }}</p>
+              <div class="space-y-2">
+                @for (item of detail.items; track item.bookingItemId) {
+                  <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 text-xs">
+                    <div class="flex items-center gap-3">
+                      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                        <app-icon [name]="item.resourceType === 'LabRoom' ? 'building' : 'microscope'" [size]="16" />
+                      </span>
+                      <div>
+                        <p class="font-black text-slate-900">{{ (item.labName || item.equipmentName || ('Tài nguyên #' + item.bookingItemId)) | t }}</p>
+                        <p class="text-[10px] text-slate-400">{{ labelOf('resource', item.resourceType, languageStore.lang()) }} {{ item.note ? ' · ' + item.note : '' }}</p>
+                      </div>
+                    </div>
+
+                    <!-- Thao tác Check-in / Check-out trực tiếp trong Modal -->
+                    <div>
+                      @if (detail.status === 'Approved') {
+                        @if (!logFor(item.bookingItemId)) {
+                          <button
+                            type="button"
+                            class="btn-primary py-1 px-3 text-xs"
+                            [disabled]="!canCheckInNow(detail)"
+                            (click)="checkInItem(item.bookingItemId)"
+                          >
+                            <app-icon name="login" [size]="14" /> {{ 'bookings.checkinNow' | t }}
+                          </button>
+                        } @else if (logFor(item.bookingItemId); as log) {
+                          @if (!log.actualCheckout) {
+                            <button
+                              type="button"
+                              class="btn-primary py-1 px-3 text-xs bg-rose-600 hover:bg-rose-700"
+                              (click)="checkOutLog(log.logId)"
+                            >
+                              <app-icon name="logout" [size]="14" /> Check-out
+                            </button>
+                          } @else {
+                            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">{{ 'bookings.checkedOut' | t }}</span>
+                          }
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Nút liên kết đến trang chi tiết đầy đủ -->
+            <div class="flex justify-between items-center border-t border-slate-100 pt-4">
+              <a [routerLink]="['/app/bookings', detail.bookingId]" class="btn-secondary text-xs" (click)="detailOpen.set(false)">
+                <app-icon name="arrow-right" [size]="15" /> {{ 'bookings.openFullDetail' | t }}
+              </a>
+
+              @if (detail.status === 'Pending' || detail.status === 'Approved') {
+                <button type="button" class="btn-secondary btn-danger text-xs" (click)="confirmCancel(detail)">
+                  <app-icon name="x" [size]="15" /> {{ 'bookings.cancelThisBooking' | t }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </app-modal>
+
+      <!-- Modal Xem thông tin sự kiện khác / Sample event -->
+      <app-modal
+        [open]="eventInfoOpen()"
+        [title]="selectedEventInfo()?.roomName || 'Thông tin lịch'"
+        subtitle="Chi tiết thời gian & nội dung đăng ký"
+        (close)="eventInfoOpen.set(false)"
+      >
+        @if (selectedEventInfo(); as info) {
+          <div class="space-y-4 text-xs">
+            <div class="rounded-2xl bg-slate-50 p-4 space-y-2">
+              <div class="flex justify-between">
+                <span class="text-slate-400">Địa điểm / Phòng:</span>
+                <span class="font-black text-slate-800">{{ info.roomName }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Nội dung / Booking:</span>
+                <span class="font-bold text-indigo-700">{{ info.title }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Khung giờ:</span>
+                <span class="font-bold text-slate-700">{{ info.timeStr }}</span>
+              </div>
+            </div>
+            <div class="flex justify-end pt-2">
+              <button type="button" class="btn-secondary text-xs" (click)="eventInfoOpen.set(false)">Đóng</button>
+            </div>
+          </div>
+        }
+      </app-modal>
     </section>
   `,
 })
@@ -329,6 +497,15 @@ export class RequesterHomePage implements OnInit {
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
+  protected readonly router = inject(Router)
+
+  protected readonly detailOpen = signal(false)
+  protected readonly detailLoading = signal(false)
+  protected readonly detailAccessDenied = signal(false)
+  protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
+  protected readonly detailLogs = signal<UsageLogResponse[]>([])
+  protected readonly selectedEventInfo = signal<ScheduleSlotEvent | null>(null)
+  protected readonly eventInfoOpen = signal(false)
 
   protected readonly today = new Date()
   protected readonly loading = signal(true)
@@ -705,6 +882,8 @@ export class RequesterHomePage implements OnInit {
             dateKey: targetDateKey,
             rowIndex,
             tone,
+            bookingId: b.bookingId,
+            sourceType: 'Booking',
           })
         }
       }
@@ -737,6 +916,9 @@ export class RequesterHomePage implements OnInit {
               dateKey: targetDateKey,
               rowIndex,
               tone: isMaintenance ? 'amber' : 'indigo',
+              bookingId: ev.eventType === 'Booking' ? ev.sourceId : undefined,
+              maintenanceId: ev.eventType === 'Maintenance' ? ev.sourceId : undefined,
+              sourceType: ev.eventType === 'Maintenance' ? 'Maintenance' : 'Booking',
             })
           }
         }
@@ -788,7 +970,112 @@ export class RequesterHomePage implements OnInit {
     this.toast.info(booking.title, booking.timeStr)
   }
 
+  protected openBookingDetail(bookingId: number): void {
+    this.detailOpen.set(true)
+    this.detailLoading.set(true)
+    this.detailAccessDenied.set(false)
+    this.detailBooking.set(null)
+    this.detailLogs.set([])
+
+    forkJoin({
+      detail: this.api.booking(bookingId).pipe(catchError(() => of(null))),
+      logs: this.api.usageLogsByBooking(bookingId).pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ detail, logs }) => {
+        this.detailLoading.set(false)
+        if (detail) {
+          this.detailBooking.set(detail)
+          this.detailLogs.set(logs)
+        } else {
+          this.detailAccessDenied.set(true)
+        }
+      },
+      error: () => {
+        this.detailLoading.set(false)
+        this.detailAccessDenied.set(true)
+      },
+    })
+  }
+
+  protected logFor(bookingItemId: number): UsageLogResponse | undefined {
+    return this.detailLogs().find((l) => l.bookingItemId === bookingItemId)
+  }
+
+  protected canCheckInNow(booking: BookingDetailResponse): boolean {
+    if (booking.status !== 'Approved') return false
+    return getCheckInWindowInfo(booking.startTime, booking.endTime).canCheckIn
+  }
+
+  protected checkUserRestricted(): boolean {
+    const status = this.store.user()?.status
+    if (status === 'Restricted' || status === 3) {
+      this.toast.error('Tài khoản đang bị hạn chế', 'Tài khoản của bạn đang ở trạng thái Bị hạn chế do vi phạm điểm phạt. Không thể Check-in / Check-out.')
+      return true
+    }
+    return false
+  }
+
+  protected checkInItem(bookingItemId: number): void {
+    if (this.checkUserRestricted()) return
+    this.api.checkIn(bookingItemId).subscribe({
+      next: () => {
+        this.toast.success('Check-in thành công', 'Đã bắt đầu phiên sử dụng tài nguyên.')
+        if (this.detailBooking()) {
+          this.openBookingDetail(this.detailBooking()!.bookingId)
+        }
+      },
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-in'
+        this.toast.error('Không thể check-in', msg)
+      },
+    })
+  }
+
+  protected checkOutLog(logId: number): void {
+    if (this.checkUserRestricted()) return
+    if (!confirm('Xác nhận trả phòng / check-out? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)')) return
+    this.api.checkOut(logId).subscribe({
+      next: () => {
+        this.toast.success('Check-out thành công', 'Phiên sử dụng đã kết thúc.')
+        if (this.detailBooking()) {
+          this.openBookingDetail(this.detailBooking()!.bookingId)
+        }
+      },
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-out'
+        this.toast.error('Không thể check-out', msg)
+      },
+    })
+  }
+
+  protected confirmCancel(booking: BookingDetailResponse): void {
+    if (!confirm('Bạn có chắc chắn muốn hủy booking này?')) return
+    this.api.cancelBooking(booking.bookingId).subscribe({
+      next: () => {
+        this.toast.success('Đã hủy booking')
+        this.detailOpen.set(false)
+        this.ngOnInit()
+      },
+      error: () => this.toast.error('Không thể hủy booking'),
+    })
+  }
+
+  protected openEventInfoModal(evt: ScheduleSlotEvent): void {
+    this.selectedEventInfo.set(evt)
+    this.eventInfoOpen.set(true)
+  }
+
   protected onScheduleEventClick(evt: ScheduleSlotEvent): void {
-    this.toast.info(evt.roomName, `${evt.title} • ${evt.timeStr}`)
+    if (evt.bookingId) {
+      this.openBookingDetail(evt.bookingId)
+    } else if (evt.maintenanceId && (this.store.isAdmin() || this.store.isManager())) {
+      void this.router.navigate(['/app/management/maintenances', evt.maintenanceId])
+    } else {
+      this.openEventInfoModal(evt)
+    }
+  }
+
+  protected labelOf(domain: 'purpose' | 'resource', value: string, lang: 'vi' | 'en'): string {
+    return labelOf(domain, value, lang)
   }
 }

@@ -64,7 +64,7 @@ interface LabForm {
                 <div class="flex items-center justify-between gap-3"><p class="flex min-w-0 items-center gap-2 truncate text-sm text-slate-500"><app-icon name="map-pin" [size]="17" /> {{ lab.location | t }}</p><app-status-badge [value]="lab.status" domain="lab" /></div>
                 <div class="mt-5 flex gap-2">
                   <a [routerLink]="['/app/labs', lab.labId]" class="btn-primary flex-1">{{ 'common.details' | t }}</a>
-                  <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab.labId }" class="btn-secondary px-3" title="{{ 'sidebar.quickBooking' | t }}"><app-icon name="calendar-plus" [size]="18" /></a>
+                  @if (!store.isManager() && !store.isAdmin()) { <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab.labId }" class="btn-secondary px-3" title="{{ 'sidebar.quickBooking' | t }}"><app-icon name="calendar-plus" [size]="18" /></a> }
                   @if (store.isAdmin()) {
                     <button type="button" class="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100" title="{{ 'lab.edit' | t }}" (click)="openEdit(lab)"><app-icon name="edit" [size]="17" /></button>
                   }

@@ -91,6 +91,10 @@ const EMPTY_DASHBOARD: DashboardResponse = {
             <app-icon name="refresh" [size]="16" />
             {{ 'common.apply' | t }}
           </button>
+          <a routerLink="/app/admin/system-maintenance" class="flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-bold text-white shadow-md hover:bg-slate-800 transition">
+            <app-icon name="wrench" [size]="16" />
+            <span>{{ 'systemMaintenance.title' | t }}</span>
+          </a>
         </div>
       </header>
 

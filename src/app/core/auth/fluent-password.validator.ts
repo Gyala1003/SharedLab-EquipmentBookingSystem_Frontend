@@ -16,7 +16,7 @@ export class FluentPasswordPolicy {
   private readonly rules: PasswordRule[] = []
 
   minLength(length: number): this {
-    this.rules.push({ key: 'minLength', test: (v) => v.length > length })
+    this.rules.push({ key: 'minLength', test: (v) => v.length >= length })
     return this
   }
 

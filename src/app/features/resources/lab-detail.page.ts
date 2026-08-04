@@ -25,10 +25,20 @@ import { ToastService } from '../../shared/ui/toast.service'
         <app-data-state [title]="'lab.notFoundTitle' | t" [message]="'lab.notFoundMsg' | t" icon="building"><a routerLink="/app/labs" class="btn-primary mt-5">{{ 'lab.backToList' | t }}</a></app-data-state>
       } @else {
         <app-page-header [title]="lab()!.labName | t" [subtitle]="lab()!.roomCode + ' · ' + (lab()!.location | t)">
-          <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab()!.labId }" class="btn-primary"><app-icon name="calendar-plus" [size]="17" /> {{ 'lab.bookFullRoom' | t }}</a>
+          @if (!store.isManager() && !store.isAdmin()) { <a [routerLink]="['/app/bookings/new']" [queryParams]="{ labId: lab()!.labId }" class="btn-primary" [class.opacity-50]="lab()!.status !== 'Available'"><app-icon name="calendar-plus" [size]="17" /> {{ 'lab.bookFullRoom' | t }}</a> }
           @if (store.isManager()) { <a routerLink="/app/management/maintenances/new" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary"><app-icon name="wrench" [size]="17" /> {{ 'lab.scheduleMaintenance' | t }}</a> }
           @if (store.isAdmin()) { <button class="btn-secondary" (click)="openEdit()"><app-icon name="edit" [size]="17" /> {{ 'lab.edit' | t }}</button> }
         </app-page-header>
+
+        @if (lab()!.status !== 'Available') {
+          <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 flex items-center gap-3">
+            <app-icon name="wrench" [size]="20" class="text-amber-600 shrink-0" />
+            <div>
+              <p class="font-black text-sm">Phòng Lab này hiện đang có lịch bảo trì / tạm dừng hoạt động</p>
+              <p class="text-xs text-amber-800/80">Không thể đăng ký mượn phòng trong khoảng thời gian bảo trì.</p>
+            </div>
+          </div>
+        }
 
         <div class="grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
           <article class="card-surface overflow-hidden">
@@ -42,8 +52,6 @@ import { ToastService } from '../../shared/ui/toast.service'
 
           <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">{{ 'lab.overview' | t }}</p><h2 class="mt-2 text-xl font-black text-slate-950">{{ 'lab.researchSpace' | t }}</h2><p class="mt-4 text-sm leading-7 text-slate-500">{{ (lab()!.description ?? '') | t }}</p><div class="mt-6 rounded-2xl bg-slate-50 p-4"><p class="text-xs font-black text-slate-700">{{ 'lab.usageGuideline' | t }}</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-slate-500">{{ (lab()!.usageGuideline ?? '') | t }}</p></div><a routerLink="/app/calendar" [queryParams]="{ labId: lab()!.labId }" class="btn-secondary mt-5 w-full"><app-icon name="calendar" [size]="17" /> {{ 'lab.viewSchedule' | t }}</a></article>
         </div>
-
-        <article class="card-surface p-6"><p class="text-xs font-black uppercase tracking-[.17em] text-violet-500">{{ 'lab.qrCheckinHeader' | t }}</p><h2 class="mt-2 text-xl font-black text-slate-950">{{ 'lab.qrCheckinTitle' | t }}</h2>@if (qrImageUrl()) { <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:items-start"><img [src]="qrImageUrl()" alt="QR điểm danh" class="h-[180px] w-[180px] shrink-0 rounded-2xl border border-slate-200 bg-white p-2" /><p class="text-sm leading-6 text-slate-500">{{ 'lab.qrCheckinMsg' | t }}</p></div> } @else { <p class="mt-4 text-sm leading-6 text-slate-500">{{ 'lab.qrNoActiveBooking' | t }}</p> }</article>
 
         <div class="flex gap-2 overflow-x-auto rounded-2xl bg-white p-1.5 shadow-sm">@for (item of tabs; track item.key) { <button type="button" class="shrink-0 rounded-xl px-4 py-2.5 text-xs font-black" [ngClass]="tab() === item.key ? 'bg-violet-600 text-white shadow-lg shadow-violet-200' : 'text-slate-500 hover:bg-slate-50'" (click)="tab.set(item.key)">{{ item.labelKey | t }} <span class="ml-1 opacity-65">{{ item.count }}</span></button> }</div>
 
@@ -88,16 +96,6 @@ export class LabDetailPage implements OnInit {
   protected editForm = { labName: '', location: '', capacity: 1, description: '', imageUrl: '', usageGuideline: '' }
   protected managerId: number | null = null
   private id = 0
-  // Deep-link QR: tận dụng lại events() (đã lọc theo labId) để tìm booking đang hoạt động của user hiện tại, không cần gọi thêm API hay thư viện quét QR.
-  protected readonly qrBookingId = computed(() => {
-    const user = this.store.user()
-    if (!user) return null
-    const now = Date.now()
-    const match = this.events().find((event) => event.eventType === 'Booking' && event.userId === user.userId && event.status === 'Approved' && now >= +new Date(event.startTime) && now <= +new Date(event.endTime))
-    return match ? match.sourceId : null
-  })
-  protected readonly qrLink = computed(() => { const bookingId = this.qrBookingId(); return bookingId ? `${window.location.origin}/app/bookings/${bookingId}` : '' })
-  protected readonly qrImageUrl = computed(() => { const link = this.qrLink(); return link ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}` : '' })
 
   ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('labId')); this.load() }
   protected openEdit(): void { const lab = this.lab(); if (!lab) return; this.editForm = { labName: lab.labName, location: lab.location, capacity: lab.capacity, description: lab.description ?? '', imageUrl: lab.imageUrl ?? '', usageGuideline: lab.usageGuideline ?? '' }; this.managerId = null; this.editOpen.set(true); if (!this.managers().length) this.api.users({ roleName: 'LabManager', pageSize: 100 }).subscribe((result) => this.managers.set(result.items)) }

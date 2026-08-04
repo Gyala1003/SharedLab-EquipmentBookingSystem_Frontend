@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { catchError, forkJoin, of } from 'rxjs'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
+import { BookingReminderService } from '../../core/api/booking-reminder.service'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse, UsageLogResponse } from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
@@ -305,6 +306,7 @@ export class AppLayoutComponent implements OnInit {
       items: [
         { labelKey: 'nav.items.users', icon: 'users', route: '/app/admin/users' },
         { labelKey: 'nav.items.departments', icon: 'building', route: '/app/admin/departments' },
+        { labelKey: 'nav.items.systemMaintenance', icon: 'wrench', route: '/app/admin/system-maintenance' },
       ],
     },
   ]
@@ -337,9 +339,12 @@ export class AppLayoutComponent implements OnInit {
       .filter((group) => group.items.length > 0)
   })
 
+  private readonly reminder = inject(BookingReminderService)
+
   ngOnInit(): void {
     const user = this.store.user()
     if (!user) return
+    this.reminder.init()
     this.workspace
       .unreadCount(user.userId)
       .pipe(catchError(() => of({ userId: user.userId, unreadCount: 0 })))
@@ -406,7 +411,7 @@ export class AppLayoutComponent implements OnInit {
     if (!booking || !log) return
     const actualCheckoutIso = new Date().toISOString()
     this.pendingCheckoutOpen.set(false)
-    this.api.checkOut(log.logId, actualCheckoutIso).subscribe({
+    this.api.checkOut(log.logId).subscribe({
       next: () => {
         this.toast.success(
           this.languageStore.t('pendingCheckout.checkoutSuccess') || 'Check-out thành công',

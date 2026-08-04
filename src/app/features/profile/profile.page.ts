@@ -7,14 +7,13 @@ import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { IconComponent } from '../../shared/ui/icon'
-import { ModalComponent } from '../../shared/ui/modal'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-profile-page',
-  imports: [FormsModule, RouterLink, IconComponent, ModalComponent, StatusBadgeComponent, TranslatePipe],
+  imports: [FormsModule, RouterLink, IconComponent, StatusBadgeComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       @if (store.user(); as user) {
@@ -26,10 +25,6 @@ import { labelOf } from '../../shared/utils/presentation'
             </div>
             <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'profile.title' | t }}</h1>
             <p class="mt-2 text-sm text-slate-500">{{ 'profile.subtitle' | t }}</p>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <button type="button" class="btn-primary" (click)="openEdit(user)"><app-icon name="edit" [size]="17" /> Edit Profile</button>
           </div>
         </header>
 
@@ -70,10 +65,10 @@ import { labelOf } from '../../shared/utils/presentation'
 
             <article class="rounded-[24px] bg-[#111a3a] p-6 text-white shadow-xl shadow-slate-900/15">
               <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-cyan-300"><app-icon name="shield" [size]="21" /></div>
-              <h3 class="mt-5 text-lg font-bold">Bảo mật tài khoản</h3>
-              <p class="mt-2 text-sm leading-6 text-white/55">Gửi liên kết đặt lại mật khẩu an toàn trực tiếp về email đăng ký của bạn.</p>
+              <h3 class="mt-5 text-lg font-bold">{{ 'profile.accountSecurity' | t }}</h3>
+              <p class="mt-2 text-sm leading-6 text-white/55">{{ 'profile.securityDesc' | t }}</p>
               <a routerLink="/app/profile/reset-password" class="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-[#111a3a] hover:bg-cyan-50">
-                Đặt lại mật khẩu
+                {{ 'profile.resetPassword' | t }}
                 <app-icon name="arrow-right" [size]="16" />
               </a>
             </article>
@@ -166,18 +161,6 @@ import { labelOf } from '../../shared/utils/presentation'
             </article>
           </div>
         </div>
-
-        <app-modal [open]="editOpen()" title="Chỉnh sửa thông tin cá nhân" subtitle="Cập nhật thông tin tài khoản của bạn." (close)="editOpen.set(false)">
-          <form class="space-y-4" (ngSubmit)="saveProfile()">
-            <div><label class="field-label">Họ và tên *</label><input class="input-shell" required [(ngModel)]="editForm.fullName" name="fullName" /></div>
-            <div><label class="field-label">Username *</label><input class="input-shell" required [(ngModel)]="editForm.username" name="username" /></div>
-            <div><label class="field-label">Email *</label><input class="input-shell" type="email" required [(ngModel)]="editForm.email" name="email" /></div>
-            <div class="flex justify-end gap-2 pt-2">
-              <button type="button" class="btn-secondary" (click)="editOpen.set(false)">Hủy</button>
-              <button class="btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</button>
-            </div>
-          </form>
-        </app-modal>
       }
     </section>
   `,
@@ -190,10 +173,7 @@ export class ProfilePage {
   private readonly toast = inject(ToastService)
   private readonly router = inject(Router)
 
-  protected readonly editOpen = signal(false)
-  protected readonly saving = signal(false)
   protected readonly sendingReset = signal(false)
-  protected editForm = { fullName: '', username: '', email: '' }
 
   protected readonly statusText = computed(() => {
     const status = this.store.user()?.status
@@ -203,21 +183,6 @@ export class ProfilePage {
 
   protected legitPoint(user: { penaltyPoints: number }): number {
     return Math.max(0, 100 - user.penaltyPoints)
-  }
-
-  protected openEdit(user: { fullName: string; username: string; email: string }): void {
-    this.editForm = { fullName: user.fullName, username: user.username, email: user.email }
-    this.editOpen.set(true)
-  }
-
-  protected saveProfile(): void {
-    const user = this.store.user()
-    if (!user) return
-    this.saving.set(true)
-    this.api.updateUser(user.userId, { fullName: this.editForm.fullName, username: this.editForm.username, email: this.editForm.email }).subscribe({
-      next: () => { this.saving.set(false); this.editOpen.set(false); this.toast.success('Đã cập nhật thông tin cá nhân'); void this.store.hydrate() },
-      error: () => { this.saving.set(false); this.editOpen.set(false); this.toast.error('Không thể tự cập nhật hồ sơ', 'Tài khoản của bạn có thể chưa được cấp quyền tự sửa thông tin, vui lòng liên hệ Admin.') },
-    })
   }
 
   protected requestPasswordReset(): void {
@@ -290,7 +255,7 @@ export class ProfilePage {
       { label: this.languageStore.t('profile.username'), value: user.username, icon: 'shield' },
       { label: this.languageStore.t('profile.email'), value: user.email, icon: 'mail' },
       { label: this.languageStore.t('profile.role'), value: this.roleLabel(user.roleName), icon: 'shield' },
-      { label: this.languageStore.t('profile.department'), value: user.departmentName || this.languageStore.t('profile.notUpdated'), icon: 'building' },
+      { label: this.languageStore.t('profile.department'), value: labelOf('department', user.departmentName, this.languageStore.lang()) || this.languageStore.t('profile.notUpdated'), icon: 'building' },
     ]
   }
 }
