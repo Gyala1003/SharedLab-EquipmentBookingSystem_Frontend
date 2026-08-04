@@ -32,8 +32,8 @@ import { ToastService } from '../../shared/ui/toast.service'
           <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 flex items-center gap-3">
             <app-icon name="wrench" [size]="20" class="text-amber-600 shrink-0" />
             <div>
-              <p class="font-black text-sm">Thiết bị này hiện đang có lịch bảo trì / tạm dừng hoạt động</p>
-              <p class="text-xs text-amber-800/80">Không thể đăng ký mượn thiết bị này cho đến khi kết thúc bảo trì.</p>
+              <p class="font-black text-sm">{{ 'equipment.underMaintenanceTitle' | t }}</p>
+              <p class="text-xs text-amber-800/80">{{ 'equipment.underMaintenanceMsg' | t }}</p>
             </div>
           </div>
         }
@@ -70,7 +70,7 @@ export class EquipmentDetailPage implements OnInit {
   protected form = { labId: 0, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
   private id = 0
 
-  ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('equipmentId')); this.api.equipment(this.id).subscribe({ next: (item) => { this.item.set(item); const from = new Date(); const to = new Date(); to.setDate(to.getDate()+30); forkJoin({ lab: this.api.lab(item.labId), maintenances: this.api.maintenancesByEquipment(this.id), events: this.api.calendar(from.toISOString(), to.toISOString(), undefined, this.id) }).subscribe({ next: ({ lab, maintenances, events }) => { this.lab.set(lab); this.maintenances.set(maintenances); this.events.set(events); this.loading.set(false) }, error: () => this.loading.set(false) }) }, error: () => { this.loading.set(false); this.item.set(null) } }) }
+  ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('equipmentId')); this.api.equipment(this.id).subscribe({ next: (item) => { this.item.set(item); const from = new Date(); const to = new Date(); to.setDate(to.getDate() + 30); forkJoin({ lab: this.api.lab(item.labId), maintenances: this.api.maintenancesByEquipment(this.id), events: this.api.calendar(from.toISOString(), to.toISOString(), undefined, this.id) }).subscribe({ next: ({ lab, maintenances, events }) => { this.lab.set(lab); this.maintenances.set(maintenances); this.events.set(events); this.loading.set(false) }, error: () => this.loading.set(false) }) }, error: () => { this.loading.set(false); this.item.set(null) } }) }
   protected openEdit(): void { const item = this.item(); if (!item) return; this.form = { labId: item.labId, equipmentName: item.equipmentName, modelSpecs: item.modelSpecs ?? '', imageUrl: item.imageUrl ?? '', usageGuideline: item.usageGuideline ?? '' }; this.editOpen.set(true); if (!this.labs().length) this.api.labs().subscribe((items) => this.labs.set(items)) }
   protected save(): void { this.saving.set(true); this.api.updateEquipment(this.id, { labId: this.form.labId, equipmentName: this.form.equipmentName, modelSpecs: this.form.modelSpecs || null, imageUrl: this.form.imageUrl || null, usageGuideline: this.form.usageGuideline || null }).subscribe({ next: () => { this.saving.set(false); this.editOpen.set(false); this.toast.success('Đã cập nhật thiết bị'); window.location.reload() }, error: () => { this.saving.set(false); this.toast.error('Không thể cập nhật thiết bị') } }) }
   protected remove(): void { if (!confirm('Ngừng sử dụng thiết bị này?')) return; this.api.deleteEquipment(this.id).subscribe({ next: () => { this.toast.success('Đã ngừng sử dụng thiết bị'); void this.router.navigate(['/app/equipments']) }, error: () => this.toast.error('Không thể ngừng sử dụng thiết bị') }) }

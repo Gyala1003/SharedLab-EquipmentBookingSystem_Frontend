@@ -113,7 +113,7 @@
               >
                 {{ initials(user.fullName) }}
               </div>
-              <span class="text-xs font-black text-slate-800">{{ user.fullName }}</span>
+              <span class="text-xs font-black text-slate-800">{{ user.fullName | t }}</span>
               <app-icon
                 name="chevron-down"
                 [size]="16"
@@ -131,7 +131,7 @@
             >
               @if (store.user(); as user) {
                 <div class="px-2 pb-3">
-                  <p class="truncate text-sm font-black text-slate-900">{{ user.fullName }}</p>
+                  <p class="truncate text-sm font-black text-slate-900">{{ user.fullName | t }}</p>
                   <p class="truncate text-xs font-medium text-slate-400 mt-0.5">{{ user.email }}</p>
                 </div>
 

@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
 import { env } from '../config/env'
+import { findTranslation, translateDynamicLocation } from './translate.pipe'
 import { translations } from './translations'
 
 export type SupportedLocale = 'vi' | 'en'
@@ -27,14 +28,20 @@ export class LanguageStore {
   }
 
   t(key: string, params?: Record<string, string | number>): string {
-    const item = translations[key]
-    let result = item ? (item[this.lang()] || item.vi || key) : key
-    if (params) {
+    if (!key) return ''
+    const currentLang = this.lang()
+    let result = findTranslation(key, currentLang)
+
+    if (!result || result === key) {
+      result = translateDynamicLocation(key, currentLang)
+    }
+
+    if (params && result) {
       for (const [k, v] of Object.entries(params)) {
         result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
       }
     }
-    return result
+    return result || key
   }
 
   private apply(l: SupportedLocale): void {

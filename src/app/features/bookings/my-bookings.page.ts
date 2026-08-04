@@ -15,7 +15,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf } from '../../shared/utils/presentation'
+import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-my-bookings-page',
@@ -485,12 +485,21 @@ export class MyBookingsPage implements OnInit {
   }
 
   protected canCheckInNow(booking: BookingResponse | BookingDetailResponse): boolean {
-    const now = Date.now()
-    return now >= +new Date(booking.startTime) - 15 * 60_000 && now <= +new Date(booking.endTime)
+    if (booking.status !== 'Approved') return false
+    return getCheckInWindowInfo(booking.startTime, booking.endTime).canCheckIn
   }
 
   protected isUpcoming(booking: BookingResponse | BookingDetailResponse): boolean {
-    return Date.now() < +new Date(booking.startTime) - 15 * 60_000
+    return getCheckInWindowInfo(booking.startTime, booking.endTime).isTooEarly
+  }
+
+  protected checkUserRestricted(): boolean {
+    const userStatus = this.store.user()?.status
+    if (userStatus === 'Restricted' || userStatus === 3) {
+      this.toast.error('Tài khoản đang bị hạn chế', 'Tài khoản của bạn đang ở trạng thái Bị hạn chế do có điểm vi phạm. Không thể thực hiện điểm danh Check-in / Check-out.')
+      return true
+    }
+    return false
   }
 
   protected openDetail(booking: BookingResponse | BookingDetailResponse): void {
@@ -523,29 +532,72 @@ export class MyBookingsPage implements OnInit {
   }
 
   protected checkInItem(bookingItemId: number): void {
+    if (this.checkUserRestricted()) return
     this.api.checkIn(bookingItemId).subscribe({
       next: () => {
-        this.toast.success('Check-in thành công')
+        this.toast.success('Check-in thành công', 'Đã ghi nhận thời gian bắt đầu sử dụng tài nguyên.')
         this.loadData()
         if (this.detailBooking()) {
           this.openDetail(this.detailBooking()!)
         }
       },
-      error: () => this.toast.error('Không thể check-in'),
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể điểm danh Check-in. Kiểm tra khung giờ và trạng thái tài nguyên.'
+        this.toast.error('Không thể check-in', msg)
+      },
+    })
+  }
+
+  protected checkInBooking(bookingId: number): void {
+    if (this.checkUserRestricted()) return
+    this.api.checkInBooking(bookingId).subscribe({
+      next: () => {
+        this.toast.success('Check-in toàn bộ thành công', 'Đã điểm danh tất cả tài nguyên trong booking.')
+        this.loadData()
+        if (this.detailBooking()) {
+          this.openDetail(this.detailBooking()!)
+        }
+      },
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-in toàn bộ booking.'
+        this.toast.error('Không thể check-in', msg)
+      },
     })
   }
 
   protected checkOutLog(logId: number): void {
-    if (!confirm('Xác nhận trả phòng / check-out?')) return
+    if (this.checkUserRestricted()) return
+    if (!confirm('Xác nhận trả phòng / check-out tài nguyên này? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)')) return
     this.api.checkOut(logId).subscribe({
       next: () => {
-        this.toast.success('Check-out thành công')
+        this.toast.success('Check-out thành công', 'Phiên sử dụng đã kết thúc.')
         this.loadData()
         if (this.detailBooking()) {
           this.openDetail(this.detailBooking()!)
         }
       },
-      error: () => this.toast.error('Không thể check-out'),
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-out.'
+        this.toast.error('Không thể check-out', msg)
+      },
+    })
+  }
+
+  protected checkOutBooking(bookingId: number): void {
+    if (this.checkUserRestricted()) return
+    if (!confirm('Xác nhận checkout toàn bộ booking này?')) return
+    this.api.checkOutBooking(bookingId).subscribe({
+      next: () => {
+        this.toast.success('Check-out toàn bộ thành công', 'Tất cả tài nguyên đã được giải phóng.')
+        this.loadData()
+        if (this.detailBooking()) {
+          this.openDetail(this.detailBooking()!)
+        }
+      },
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể checkout toàn bộ booking.'
+        this.toast.error('Không thể check-out', msg)
+      },
     })
   }
 

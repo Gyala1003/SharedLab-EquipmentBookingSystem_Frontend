@@ -80,22 +80,37 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
     Rejected: { vi: 'Đã từ chối', en: 'Rejected' },
   },
   purpose: {
+    '1': { vi: 'Dự án nghiên cứu', en: 'Research Project' },
+    '2': { vi: 'Thực hành môn học', en: 'Course Practice' },
+    '3': { vi: 'Tự học', en: 'Self-study' },
+    '4': { vi: 'Khác', en: 'Other' },
     ResearchProject: { vi: 'Dự án nghiên cứu', en: 'Research Project' },
     CoursePractice: { vi: 'Thực hành môn học', en: 'Course Practice' },
     SelfStudy: { vi: 'Tự học', en: 'Self-study' },
     Other: { vi: 'Khác', en: 'Other' },
   },
   resource: {
+    '1': { vi: 'Phòng lab', en: 'Lab Room' },
+    '2': { vi: 'Thiết bị', en: 'Equipment' },
     LabRoom: { vi: 'Phòng lab', en: 'Lab Room' },
     Equipment: { vi: 'Thiết bị', en: 'Equipment' },
   },
   recurrence: {
+    '0': { vi: 'Không lặp', en: 'None' },
+    '1': { vi: 'Hằng ngày', en: 'Daily' },
+    '2': { vi: 'Hằng tuần', en: 'Weekly' },
+    '3': { vi: 'Hằng tháng', en: 'Monthly' },
     None: { vi: 'Không lặp', en: 'None' },
     Daily: { vi: 'Hằng ngày', en: 'Daily' },
     Weekly: { vi: 'Hằng tuần', en: 'Weekly' },
     Monthly: { vi: 'Hằng tháng', en: 'Monthly' },
   },
   violationType: {
+    '1': { vi: 'Không đến', en: 'No-show' },
+    '2': { vi: 'Trả muộn', en: 'Late Check-out' },
+    '3': { vi: 'Làm hỏng thiết bị', en: 'Damaged Equipment' },
+    '4': { vi: 'Sử dụng sai', en: 'Equipment Misuse' },
+    '5': { vi: 'Sử dụng trái phép', en: 'Unauthorized Use' },
     NoShow: { vi: 'Không đến', en: 'No-show' },
     LateCheckout: { vi: 'Trả muộn', en: 'Late Check-out' },
     DamageEquipment: { vi: 'Làm hỏng thiết bị', en: 'Damaged Equipment' },
@@ -103,6 +118,11 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
     UnauthorizedUse: { vi: 'Sử dụng trái phép', en: 'Unauthorized Use' },
   },
   incidentType: {
+    '1': { vi: 'Không có', en: 'None' },
+    '2': { vi: 'Báo hư hỏng', en: 'Damage Reported' },
+    '3': { vi: 'Trả muộn', en: 'Late Check-out' },
+    '4': { vi: 'Thiếu thiết bị', en: 'Missing Equipment' },
+    '5': { vi: 'Khác', en: 'Other' },
     None: { vi: 'Không có', en: 'None' },
     DamageReported: { vi: 'Báo hư hỏng', en: 'Damage Reported' },
     LateCheckout: { vi: 'Trả muộn', en: 'Late Check-out' },
@@ -110,6 +130,13 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
     Other: { vi: 'Khác', en: 'Other' },
   },
   notification: {
+    '1': { vi: 'Booking được duyệt', en: 'Booking Approved' },
+    '2': { vi: 'Booking bị từ chối', en: 'Booking Rejected' },
+    '3': { vi: 'Nhắc lịch booking', en: 'Booking Reminder' },
+    '4': { vi: 'Có chỗ từ hàng chờ', en: 'Waitlist Spot Available' },
+    '5': { vi: 'Bảo trì', en: 'Maintenance' },
+    '6': { vi: 'Vi phạm', en: 'Violation' },
+    '7': { vi: 'Hệ thống', en: 'System' },
     BookingApproved: { vi: 'Booking được duyệt', en: 'Booking Approved' },
     BookingRejected: { vi: 'Booking bị từ chối', en: 'Booking Rejected' },
     BookingReminder: { vi: 'Nhắc lịch booking', en: 'Booking Reminder' },
@@ -164,4 +191,36 @@ export function toLocalDateTimeInput(value: string | Date): string {
 
 export function formatMoney(value: number): string {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0)
+}
+
+export interface CheckInWindowInfo {
+  canCheckIn: boolean
+  isTooEarly: boolean
+  isTooLate: boolean
+  earliestTime: Date
+  latestTime: Date
+  reason: string
+}
+
+export function getCheckInWindowInfo(startTimeIso: string, endTimeIso: string): CheckInWindowInfo {
+  const startTime = new Date(startTimeIso)
+  const endTime = new Date(endTimeIso)
+  const now = new Date()
+
+  const earliestTime = new Date(startTime.getTime() - 15 * 60_000)
+  const thirtyMinsAfterStart = new Date(startTime.getTime() + 30 * 60_000)
+  const latestTime = thirtyMinsAfterStart < endTime ? thirtyMinsAfterStart : endTime
+
+  const isTooEarly = now < earliestTime
+  const isTooLate = now > latestTime
+  const canCheckIn = !isTooEarly && !isTooLate
+
+  let reason = ''
+  if (isTooEarly) {
+    reason = 'Chưa đến khung giờ điểm danh (Mở từ 15 phút trước giờ bắt đầu)'
+  } else if (isTooLate) {
+    reason = 'Đã quá hạn điểm danh (Chỉ cho phép điểm danh tối đa 30 phút sau giờ bắt đầu)'
+  }
+
+  return { canCheckIn, isTooEarly, isTooLate, earliestTime, latestTime, reason }
 }

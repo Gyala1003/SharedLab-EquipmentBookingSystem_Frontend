@@ -6,12 +6,14 @@ import { TokenStorage } from '../auth/token-storage'
 import type { AuthTokens } from '../auth/auth.types'
 import { env } from '../config/env'
 import { ApiError } from './api-error'
+import { ErrorStateService } from './error-state.service'
 
 const USER_KEY = 'auth.user'
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router)
   const tokens = inject(TokenStorage)
+  const errorState = inject(ErrorStateService)
   const http = new HttpClient(inject(HttpBackend))
 
   return next(req).pipe(
@@ -41,9 +43,26 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         clearSession(tokens)
         void router.navigate(['/login'])
       }
-      if (error.status === 403) void router.navigate(['/403'])
+      if (error.status === 403) {
+        void router.navigate(['/403'])
+      }
 
-      return throwError(() => normalize(error))
+      const normalizedErr = normalize(error)
+
+      // Catch Backend Internal Server Error (5xx) or Connection Failure (0)
+      if (error.status >= 500 || error.status === 0) {
+        errorState.setError({
+          status: error.status || 500,
+          statusText: error.status === 0 ? 'Mất kết nối Server BE / Lỗi mạng' : `Backend Error (HTTP ${error.status})`,
+          message: normalizedErr.message || 'Hệ thống Backend gặp sự cố trong quá trình xử lý yêu cầu.',
+          url: req.url,
+          timestamp: new Date(),
+          details: normalizedErr.fieldErrors,
+        })
+        void router.navigate(['/error'])
+      }
+
+      return throwError(() => normalizedErr)
     }),
   )
 }
@@ -62,7 +81,7 @@ function normalize(error: HttpErrorResponse): ApiError {
   const message =
     typeof body === 'string'
       ? body
-      : body?.message ?? body?.title ?? error.message ?? 'Đã xảy ra lỗi kết nối.'
+      : body?.message ?? body?.title ?? error.message ?? 'Đã xảy ra lỗi kết nối với Backend.'
   return new ApiError(
     error.status,
     message,

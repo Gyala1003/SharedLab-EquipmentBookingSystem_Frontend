@@ -25,7 +25,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_auto]">
         <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="{{ 'equipments.searchPlaceholder' | t }}" /></div></div>
-        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId"><option [ngValue]="null">{{ 'calendar.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }}</option> }</select></div>
+        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId"><option [ngValue]="null">{{ 'calendar.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName | t }}</option> }</select></div>
         <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">{{ 'equipments.ready' | t }}</option><option [value]="2">{{ 'equipments.inUse' | t }}</option><option [value]="3">{{ 'labs.maintenance' | t }}</option><option [value]="4">{{ 'equipments.broken' | t }}</option><option [value]="5">{{ 'equipments.retired' | t }}</option></select></div>
         <div class="flex items-end"><button class="btn-primary w-full" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>

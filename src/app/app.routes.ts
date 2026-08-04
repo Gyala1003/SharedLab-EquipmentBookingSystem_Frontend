@@ -172,14 +172,14 @@ export const routes: Routes = [
       },
       {
         path: 'management/bookings/pending',
-        canActivate: [roleGuard(['LabManager'])],
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Booking cần duyệt',
         loadComponent: () =>
           import('./features/management/pending-bookings.page').then((m) => m.PendingBookingsPage),
       },
       {
         path: 'management/bookings',
-        canActivate: [roleGuard(['LabManager'])],
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Quản lý booking',
         loadComponent: () =>
           import('./features/management/bookings-management.page').then(
@@ -216,21 +216,21 @@ export const routes: Routes = [
       },
       {
         path: 'management/usage-logs',
-        canActivate: [roleGuard(['LabManager'])],
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Nhật ký sử dụng',
         loadComponent: () =>
           import('./features/management/usage-logs.page').then((m) => m.UsageLogsPage),
       },
       {
         path: 'management/incidents',
-        canActivate: [roleGuard(['LabManager'])],
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Duyệt sự cố',
         loadComponent: () =>
           import('./features/management/incidents.page').then((m) => m.IncidentsPage),
       },
       {
         path: 'management/waitlists',
-        canActivate: [roleGuard(['LabManager'])],
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Quản lý hàng chờ',
         loadComponent: () =>
           import('./features/management/waitlists-management.page').then(
@@ -239,7 +239,7 @@ export const routes: Routes = [
       },
       {
         path: 'management/violations',
-        canActivate: [roleGuard(['LabManager'])],
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Quản lý vi phạm',
         loadComponent: () =>
           import('./features/management/violations-management.page').then(
@@ -248,7 +248,7 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [roleGuard(['LabManager'])],
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Trung tâm báo cáo',
         loadComponent: () => import('./features/reports/reports.page').then((m) => m.ReportsPage),
       },

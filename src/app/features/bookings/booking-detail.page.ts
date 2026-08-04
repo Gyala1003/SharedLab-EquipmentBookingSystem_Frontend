@@ -12,7 +12,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf } from '../../shared/utils/presentation'
+import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-booking-detail-page',
@@ -77,16 +77,15 @@ import { labelOf } from '../../shared/utils/presentation'
                               }
                             }
                           }
-                          <!-- Đã check-in -->
-                          @if (logFor(item.bookingItemId); as log) {
-                            @if (!log.actualCheckout) {
-                              <button class="btn-primary" (click)="openCheckOut(log)">
-                                <app-icon name="logout" [size]="16" /> Check-out
-                              </button>
-                              <button class="btn-secondary" (click)="openIncident(log)">
-                                <app-icon name="alert" [size]="16" /> Báo sự cố
-                              </button>
-                            } @else {
+                           @if (logFor(item.bookingItemId); as log) {
+                             @if (!log.actualCheckout) {
+                               <button class="btn-primary" (click)="openCheckOut(log)">
+                                 <app-icon name="logout" [size]="16" /> {{ (store.isManager() || store.isAdmin()) && !isOwnBooking() ? 'Check-out (Quản lý check hộ)' : 'Check-out' }}
+                               </button>
+                               <button class="btn-secondary" (click)="openIncident(log)">
+                                 <app-icon name="alert" [size]="16" /> Báo sự cố
+                               </button>
+                             } @else {
                               <span class="rounded-full bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">
                                 <app-icon name="check" [size]="14" /> Đã hoàn tất (Checked-out)
                               </span>
@@ -117,8 +116,8 @@ import { labelOf } from '../../shared/utils/presentation'
 
         <app-modal [open]="rejectOpen()" title="Từ chối booking" subtitle="Lý do sẽ được lưu và gửi thông báo cho người đặt." (close)="rejectOpen.set(false)"><label class="field-label">Lý do từ chối *</label><textarea class="textarea-shell" [(ngModel)]="rejectionReason" placeholder="Nêu rõ lý do để người dùng có thể điều chỉnh..."></textarea><div class="mt-5 flex justify-end gap-2"><button class="btn-secondary" (click)="rejectOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="!rejectionReason.trim()" (click)="reject()">Xác nhận từ chối</button></div></app-modal>
         <app-modal [open]="incidentOpen()" title="Báo sự cố sử dụng" subtitle="Sự cố sẽ chờ Admin/LabManager xác nhận nếu cần." (close)="incidentOpen.set(false)"><div class="grid gap-4"><div><label class="field-label">Loại sự cố</label><select class="input-shell" [(ngModel)]="incidentStatus"><option [ngValue]="2">Báo hư hỏng</option><option [ngValue]="3">Trả muộn</option><option [ngValue]="4">Thiếu thiết bị</option><option [ngValue]="5">Khác</option></select></div><div><label class="field-label">Thiết bị bị ảnh hưởng (ID)</label><input class="input-shell" type="number" [(ngModel)]="affectedEquipmentId" placeholder="Để trống nếu không xác định" /></div><div><label class="field-label">Mô tả chi tiết</label><textarea class="textarea-shell" [(ngModel)]="incidentDescription"></textarea></div><div class="flex justify-end gap-2"><button class="btn-secondary" (click)="incidentOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="!incidentDescription.trim()" (click)="reportIncident()">Gửi báo cáo</button></div></div></app-modal>
-        <app-modal [open]="checkInOpen()" title="Điểm danh vào phòng lab" subtitle="Xác nhận thông tin trước khi check-in." (close)="checkInOpen.set(false)">@if (checkInItem; as item) { <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm"><div class="flex justify-between"><span class="text-slate-400">Người điểm danh</span><span class="font-black text-slate-800">{{ store.user()?.fullName }}</span></div><div class="flex justify-between"><span class="text-slate-400">Tài khoản</span><span class="font-bold text-slate-700">{{ store.user()?.username }} · {{ store.user()?.email }}</span></div><div class="flex justify-between"><span class="text-slate-400">Khoa/phòng ban</span><span class="font-bold text-slate-700">{{ store.user()?.departmentName }}</span></div><div class="flex justify-between"><span class="text-slate-400">Phòng lab / tài nguyên</span><span class="font-bold text-slate-700">{{ item.labName || item.equipmentName }}</span></div><div class="flex justify-between"><span class="text-slate-400">Thời gian</span><span class="font-bold text-slate-700">{{ checkInTime | date:'HH:mm dd/MM/yyyy' }}</span></div></div><div class="mt-5 flex justify-end gap-2"><button class="btn-secondary" (click)="checkInOpen.set(false)">Hủy</button><button class="btn-primary" (click)="confirmCheckIn()"><app-icon name="login" [size]="16" /> Xác nhận điểm danh</button></div> }</app-modal>
-        <app-modal [open]="checkOutOpen()" title="Điểm danh ra khỏi phòng lab" subtitle="Xác nhận trước khi kết thúc phiên sử dụng." (close)="checkOutOpen.set(false)">@if (checkOutLog; as log) { <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm"><div class="flex justify-between"><span class="text-slate-400">Người dùng</span><span class="font-black text-slate-800">{{ store.user()?.fullName }}</span></div><div class="flex justify-between"><span class="text-slate-400">Giờ check-in</span><span class="font-bold text-slate-700">{{ log.actualCheckin | date:'HH:mm dd/MM/yyyy' }}</span></div><div class="flex justify-between"><span class="text-slate-400">Giờ kết thúc booking</span><span class="font-bold text-slate-700">{{ booking()!.endTime | date:'HH:mm dd/MM/yyyy' }}</span></div></div>@if (checkoutLateMinutes() > 0) { <p class="mt-3 text-sm font-black text-rose-600">Bạn đang trễ quá {{ checkoutLateMinutes() }} phút so với giờ kết thúc, hệ thống sẽ ghi nhận 1 vi phạm khi xác nhận.</p> }<div class="mt-5 flex flex-wrap justify-end gap-2"><button class="btn-secondary" (click)="continueUsing()">Tiếp tục sử dụng</button><button class="btn-primary" (click)="confirmCheckout()"><app-icon name="logout" [size]="16" /> Đăng ký hoàn tất (Checkout)</button></div> }</app-modal>
+        <app-modal [open]="checkInOpen()" title="Điểm danh vào phòng lab (Check-in)" subtitle="Nội quy: Khung giờ điểm danh từ 15 phút trước giờ bắt đầu đến 30 phút sau giờ bắt đầu." (close)="checkInOpen.set(false)">@if (checkInItem; as item) { <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm"><div class="flex justify-between"><span class="text-slate-400">Người điểm danh</span><span class="font-black text-slate-800">{{ store.user()?.fullName }}</span></div><div class="flex justify-between"><span class="text-slate-400">Tài khoản</span><span class="font-bold text-slate-700">{{ store.user()?.username }} · {{ store.user()?.email }}</span></div><div class="flex justify-between"><span class="text-slate-400">Khoa/phòng ban</span><span class="font-bold text-slate-700">{{ store.user()?.departmentName }}</span></div><div class="flex justify-between"><span class="text-slate-400">Phòng lab / tài nguyên</span><span class="font-bold text-slate-700">{{ item.labName || item.equipmentName }}</span></div><div class="flex justify-between"><span class="text-slate-400">Thời điểm điểm danh</span><span class="font-bold text-slate-700">{{ checkInTime | date:'HH:mm dd/MM/yyyy' }}</span></div></div><div class="mt-4 rounded-xl border border-cyan-200 bg-cyan-50/70 p-3 text-xs leading-5 text-cyan-900"><p class="font-bold">Quy định điểm danh:</p><p class="mt-0.5 text-cyan-800">Cần có mặt đúng giờ. Nếu quá 30 phút kể từ giờ bắt đầu không check-in, booking có thể bị đánh dấu No-Show và ghi nhận vi phạm.</p></div><div class="mt-5 flex justify-end gap-2"><button class="btn-secondary" (click)="checkInOpen.set(false)">Hủy</button><button class="btn-primary" (click)="confirmCheckIn()"><app-icon name="login" [size]="16" /> Xác nhận điểm danh</button></div> }</app-modal>
+        <app-modal [open]="checkOutOpen()" title="Điểm danh ra khỏi phòng lab (Check-out)" subtitle="Xác nhận trước khi kết thúc phiên sử dụng tài nguyên." (close)="checkOutOpen.set(false)">@if (checkOutLog; as log) { <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm"><div class="flex justify-between"><span class="text-slate-400">Người dùng</span><span class="font-black text-slate-800">{{ store.user()?.fullName }}</span></div><div class="flex justify-between"><span class="text-slate-400">Giờ check-in</span><span class="font-bold text-slate-700">{{ log.actualCheckin | date:'HH:mm dd/MM/yyyy' }}</span></div><div class="flex justify-between"><span class="text-slate-400">Giờ kết thúc đăng ký</span><span class="font-bold text-slate-700">{{ booking()!.endTime | date:'HH:mm dd/MM/yyyy' }}</span></div></div>@if (checkoutLateMinutes() > 0) { <div class="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs leading-5 text-rose-900"><p class="font-black">Chú ý quy định trả phòng muộn:</p><p class="mt-1">Bạn đang trễ {{ checkoutLateMinutes() }} phút so với giờ kết thúc. Hệ thống Backend sẽ tự động ghi nhận sự cố <strong>LateCheckout</strong> và áp dụng vi phạm Trả muộn khi xác nhận.</p></div> }<div class="mt-5 flex flex-wrap justify-end gap-2"><button class="btn-secondary" (click)="continueUsing()">Tiếp tục sử dụng</button><button class="btn-primary" (click)="confirmCheckout()"><app-icon name="logout" [size]="16" /> Đăng ký hoàn tất (Checkout)</button></div> }</app-modal>
       }
     </section>
   `,
@@ -151,38 +150,68 @@ export class BookingDetailPage implements OnInit {
   protected readonly durationHours = computed(() => { const item = this.booking(); return item ? Math.round((+new Date(item.endTime)-+new Date(item.startTime))/360000)/10 : 0 })
 
   ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('bookingId')); this.load() }
-  // Quyền duyệt/từ chối booking chuyển hẳn cho LabManager theo yêu cầu nghiệp vụ mới, Admin không còn thao tác này
   protected canApprove(): boolean { return Boolean(this.store.isManager() && this.booking()?.status === 'Pending') }
   protected isOwnBooking(): boolean { return this.booking()?.userId === this.store.user()?.userId }
   protected canCancel(): boolean { const item = this.booking(); return Boolean(item && ['Pending','Approved'].includes(item.status) && (item.userId === this.store.user()?.userId || this.store.isManager())) }
-  protected canCheckIn(): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; const now = Date.now(); return now >= +new Date(item.startTime)-15*60_000 && now <= +new Date(item.endTime) }
+  protected canCheckIn(): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; return getCheckInWindowInfo(item.startTime, item.endTime).canCheckIn }
   protected canCheckInNow(): boolean {
     const item = this.booking()
     if (!item || item.status !== 'Approved') return false
     if (!this.isOwnBooking() && !this.store.isManager()) return false
-    const now = Date.now()
-    return now >= +new Date(item.startTime) - 15 * 60_000 && now <= +new Date(item.endTime)
+    return getCheckInWindowInfo(item.startTime, item.endTime).canCheckIn
   }
   protected isUpcomingBooking(): boolean {
     const item = this.booking()
     if (!item || item.status !== 'Approved') return false
-    return Date.now() < +new Date(item.startTime) - 15 * 60_000
+    return getCheckInWindowInfo(item.startTime, item.endTime).isTooEarly
+  }
+  protected checkUserRestricted(): boolean {
+    const status = this.store.user()?.status
+    if (status === 'Restricted' || status === 3) {
+      this.toast.error('Tài khoản đang bị hạn chế', 'Tài khoản của bạn đang ở trạng thái Bị hạn chế do có điểm vi phạm. Không thể thực hiện Check-in / Check-out.')
+      return true
+    }
+    return false
   }
   protected canManageConcluded(): boolean { return Boolean(this.store.isManager() && this.booking()?.status === 'Approved') }
   protected isMissedNoShow(itemId: number): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; return Date.now() > +new Date(item.endTime) && !this.logFor(itemId) }
-  protected checkoutLateMinutes(): number { const item = this.booking(); if (!item) return 0; const deadline = +new Date(item.endTime) + 15*60_000; return Math.max(0, Math.round((Date.now()-deadline)/60_000)) }
+  protected checkoutLateMinutes(): number { const item = this.booking(); if (!item) return 0; const deadline = +new Date(item.endTime); return Math.max(0, Math.round((Date.now()-deadline)/60_000)) }
   protected logFor(itemId: number): UsageLogResponse | undefined { return this.logs().find((log) => log.bookingItemId === itemId) }
   protected initials(name: string): string { return name.trim().split(/\s+/).slice(-2).map((x) => x[0]?.toUpperCase() ?? '').join('') }
   protected action(action: 'approve'|'cancel'|'complete'|'no-show'): void { if (!confirm(`Xác nhận thao tác ${action} booking #${this.id}?`)) return; const request = action === 'approve' ? this.api.approveBooking(this.id) : action === 'cancel' ? this.api.cancelBooking(this.id) : action === 'complete' ? this.api.completeBooking(this.id) : this.api.noShowBooking(this.id); request.subscribe({ next: () => { this.toast.success('Đã cập nhật booking'); this.load() }, error: () => this.toast.error('Không thể cập nhật booking') }) }
   protected reject(): void { this.api.rejectBooking(this.id, this.rejectionReason.trim()).subscribe({ next: () => { this.rejectOpen.set(false); this.toast.success('Đã từ chối booking'); this.load() }, error: () => this.toast.error('Không thể từ chối booking') }) }
-  protected checkIn(itemId: number): void { this.api.checkIn(itemId).subscribe({ next: () => { this.toast.success('Check-in thành công'); this.load() }, error: () => this.toast.error('Không thể check-in', 'Kiểm tra khung giờ và trạng thái booking.') }) }
-  protected checkOut(logId: number): void { if (!confirm('Xác nhận check-out tài nguyên này?')) return; this.api.checkOut(logId).subscribe({ next: () => { this.toast.success('Check-out thành công'); this.load() }, error: () => this.toast.error('Không thể check-out') }) }
+  protected checkIn(itemId: number): void {
+    if (this.checkUserRestricted()) return
+    this.api.checkIn(itemId).subscribe({
+      next: () => { this.toast.success('Check-in thành công', 'Đã bắt đầu phiên sử dụng tài nguyên.'); this.load() },
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Kiểm tra khung giờ và trạng thái booking.'
+        this.toast.error('Không thể check-in', msg)
+      }
+    })
+  }
+  protected checkOut(logId: number): void {
+    if (this.checkUserRestricted()) return
+    if (!confirm('Xác nhận check-out tài nguyên này?')) return
+    this.api.checkOut(logId).subscribe({
+      next: () => { this.toast.success('Check-out thành công', 'Phiên sử dụng đã hoàn tất.'); this.load() },
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-out.'
+        this.toast.error('Không thể check-out', msg)
+      }
+    })
+  }
   protected openCheckIn(item: BookingItemResponse): void { this.checkInItem = item; this.checkInTime = new Date().toISOString(); this.checkInOpen.set(true) }
   protected confirmCheckIn(): void { const item = this.checkInItem; if (!item) return; this.checkInOpen.set(false); this.checkIn(item.bookingItemId) }
   protected openCheckOut(log: UsageLogResponse): void { this.checkOutLog = log; this.checkOutOpen.set(true) }
-  protected confirmCheckout(): void { const log = this.checkOutLog; const item = this.booking(); if (!log || !item) return; const actualCheckoutIso = new Date().toISOString(); this.checkOutOpen.set(false); this.api.checkOut(log.logId).subscribe({ next: () => { this.toast.success('Check-out thành công'); this.checkLateAndReportViolation(item, actualCheckoutIso); this.load() }, error: () => this.toast.error('Không thể check-out') }) }
+  protected confirmCheckout(): void {
+    const log = this.checkOutLog
+    const item = this.booking()
+    if (!log || !item) return
+    this.checkOutOpen.set(false)
+    this.checkOut(log.logId)
+  }
   protected continueUsing(): void { this.checkOutOpen.set(false) }
-  private checkLateAndReportViolation(booking: BookingDetailResponse, actualCheckoutIso: string): void { const deadline = +new Date(booking.endTime) + 15*60_000; if (+new Date(actualCheckoutIso) <= deadline) return; this.api.createViolation({ userId: booking.userId, bookingId: booking.bookingId, violationType: 2 }).subscribe({ next: () => this.toast.info('Đã ghi nhận vi phạm trả phòng muộn (tạm thời tính ở Frontend, sẽ điều chỉnh khi Backend hỗ trợ)'), error: () => {} }) }
   protected openIncident(log: UsageLogResponse): void { this.incidentLogId = log.logId; this.incidentStatus = 2; this.incidentDescription = ''; this.affectedEquipmentId = null; this.incidentOpen.set(true) }
   protected reportIncident(): void { this.api.reportIncident(this.incidentLogId, { incidentStatus: this.incidentStatus, incidentDescription: this.incidentDescription.trim(), affectedEquipmentId: this.affectedEquipmentId }).subscribe({ next: () => { this.incidentOpen.set(false); this.toast.success('Đã gửi báo cáo sự cố'); this.load() }, error: () => this.toast.error('Không thể gửi báo cáo sự cố') }) }
   private load(): void { this.loading.set(true); forkJoin({ booking: this.api.booking(this.id), logs: this.api.usageLogsByBooking(this.id), violations: this.api.violationsByBooking(this.id) }).subscribe({ next: ({ booking, logs, violations }) => { this.booking.set(booking); this.logs.set(logs); this.violations.set(violations); this.loading.set(false) }, error: () => { this.booking.set(null); this.loading.set(false) } }) }

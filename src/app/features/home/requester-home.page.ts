@@ -20,7 +20,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toDateInput } from '../../shared/utils/presentation'
+import { labelOf, toDateInput, getCheckInWindowInfo } from '../../shared/utils/presentation'
 
 interface ScheduleSlotEvent {
   roomName: string
@@ -219,7 +219,7 @@ interface ScheduleSlotEvent {
                           (click)="onScheduleEventClick(evt)"
                         >
                           <p class="truncate font-black text-[11px] text-slate-900 leading-tight">
-                            {{ evt.roomName }}
+                            {{ evt.roomName | t }}
                           </p>
                           <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
                             {{ evt.title }}
@@ -260,7 +260,7 @@ interface ScheduleSlotEvent {
                           (click)="onScheduleEventClick(evt)"
                         >
                           <p class="truncate font-black text-[11px] text-slate-900 leading-tight">
-                            {{ evt.roomName }}
+                            {{ evt.roomName | t }}
                           </p>
                           <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
                             {{ evt.title }}
@@ -1003,35 +1003,48 @@ export class RequesterHomePage implements OnInit {
 
   protected canCheckInNow(booking: BookingDetailResponse): boolean {
     if (booking.status !== 'Approved') return false
-    const now = Date.now()
-    const start = new Date(booking.startTime).getTime()
-    const end = new Date(booking.endTime).getTime()
-    const bufferBefore = 15 * 60_000
-    return now >= start - bufferBefore && now <= end
+    return getCheckInWindowInfo(booking.startTime, booking.endTime).canCheckIn
+  }
+
+  protected checkUserRestricted(): boolean {
+    const status = this.store.user()?.status
+    if (status === 'Restricted' || status === 3) {
+      this.toast.error('Tài khoản đang bị hạn chế', 'Tài khoản của bạn đang ở trạng thái Bị hạn chế do vi phạm điểm phạt. Không thể Check-in / Check-out.')
+      return true
+    }
+    return false
   }
 
   protected checkInItem(bookingItemId: number): void {
+    if (this.checkUserRestricted()) return
     this.api.checkIn(bookingItemId).subscribe({
       next: () => {
-        this.toast.success('Check-in thành công')
+        this.toast.success('Check-in thành công', 'Đã bắt đầu phiên sử dụng tài nguyên.')
         if (this.detailBooking()) {
           this.openBookingDetail(this.detailBooking()!.bookingId)
         }
       },
-      error: () => this.toast.error('Không thể check-in'),
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-in'
+        this.toast.error('Không thể check-in', msg)
+      },
     })
   }
 
   protected checkOutLog(logId: number): void {
-    if (!confirm('Xác nhận trả phòng / check-out?')) return
+    if (this.checkUserRestricted()) return
+    if (!confirm('Xác nhận trả phòng / check-out? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)')) return
     this.api.checkOut(logId).subscribe({
       next: () => {
-        this.toast.success('Check-out thành công')
+        this.toast.success('Check-out thành công', 'Phiên sử dụng đã kết thúc.')
         if (this.detailBooking()) {
           this.openBookingDetail(this.detailBooking()!.bookingId)
         }
       },
-      error: () => this.toast.error('Không thể check-out'),
+      error: (err: any) => {
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-out'
+        this.toast.error('Không thể check-out', msg)
+      },
     })
   }
 

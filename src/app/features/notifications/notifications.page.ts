@@ -1,14 +1,17 @@
 import { DatePipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import type { NotificationResponse } from '../../core/api/api.models'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
+import type { SimulatedEmail } from '../../core/api/booking-reminder.service'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
+import { ModalComponent } from '../../shared/ui/modal'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
 
@@ -16,7 +19,7 @@ type NotificationTab = 'all' | 'unread'
 
 @Component({
   selector: 'app-notifications-page',
-  imports: [FormsModule, DatePipe, IconComponent, TranslatePipe],
+  imports: [FormsModule, DatePipe, RouterLink, IconComponent, ModalComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
@@ -28,15 +31,25 @@ type NotificationTab = 'all' | 'unread'
           <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'notifications.title' | t }}</h1>
           <p class="mt-2 text-sm text-slate-500">{{ 'notifications.subtitle' | t }}</p>
         </div>
-        <button
-          type="button"
-          [disabled]="unreadCount() === 0 || actionLoading()"
-          class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-45"
-          (click)="markAllRead()"
-        >
-          <app-icon name="check" [size]="18" />
-          {{ 'notifications.markAllAsRead' | t }}
-        </button>
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-100"
+            (click)="openEmailBox()"
+          >
+            <app-icon name="mail" [size]="18" />
+            Hộp thư Email đã gửi ({{ simulatedEmails().length }})
+          </button>
+          <button
+            type="button"
+            [disabled]="unreadCount() === 0 || actionLoading()"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-45"
+            (click)="markAllRead()"
+          >
+            <app-icon name="check" [size]="18" />
+            {{ 'notifications.markAllAsRead' | t }}
+          </button>
+        </div>
       </header>
 
       <div class="grid gap-6 xl:grid-cols-[1fr_330px]">
@@ -190,6 +203,38 @@ type NotificationTab = 'all' | 'unread'
         </div>
       </aside>
     }
+
+    <!-- Modal Hộp thư Email thông báo hệ thống -->
+    <app-modal [open]="emailModalOpen()" title="Hộp thư Email thông báo hệ thống" subtitle="Danh sách Email tự động gửi về Check-in (trước 15m) và Check-out (cho User & Manager)" (close)="emailModalOpen.set(false)">
+      <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        @if (simulatedEmails().length === 0) {
+          <div class="rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+            <app-icon name="mail" [size]="32" class="mx-auto text-slate-300" />
+            <p class="mt-3 font-bold text-slate-700">Chưa có email nhắc nhở nào được gửi</p>
+            <p class="mt-1 text-xs text-slate-400">Khi lịch đặt đến sát khung giờ Check-in (15m trước) hoặc Check-out, email tự động sẽ xuất hiện tại đây.</p>
+          </div>
+        } @else {
+          @for (email of simulatedEmails(); track email.id) {
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                <span class="font-black text-indigo-700">{{ email.subject }}</span>
+                <span class="rounded-full bg-indigo-100 px-2.5 py-0.5 text-[10px] font-bold text-indigo-800">{{ email.sentAt | date:'HH:mm dd/MM/yyyy' }}</span>
+              </div>
+              <div class="mt-2 grid gap-1 text-xs text-slate-600">
+                <p><strong>Gửi đến:</strong> {{ email.recipientName }} ({{ email.recipientEmail }}) · Vai trò: {{ email.recipientRole }}</p>
+                <p class="mt-1"><strong>Nội dung thư:</strong></p>
+                <p class="whitespace-pre-line rounded-xl bg-white p-3 text-slate-800 border border-slate-200 font-sans shadow-sm">{{ email.body }}</p>
+              </div>
+              <div class="mt-3 flex justify-end">
+                <a [routerLink]="email.appLink" (click)="emailModalOpen.set(false)" class="btn-primary flex items-center gap-2">
+                  <app-icon name="external-link" [size]="16" /> Truy cập đường dẫn ứng dụng
+                </a>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </app-modal>
   `,
 })
 export class NotificationsPage implements OnInit {
@@ -208,6 +253,20 @@ export class NotificationsPage implements OnInit {
   protected readonly pageSize = 20
   protected searchText = ''
   protected typeFilter = 'all'
+
+  protected readonly emailModalOpen = signal(false)
+  protected readonly simulatedEmails = signal<SimulatedEmail[]>([])
+
+  protected openEmailBox(): void {
+    try {
+      const raw = localStorage.getItem('sharedlab_simulated_emails')
+      const emails: SimulatedEmail[] = raw ? JSON.parse(raw) : []
+      this.simulatedEmails.set(emails)
+    } catch {
+      this.simulatedEmails.set([])
+    }
+    this.emailModalOpen.set(true)
+  }
 
   protected readonly availableTypes = computed(() =>
     [...new Set(this.notifications().map((item) => item.notificationType))].sort(),

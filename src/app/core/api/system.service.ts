@@ -8,6 +8,7 @@ import type {
   BookingDetailResponse,
   BookingItemRequest,
   BookingResponse,
+  BookingUsageSessionResponse,
   CalendarEventResponse,
   CategoryCountResponse,
   DepartmentResponse,
@@ -252,8 +253,16 @@ export class SystemService {
     return this.http.post<UsageLogResponse>(`${this.base}/UsageLogs/check-in`, { bookingItemId, actualCheckin })
   }
 
+  checkInBooking(bookingId: number, actualCheckin: string | null = null): Observable<BookingUsageSessionResponse> {
+    return this.http.post<BookingUsageSessionResponse>(`${this.base}/UsageLogs/booking/${bookingId}/check-in`, { actualCheckin })
+  }
+
   checkOut(id: number, actualCheckout: string | null = null): Observable<void> {
     return this.http.post<void>(`${this.base}/UsageLogs/${id}/check-out`, { actualCheckout })
+  }
+
+  checkOutBooking(bookingId: number, actualCheckout: string | null = null): Observable<BookingUsageSessionResponse> {
+    return this.http.post<BookingUsageSessionResponse>(`${this.base}/UsageLogs/booking/${bookingId}/check-out`, { actualCheckout })
   }
 
   reportIncident(id: number, payload: { incidentStatus: number; incidentDescription: string; affectedEquipmentId: number | null }): Observable<void> {

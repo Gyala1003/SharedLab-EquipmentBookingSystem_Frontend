@@ -1,5 +1,6 @@
 import {
   ApplicationConfig,
+  ErrorHandler,
   Injectable,
   inject,
   provideAppInitializer,
@@ -18,6 +19,7 @@ import { env } from './core/config/env'
 import { getDictionary } from './core/i18n/translations'
 import { authInterceptor } from './core/http/auth.interceptor'
 import { errorInterceptor } from './core/http/error.interceptor'
+import { GlobalErrorHandler } from './core/http/global-error-handler'
 
 function mergeDeep(target: Record<string, any>, source: Record<string, any>): Record<string, any> {
   for (const key of Object.keys(source)) {
@@ -67,6 +69,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
     provideTranslateService({
       fallbackLang: env.defaultLocale,
       loader: { provide: TranslateLoader, useClass: UnifiedTranslateLoader },

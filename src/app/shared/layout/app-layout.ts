@@ -3,6 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { catchError, forkJoin, of } from 'rxjs'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
+import { BookingReminderService } from '../../core/api/booking-reminder.service'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse, UsageLogResponse } from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
@@ -338,9 +339,12 @@ export class AppLayoutComponent implements OnInit {
       .filter((group) => group.items.length > 0)
   })
 
+  private readonly reminder = inject(BookingReminderService)
+
   ngOnInit(): void {
     const user = this.store.user()
     if (!user) return
+    this.reminder.init()
     this.workspace
       .unreadCount(user.userId)
       .pipe(catchError(() => of({ userId: user.userId, unreadCount: 0 })))

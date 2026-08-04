@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { forkJoin } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
-import type { BookingItemRequest, CalendarEventResponse, EquipmentResponse, LabRoomResponse, PriorityRuleResponse } from '../../core/api/system.models'
+import type { BookingItemRequest, BookingResponse, CalendarEventResponse, EquipmentResponse, LabRoomResponse, PriorityRuleResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
@@ -13,7 +13,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toIso } from '../../shared/utils/presentation'
+import { labelOf, toIso, toDateInput } from '../../shared/utils/presentation'
 
 interface SelectedResource {
   key: string
@@ -32,6 +32,15 @@ export interface TimeSlot {
   label: string
 }
 
+export interface SlotRange {
+  slotIds: number[]
+  startTimeStr: string
+  endTimeStr: string
+  startTime: Date
+  endTime: Date
+  label: string
+}
+
 export const FIXED_TIME_SLOTS: TimeSlot[] = [
   { id: 1, slotNumber: 1, startTimeStr: '07:50', endTimeStr: '09:50', label: 'Slot 1 (07:50 - 09:50)' },
   { id: 2, slotNumber: 2, startTimeStr: '10:00', endTimeStr: '12:20', label: 'Slot 2 (10:00 - 12:20)' },
@@ -42,8 +51,9 @@ export const FIXED_TIME_SLOTS: TimeSlot[] = [
 export interface SlotWithStatus extends TimeSlot {
   isOccupied: boolean
   isSelected: boolean
-  occupiedReason?: 'booking' | 'maintenance'
+  occupiedReason?: 'booking' | 'maintenance' | 'user_conflict' | 'limit_reached' | 'past_time'
   maintenanceTitle?: string
+  userBookingId?: number
 }
 
 @Component({
@@ -371,8 +381,7 @@ export interface SlotWithStatus extends TimeSlot {
                         type="button"
                         class="group relative flex items-center justify-between rounded-2xl border p-4 text-left transition duration-200"
                         [ngClass]="{
-                          'border-amber-300 bg-amber-50/90 text-amber-950 shadow-sm cursor-not-allowed': slot.isOccupied && slot.occupiedReason === 'maintenance',
-                          'border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-75': slot.isOccupied && slot.occupiedReason !== 'maintenance',
+                          'border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-75': slot.isOccupied,
                           'border-violet-600 bg-violet-50/90 text-violet-950 shadow-md ring-2 ring-violet-500/20': slot.isSelected && !slot.isOccupied,
                           'border-slate-200 bg-white hover:border-violet-300 hover:bg-slate-50/80 text-slate-800 shadow-sm': !slot.isSelected && !slot.isOccupied
                         }"
@@ -383,8 +392,7 @@ export interface SlotWithStatus extends TimeSlot {
                           <div
                             class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-black text-xs transition"
                             [ngClass]="{
-                              'bg-amber-500 text-white shadow-sm': slot.isOccupied && slot.occupiedReason === 'maintenance',
-                              'bg-slate-200 text-slate-500': slot.isOccupied && slot.occupiedReason !== 'maintenance',
+                              'bg-slate-200 text-slate-500': slot.isOccupied,
                               'bg-violet-600 text-white shadow-sm': slot.isSelected && !slot.isOccupied,
                               'bg-violet-100 text-violet-700 group-hover:bg-violet-200': !slot.isSelected && !slot.isOccupied
                             }"
@@ -401,14 +409,19 @@ export interface SlotWithStatus extends TimeSlot {
                             </p>
                             <p class="mt-1 text-xs font-semibold"
                               [ngClass]="{
-                                'text-amber-800 font-bold': slot.isOccupied && slot.occupiedReason === 'maintenance',
-                                'text-rose-600': slot.isOccupied && slot.occupiedReason !== 'maintenance',
+                                'text-slate-400 font-bold': slot.isOccupied,
                                 'text-violet-700': slot.isSelected && !slot.isOccupied,
                                 'text-slate-400': !slot.isSelected && !slot.isOccupied
                               }"
                             >
                               @if (slot.isOccupied && slot.occupiedReason === 'maintenance') {
                                  {{ 'bookingForm.step2.slotUnderMaintenance' | t }}
+                              } @else if (slot.isOccupied && slot.occupiedReason === 'user_conflict') {
+                                 {{ 'bookingForm.step2.slotUserConflict' | t:{ id: slot.userBookingId || 0 } }}
+                              } @else if (slot.isOccupied && slot.occupiedReason === 'limit_reached') {
+                                 {{ 'bookingForm.step2.slotLimitReached' | t }}
+                              } @else if (slot.isOccupied && slot.occupiedReason === 'past_time') {
+                                 {{ 'bookingForm.step2.slotPastTime' | t }}
                               } @else if (slot.isOccupied) {
                                  {{ 'bookingForm.step2.slotOccupied' | t }}
                               } @else if (slot.isSelected) {
@@ -437,6 +450,12 @@ export interface SlotWithStatus extends TimeSlot {
                           {{ formattedSelectedRange() }}
                         </span>
                       </div>
+                      @if (selectedSlotRanges().length > 1) {
+                        <p class="mt-2.5 text-[11px] font-bold text-violet-700 leading-5">
+                          <app-icon name="sparkles" [size]="14" class="inline-block mr-1 text-violet-600" />
+                          Khung giờ không liên tục: Hệ thống sẽ tự động tạo {{ selectedSlotRanges().length }} đơn booking riêng biệt (mỗi đơn đóng/mở check-in theo đúng giờ của khung đó).
+                        </p>
+                      }
                     </div>
                   }
                 </div>
@@ -459,7 +478,57 @@ export interface SlotWithStatus extends TimeSlot {
           }
 
           @if (step() === 4) {
-            <article class="card-surface p-5 sm:p-7"><div class="flex items-start gap-4"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600"><app-icon name="check" [size]="23" /></div><div><h2 class="text-xl font-black text-slate-950">{{ 'bookingForm.step4.title' | t }}</h2><p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step4.subtitle' | t }}</p></div></div><div class="mt-6 grid gap-4 md:grid-cols-2"><div class="rounded-2xl bg-slate-50 p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'bookingForm.step4.timeLabel' | t }}</p><p class="mt-2 font-black text-slate-900">{{ startTime() | date:'HH:mm dd/MM/yyyy' }}</p><p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step2.to' | t }} {{ endTime() | date:'HH:mm dd/MM/yyyy' }}</p></div><div class="rounded-2xl bg-slate-50 p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'bookingForm.step4.purposeLabel' | t }}</p><p class="mt-2 font-black text-slate-900">{{ purposeLabel() }}</p><p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step4.priorityLevel' | t: { level: priorityFor(purposeKey()) } }}</p></div></div><div class="mt-4 rounded-2xl border border-slate-200 p-5"><p class="text-xs font-black text-slate-700">{{ 'bookingForm.step4.selectedResources' | t }}</p><div class="mt-3 space-y-3">@for (resource of selected(); track resource.key) { <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600"><app-icon [name]="resource.resourceType === 1 ? 'building' : 'microscope'" [size]="17" /></span><div class="min-w-0 flex-1"><p class="truncate text-sm font-black text-slate-900">{{ resource.name }}</p><p class="truncate text-xs text-slate-400">{{ resource.note || ('bookingForm.step4.noNote' | t) }}</p></div></div> }</div></div><div class="mt-4 rounded-2xl bg-violet-50 p-5"><p class="text-xs font-black text-violet-800">{{ 'bookingForm.step4.description' | t }}</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-violet-900/70">{{ purposeDescription }}</p></div><div class="mt-7 flex justify-between"><button class="btn-secondary" (click)="step.set(3)"><app-icon name="arrow-left" [size]="17" /> {{ 'common.back' | t }}</button><button class="btn-primary" [disabled]="submitting() || store.user()?.status !== 'Active'" (click)="submit()"><app-icon name="send" [size]="17" /> {{ submitting() ? ('bookingForm.step4.submittingBtn' | t) : ('bookingForm.step4.submitBtn' | t) }}</button></div></article>
+            <article class="card-surface p-5 sm:p-7">
+              <div class="flex items-start gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <app-icon name="check" [size]="23" />
+                </div>
+                <div>
+                  <h2 class="text-xl font-black text-slate-950">{{ 'bookingForm.step4.title' | t }}</h2>
+                  <p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step4.subtitle' | t }}</p>
+                </div>
+              </div>
+              <div class="mt-6 grid gap-4 md:grid-cols-2">
+                <div class="rounded-2xl bg-slate-50 p-5">
+                  <p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'bookingForm.step4.timeLabel' | t }}</p>
+                  @for (range of selectedSlotRanges(); track range.label) {
+                    <div class="mt-2 border-b border-slate-200/60 pb-2 last:border-b-0 last:pb-0">
+                      <p class="font-black text-slate-900 text-sm">{{ range.startTime | date:'HH:mm' }} - {{ range.endTime | date:'HH:mm' }} <span class="text-xs font-bold text-violet-600">({{ bookingDate }})</span></p>
+                      <p class="text-xs font-semibold text-slate-500 mt-0.5">{{ range.label }}</p>
+                    </div>
+                  }
+                </div>
+                <div class="rounded-2xl bg-slate-50 p-5">
+                  <p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'bookingForm.step4.purposeLabel' | t }}</p>
+                  <p class="mt-2 font-black text-slate-900">{{ purposeLabel() }}</p>
+                  <p class="mt-1 text-sm text-slate-500">{{ 'bookingForm.step4.priorityLevel' | t: { level: priorityFor(purposeKey()) } }}</p>
+                </div>
+              </div>
+              <div class="mt-4 rounded-2xl border border-slate-200 p-5">
+                <p class="text-xs font-black text-slate-700">{{ 'bookingForm.step4.selectedResources' | t }}</p>
+                <div class="mt-3 space-y-3">
+                  @for (resource of selected(); track resource.key) {
+                    <div class="flex items-center gap-3">
+                      <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                        <app-icon [name]="resource.resourceType === 1 ? 'building' : 'microscope'" [size]="17" />
+                      </span>
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-black text-slate-900">{{ resource.name | t }}</p>
+                        <p class="truncate text-xs text-slate-400">{{ resource.note || ('bookingForm.step4.noNote' | t) }}</p>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+              <div class="mt-4 rounded-2xl bg-violet-50 p-5">
+                <p class="text-xs font-black text-violet-800">{{ 'bookingForm.step4.description' | t }}</p>
+                <p class="mt-2 whitespace-pre-line text-sm leading-6 text-violet-900/70">{{ purposeDescription }}</p>
+              </div>
+              <div class="mt-7 flex justify-between">
+                <button class="btn-secondary" (click)="step.set(3)"><app-icon name="arrow-left" [size]="17" /> {{ 'common.back' | t }}</button>
+                <button class="btn-primary" [disabled]="submitting() || store.user()?.status !== 'Active'" (click)="submit()"><app-icon name="send" [size]="17" /> {{ submitting() ? ('bookingForm.step4.submittingBtn' | t) : ('bookingForm.step4.submitBtn' | t) }}</button>
+              </div>
+            </article>
           }
         </div>
 
@@ -492,6 +561,7 @@ export class BookingFormPage implements OnInit {
   protected readonly dayEvents = signal<CalendarEventResponse[]>([])
   protected readonly dayEventsLoading = signal(false)
   protected readonly userDayBookingsCount = signal(0)
+  protected readonly userDayActiveBookings = signal<BookingResponse[]>([])
   protected readonly userMaxLimitReached = computed(() => this.userDayBookingsCount() >= 2)
 
   protected purposeType = 1
@@ -541,24 +611,45 @@ export class BookingFormPage implements OnInit {
   protected readonly slotsWithStatus = computed<SlotWithStatus[]>(() => {
     const date = this.bookingDate
     const events = this.dayEvents()
+    const userBookings = this.userDayActiveBookings()
     const selectedIds = this.selectedSlotIds()
+    const maxReached = this.userMaxLimitReached()
 
     return FIXED_TIME_SLOTS.map((slot) => {
-      const slotStart = new Date(`${date}T${slot.startTimeStr}:00`)
-      const slotEnd = new Date(`${date}T${slot.endTimeStr}:00`)
+      const slotStartMs = new Date(`${date}T${slot.startTimeStr}:00`).getTime()
+      const slotEndMs = new Date(`${date}T${slot.endTimeStr}:00`).getTime()
 
-      const matchingEvent = events.find((ev) => {
-        const evStart = new Date(ev.startTime)
-        const evEnd = new Date(ev.endTime)
-        return evStart < slotEnd && evEnd > slotStart
+      const matchingResourceEvent = events.find((ev) => {
+        const evStartMs = new Date(ev.startTime).getTime()
+        const evEndMs = new Date(ev.endTime).getTime()
+        return evStartMs < slotEndMs && evEndMs > slotStartMs
       })
 
-      const isOccupied = Boolean(matchingEvent)
-      const occupiedReason = matchingEvent
-        ? matchingEvent.eventType === 'Maintenance'
-          ? 'maintenance'
-          : 'booking'
-        : undefined
+      const matchingUserBooking = userBookings.find((ub) => {
+        const ubStartMs = new Date(ub.startTime).getTime()
+        const ubEndMs = new Date(ub.endTime).getTime()
+        return ubStartMs < slotEndMs && ubEndMs > slotStartMs
+      })
+
+      const nowMs = Date.now()
+      const isPastTime = slotStartMs <= nowMs
+
+      let isOccupied = false
+      let occupiedReason: 'maintenance' | 'user_conflict' | 'booking' | 'limit_reached' | 'past_time' | undefined = undefined
+
+      if (isPastTime) {
+        isOccupied = true
+        occupiedReason = 'past_time'
+      } else if (matchingResourceEvent) {
+        isOccupied = true
+        occupiedReason = matchingResourceEvent.eventType === 'Maintenance' ? 'maintenance' : 'booking'
+      } else if (matchingUserBooking) {
+        isOccupied = true
+        occupiedReason = 'user_conflict'
+      } else if (maxReached) {
+        isOccupied = true
+        occupiedReason = 'limit_reached'
+      }
 
       const isSelected = selectedIds.includes(slot.id)
       return {
@@ -566,31 +657,65 @@ export class BookingFormPage implements OnInit {
         isOccupied,
         isSelected,
         occupiedReason,
-        maintenanceTitle: matchingEvent?.eventType === 'Maintenance' ? matchingEvent.title : undefined,
+        maintenanceTitle: matchingResourceEvent?.eventType === 'Maintenance' ? matchingResourceEvent.title : undefined,
+        userBookingId: matchingUserBooking?.bookingId,
       }
     })
   })
 
-  protected readonly formattedSelectedRange = computed(() => {
+  protected readonly selectedSlotRanges = computed<SlotRange[]>(() => {
     const ids = [...this.selectedSlotIds()].sort((a, b) => a - b)
-    if (!ids.length) return ''
-    const first = FIXED_TIME_SLOTS.find((s) => s.id === ids[0])!
-    const last = FIXED_TIME_SLOTS.find((s) => s.id === ids[ids.length - 1])!
-    return `${first.startTimeStr} – ${last.endTimeStr} (${this.bookingDate})`
+    if (!ids.length) return []
+
+    const ranges: SlotRange[] = []
+    let currentGroup: number[] = [ids[0]]
+
+    for (let i = 1; i < ids.length; i++) {
+      if (ids[i] === ids[i - 1] + 1) {
+        currentGroup.push(ids[i])
+      } else {
+        ranges.push(this.createRangeFromGroup(currentGroup))
+        currentGroup = [ids[i]]
+      }
+    }
+    if (currentGroup.length > 0) {
+      ranges.push(this.createRangeFromGroup(currentGroup))
+    }
+
+    return ranges
+  })
+
+  private createRangeFromGroup(group: number[]): SlotRange {
+    const firstSlot = FIXED_TIME_SLOTS.find((s) => s.id === group[0])!
+    const lastSlot = FIXED_TIME_SLOTS.find((s) => s.id === group[group.length - 1])!
+    const slotLabels = group.map((id) => `Slot ${id}`).join(' - ')
+    const label = `${slotLabels} (${firstSlot.startTimeStr} - ${lastSlot.endTimeStr})`
+    return {
+      slotIds: group,
+      startTimeStr: firstSlot.startTimeStr,
+      endTimeStr: lastSlot.endTimeStr,
+      startTime: new Date(`${this.bookingDate}T${firstSlot.startTimeStr}:00`),
+      endTime: new Date(`${this.bookingDate}T${lastSlot.endTimeStr}:00`),
+      label,
+    }
+  }
+
+  protected readonly formattedSelectedRange = computed(() => {
+    const ranges = this.selectedSlotRanges()
+    if (!ranges.length) return ''
+    return ranges.map((r) => `${r.startTimeStr} – ${r.endTimeStr}`).join(' & ') + ` (${this.bookingDate})`
   })
 
   protected readonly startTime = computed(() => {
-    const ids = [...this.selectedSlotIds()].sort((a, b) => a - b)
-    if (!ids.length) return new Date(`${this.bookingDate}T07:50:00`)
-    const first = FIXED_TIME_SLOTS.find((s) => s.id === ids[0])!
-    return new Date(`${this.bookingDate}T${first.startTimeStr}:00`)
+    const ranges = this.selectedSlotRanges()
+    if (!ranges.length) return new Date(`${this.bookingDate}T07:50:00`)
+    return ranges[0].startTime
   })
 
   protected readonly endTime = computed(() => {
-    const ids = [...this.selectedSlotIds()].sort((a, b) => a - b)
-    if (!ids.length) return new Date(`${this.bookingDate}T09:50:00`)
-    const last = FIXED_TIME_SLOTS.find((s) => s.id === ids[ids.length - 1])!
-    return new Date(`${this.bookingDate}T${last.endTimeStr}:00`)
+    const ranges = this.selectedSlotRanges()
+    if (!ranges.length) return new Date(`${this.bookingDate}T09:50:00`)
+    return ranges[ranges.length - 1].endTime
   })
 
   protected readonly validSlotSelection = computed(() => {
@@ -748,21 +873,35 @@ export class BookingFormPage implements OnInit {
             ],
           }))
 
-        const combinedEvents = [...relevantEvents, ...maintenanceEvents]
-        this.dayEvents.set(combinedEvents)
+        const activeUserBookings = (userBookings || []).filter((b) => {
+          if (b.status === 'Cancelled' || b.status === 'Rejected') return false
+          return toDateInput(new Date(b.startTime)) === this.bookingDate
+        })
+        this.userDayActiveBookings.set(activeUserBookings)
+        this.userDayBookingsCount.set(activeUserBookings.length)
 
-        const activeUserCount = userBookings.filter(
-          (b) =>
-            b.status !== 'Cancelled' &&
-            b.status !== 'Rejected' &&
-            b.startTime.startsWith(this.bookingDate),
-        ).length
-        this.userDayBookingsCount.set(activeUserCount)
+        const userPersonalEvents: CalendarEventResponse[] = activeUserBookings
+          .filter((b) => !relevantEvents.some((ev) => ev.sourceId === b.bookingId))
+          .map((b) => ({
+            sourceId: b.bookingId,
+            eventType: 'Booking',
+            title: `Booking #${b.bookingId} - ${this.languageStore.t('bookingForm.step2.personalSchedule')}`,
+            startTime: b.startTime,
+            endTime: b.endTime,
+            status: b.status,
+            blocking: true,
+            userId: b.userId,
+            resources: [],
+          }))
+
+        const combinedEvents = [...relevantEvents, ...maintenanceEvents, ...userPersonalEvents]
+        this.dayEvents.set(combinedEvents)
         this.dayEventsLoading.set(false)
       },
       error: () => {
         this.dayEventsLoading.set(false)
         this.dayEvents.set([])
+        this.userDayActiveBookings.set([])
         this.userDayBookingsCount.set(0)
       },
     })
@@ -772,11 +911,29 @@ export class BookingFormPage implements OnInit {
     if (slot.isOccupied) {
       if (slot.occupiedReason === 'maintenance') {
         this.toast.error(
-          'Không thể đặt khung giờ này',
-          `Slot ${slot.slotNumber} (${slot.startTimeStr} - ${slot.endTimeStr}) đang trong thời gian bảo trì.`,
+          this.languageStore.t('bookingForm.step2.cannotSelectSlot'),
+          `Slot ${slot.slotNumber} (${slot.startTimeStr} - ${slot.endTimeStr}) ${this.languageStore.t('bookingForm.step2.underMaintenanceMsg')}`,
+        )
+      } else if (slot.occupiedReason === 'user_conflict') {
+        this.toast.error(
+          this.languageStore.t('bookingForm.step2.conflictTitle'),
+          `${this.languageStore.t('bookingForm.step2.conflictMsg')} (#BK-${slot.userBookingId}) Slot ${slot.slotNumber} (${slot.startTimeStr} - ${slot.endTimeStr}).`,
+        )
+      } else if (slot.occupiedReason === 'past_time') {
+        this.toast.error(
+          this.languageStore.t('bookingForm.step2.pastTimeTitle'),
+          `Slot ${slot.slotNumber} (${slot.startTimeStr} - ${slot.endTimeStr}) ${this.languageStore.t('bookingForm.step2.pastTimeMsg')}`,
+        )
+      } else if (slot.occupiedReason === 'limit_reached') {
+        this.toast.error(
+          this.languageStore.t('bookingForm.step2.limitReachedTitle'),
+          this.languageStore.t('bookingForm.step2.limitReachedMsg'),
         )
       } else {
-        this.toast.error('Khung giờ đã có người đặt', `Slot ${slot.slotNumber} đã được sử dụng.`)
+        this.toast.error(
+          this.languageStore.t('bookingForm.step2.slotOccupiedTitle'),
+          `Slot ${slot.slotNumber} (${slot.startTimeStr} - ${slot.endTimeStr}) ${this.languageStore.t('bookingForm.step2.slotOccupiedMsg')}`,
+        )
       }
       return
     }
@@ -808,11 +965,13 @@ export class BookingFormPage implements OnInit {
       this.toast.info('Thông tin booking chưa đầy đủ hoặc không hợp lệ')
       return
     }
-    // Enforce daily booking limit at submit time
-    if (this.userMaxLimitReached()) {
-      this.toast.error('Bạn đã đạt giới hạn 2 lượt đặt trong 1 ngày')
+
+    const ranges = this.selectedSlotRanges()
+    if (!ranges.length) {
+      this.toast.error('Vui lòng chọn khung giờ sử dụng')
       return
     }
+
     const userId = this.store.user()?.userId
     const bookings$ = userId ? this.api.bookingsByUser(userId) : this.api.bookings()
     bookings$.subscribe((res) => {
@@ -821,31 +980,45 @@ export class BookingFormPage implements OnInit {
         (b) => (b.status === 'Pending' || b.status === 'Approved') && b.startTime.startsWith(today)
       ).length
 
-      if (activeBookingsOnDate >= 2) {
-        this.toast.error('Bạn đã đạt giới hạn tối đa 2 lần đặt trong 1 ngày')
+      if (activeBookingsOnDate + ranges.length > 2) {
+        this.toast.error(
+          'Vượt quá giới hạn trong ngày',
+          `Bạn đã có ${activeBookingsOnDate} lượt đặt trong ngày ${today}. Mỗi khung giờ chọn riêng biệt sẽ tính là 1 đơn booking (tối đa 2 đơn/ngày).`,
+        )
         return
       }
 
       this.submitting.set(true)
-      this.api
-        .createBooking({
+      const createRequests$ = ranges.map((r) =>
+        this.api.createBooking({
           purposeType: this.purposeType,
           purposeDescription: this.purposeDescription.trim(),
-          startTime: toIso(this.startTime().toISOString()),
-          endTime: toIso(this.endTime().toISOString()),
+          startTime: toIso(r.startTime.toISOString()),
+          endTime: toIso(r.endTime.toISOString()),
           items: this.itemPayload(),
         })
-        .subscribe({
-          next: (booking) => {
-            this.submitting.set(false)
-            this.toast.success('Đã gửi yêu cầu booking', `Booking #${booking.bookingId} đang chờ duyệt.`)
-            void this.router.navigate(['/app/bookings', booking.bookingId])
-          },
-          error: () => {
-            this.submitting.set(false)
-            this.toast.error('Không thể tạo booking')
-          },
-        })
+      )
+
+      forkJoin(createRequests$).subscribe({
+        next: (results) => {
+          this.submitting.set(false)
+          if (results.length === 1) {
+            this.toast.success('Đã gửi yêu cầu booking', `Booking #${results[0].bookingId} đang chờ duyệt.`)
+            void this.router.navigate(['/app/bookings', results[0].bookingId])
+          } else {
+            this.toast.success(
+              'Đã gửi các yêu cầu booking',
+              `Đã tạo thành công ${results.length} đơn booking riêng biệt cho từng khung giờ.`,
+            )
+            void this.router.navigate(['/app/bookings'])
+          }
+        },
+        error: (err: any) => {
+          this.submitting.set(false)
+          const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.'
+          this.toast.error('Không thể tạo booking', msg)
+        },
+      })
     })
   }
 
