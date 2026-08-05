@@ -1057,24 +1057,28 @@ export class RequesterHomePage implements OnInit {
   protected sendErrorReportToBE(): void {
     const user = this.store.user()
     if (!user?.userId) return
-    if (this.store.isAdmin()) {
-      const errorMsg = this.detailErrorMessage() || 'Ngoại lệ phân quyền xem chi tiết booking từ BE'
-      this.api
-        .sendNotification({
-          userId: user.userId,
-          title: 'Báo cáo lỗi & Đồng bộ Data Backend',
-          message: `[Báo lỗi FE/BE Data] Khách hàng ${user.fullName || user.username} (User ID ${user.userId}) báo cáo ngoại lệ tại Booking #${this.currentBookingId || ''}: ${errorMsg}`,
-          notificationType: 1,
-        })
-        .pipe(catchError(() => EMPTY))
-        .subscribe()
-    }
-    this.toast.success('Đã ghi nhận thông tin báo lỗi!', 'Bạn có thể tiếp tục thao tác bình thường.')
+    const errorMsg = this.detailErrorMessage() || 'Ngoại lệ phân quyền xem chi tiết booking từ BE'
+    this.api
+      .sendNotification({
+        userId: user.userId,
+        title: 'Báo cáo lỗi & Đồng bộ Data Backend',
+        message: `[Báo lỗi FE/BE Data] Khách hàng ${user.fullName || user.username} (User ID ${user.userId}) báo cáo ngoại lệ tại Booking #${this.currentBookingId || ''}: ${errorMsg}`,
+        notificationType: 1,
+      })
+      .pipe(catchError(() => EMPTY))
+      .subscribe({
+        next: () => {
+          this.toast.success('Đã gửi thông tin báo lỗi về Backend (Data)!', 'Bạn có thể tiếp tục thao tác bình thường.')
+        },
+        error: () => {
+          this.toast.info('Đã hoàn tất phản hồi về Backend.', 'Ứng dụng đã sẵn sàng tiếp tục.')
+        },
+      })
   }
 
   protected closeBookingDetail(): void {
     const user = this.store.user()
-    if (user?.userId && this.detailAccessDenied() && this.store.isAdmin()) {
+    if (user?.userId && this.detailAccessDenied()) {
       this.api
         .sendNotification({
           userId: user.userId,

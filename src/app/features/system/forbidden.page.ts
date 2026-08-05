@@ -79,23 +79,23 @@ export class ForbiddenPage {
   protected sendReport(): void {
     const user = this.store.user()
     if (!user?.userId) return
-    if (this.store.isAdmin()) {
-      this.systemApi
-        .sendNotification({
-          userId: user.userId,
-          title: 'Báo cáo ngoại lệ BE (Data)',
-          message: `[Báo lỗi Data] Người dùng ${user.fullName || user.username} báo cáo ngoại lệ tại endpoint: ${this.err()?.url || 'N/A'}. Nội dung: ${this.err()?.message || ''}`,
-          notificationType: 1,
-        })
-        .pipe(catchError(() => EMPTY))
-        .subscribe()
-    }
-    this.toast.success('Đã nhận phản hồi báo lỗi!')
+    this.systemApi
+      .sendNotification({
+        userId: user.userId,
+        title: 'Báo cáo ngoại lệ BE (Data)',
+        message: `[Báo lỗi Data] Người dùng ${user.fullName || user.username} báo cáo ngoại lệ tại endpoint: ${this.err()?.url || 'N/A'}. Nội dung: ${this.err()?.message || ''}`,
+        notificationType: 1,
+      })
+      .pipe(catchError(() => EMPTY))
+      .subscribe({
+        next: () => this.toast.success('Đã gửi dữ liệu báo lỗi về Backend!'),
+        error: () => this.toast.info('Đã ghi nhận báo lỗi.'),
+      })
   }
 
   protected goBack(): void {
     const user = this.store.user()
-    if (user?.userId && this.store.isAdmin()) {
+    if (user?.userId) {
       this.systemApi
         .sendNotification({
           userId: user.userId,
