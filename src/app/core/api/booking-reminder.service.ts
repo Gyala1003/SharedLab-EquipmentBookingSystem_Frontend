@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core'
 import { Router } from '@angular/router'
+import { catchError, of } from 'rxjs'
 import { AuthStore } from '../auth/auth.store'
 import { SystemService } from './system.service'
 import { ToastService } from '../../shared/ui/toast.service'
@@ -29,13 +30,14 @@ export class BookingReminderService {
   private readonly badge = inject(NotificationBadgeService)
 
   private timer: any = null
+  private consecutiveErrors = 0
   private readonly sentReminders = new Set<string>()
 
   init(): void {
     if (this.timer) return
     this.checkReminders()
-    // Poll every 30 seconds
-    this.timer = setInterval(() => this.checkReminders(), 30_000)
+    // Poll every 120 seconds (2 mins) to preserve PostgreSQL connection pool
+    this.timer = setInterval(() => this.checkReminders(), 120_000)
   }
 
   stop(): void {
@@ -52,22 +54,28 @@ export class BookingReminderService {
     const userId = user.userId
 
     // 1. Fetch user's bookings
-    this.api.bookingsByUser(userId).subscribe({
-      next: (userBookings) => {
-        this.processUserCheckinReminders(userBookings, user)
-        this.processUserCheckoutReminders(userBookings, user)
-      },
-      error: () => {},
-    })
-
-    // 2. If Manager or Admin, fetch all active bookings to monitor check-out for all users
-    if (this.store.isManager() || this.store.isAdmin()) {
-      this.api.bookings().subscribe({
-        next: (allBookings) => {
-          this.processManagerCheckoutReminders(allBookings, user)
+    this.api
+      .bookingsByUser(userId)
+      .pipe(catchError(() => of([])))
+      .subscribe({
+        next: (userBookings) => {
+          this.processUserCheckinReminders(userBookings, user)
+          this.processUserCheckoutReminders(userBookings, user)
         },
         error: () => {},
       })
+
+    // 2. If Manager or Admin, fetch all active bookings to monitor check-out for all users
+    if (this.store.isManager() || this.store.isAdmin()) {
+      this.api
+        .bookings()
+        .pipe(catchError(() => of([])))
+        .subscribe({
+          next: (allBookings) => {
+            this.processManagerCheckoutReminders(allBookings, user)
+          },
+          error: () => {},
+        })
     }
   }
 

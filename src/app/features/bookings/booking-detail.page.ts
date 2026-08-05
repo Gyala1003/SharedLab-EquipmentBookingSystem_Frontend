@@ -2,7 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { forkJoin } from 'rxjs'
+import { catchError, EMPTY, forkJoin, of, timeout } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingItemResponse, UsageLogResponse, ViolationResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -16,12 +16,39 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-booking-detail-page',
-  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent],
+  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent],
   template: `
     <section class="space-y-6">
-      @if (loading()) { <div class="card-surface p-7"><div class="skeleton h-8 w-1/3 rounded"></div><div class="skeleton mt-5 h-80 rounded-3xl"></div></div> }
-      @else if (!booking()) { <app-data-state title="Không tìm thấy booking" message="Booking không tồn tại hoặc nằm ngoài phạm vi quyền của bạn." icon="calendar"><a routerLink="/app/bookings/my" class="btn-primary mt-5">Về danh sách</a></app-data-state> }
-      @else {
+      @if (loading()) {
+        <div class="card-surface p-7">
+          <div class="skeleton h-8 w-1/3 rounded"></div>
+          <div class="skeleton mt-5 h-80 rounded-3xl"></div>
+        </div>
+      } @else if (accessDenied() || !booking()) {
+        <div class="mx-auto max-w-xl rounded-2xl border border-amber-200 bg-amber-50/90 p-8 text-center space-y-4 shadow-sm my-8">
+          <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner">
+            <app-icon name="shield" [size]="28" />
+          </div>
+          <div>
+            <h3 class="font-black text-slate-950 text-xl">Không có quyền xem chi tiết</h3>
+          </div>
+          
+          <div class="rounded-xl bg-white/90 p-4 border border-amber-200 text-left text-xs text-slate-800 shadow-sm">
+            <p class="whitespace-pre-line leading-relaxed font-bold text-amber-950 bg-amber-100/60 p-3 rounded-lg border border-amber-200/60 font-sans text-xs">
+              {{ errorMessage() || 'Bạn không có quyền xem booking này hoặc vi phạm của booking này.' }}
+            </p>
+          </div>
+
+          <div class="pt-2 flex flex-wrap justify-center gap-2">
+            <button type="button" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition" (click)="sendErrorReportToBE()">
+              <app-icon name="send" [size]="15" /> Gửi báo lỗi về Backend
+            </button>
+            <button type="button" class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-50 transition shadow-sm" (click)="goBackToList()">
+              <app-icon name="arrow-left" [size]="15" /> Quay lại trang tiếp tục
+            </button>
+          </div>
+        </div>
+      } @else {
         <app-page-header [title]="'Booking #BK-' + booking()!.bookingId.toString().padStart(5,'0')" [subtitle]="labelOf('purpose', booking()!.purposeType) + ' · Tạo lúc ' + (booking()!.createdAt | date:'HH:mm dd/MM/yyyy')">
           @if (canApprove()) { <button class="btn-primary" (click)="action('approve')"><app-icon name="check" [size]="17" /> Duyệt</button><button class="btn-secondary btn-danger" (click)="rejectOpen.set(true)"><app-icon name="x" [size]="17" /> Từ chối</button> }
           @if (canCancel()) { <button class="btn-secondary btn-danger" (click)="action('cancel')"><app-icon name="x" [size]="17" /> Hủy booking</button> }
@@ -214,5 +241,93 @@ export class BookingDetailPage implements OnInit {
   protected continueUsing(): void { this.checkOutOpen.set(false) }
   protected openIncident(log: UsageLogResponse): void { this.incidentLogId = log.logId; this.incidentStatus = 2; this.incidentDescription = ''; this.affectedEquipmentId = null; this.incidentOpen.set(true) }
   protected reportIncident(): void { this.api.reportIncident(this.incidentLogId, { incidentStatus: this.incidentStatus, incidentDescription: this.incidentDescription.trim(), affectedEquipmentId: this.affectedEquipmentId }).subscribe({ next: () => { this.incidentOpen.set(false); this.toast.success('Đã gửi báo cáo sự cố'); this.load() }, error: () => this.toast.error('Không thể gửi báo cáo sự cố') }) }
-  private load(): void { this.loading.set(true); forkJoin({ booking: this.api.booking(this.id), logs: this.api.usageLogsByBooking(this.id), violations: this.api.violationsByBooking(this.id) }).subscribe({ next: ({ booking, logs, violations }) => { this.booking.set(booking); this.logs.set(logs); this.violations.set(violations); this.loading.set(false) }, error: () => { this.booking.set(null); this.loading.set(false) } }) }
+  protected readonly accessDenied = signal(false)
+  protected readonly errorMessage = signal('')
+
+  protected sendErrorReportToBE(): void {
+    const user = this.store.user()
+    if (!user?.userId) return
+    const errorMsg = this.errorMessage() || 'Ngoại lệ phân quyền xem chi tiết booking / vi phạm từ BE'
+    this.api
+      .sendNotification({
+        userId: user.userId,
+        title: 'Báo cáo lỗi & Đồng bộ Data Backend',
+        message: `[Báo lỗi BookingDetail BE Data] Người dùng ${user.fullName || user.username} (User ID ${user.userId}) báo cáo ngoại lệ tại Booking #${this.id}: ${errorMsg}`,
+        notificationType: 1,
+      })
+      .pipe(catchError(() => EMPTY))
+      .subscribe({
+        next: () => {
+          this.toast.success('Đã gửi thông tin báo lỗi về Backend!')
+        },
+        error: () => {
+          this.toast.info('Đã hoàn tất phản hồi về Backend.')
+        },
+      })
+  }
+
+  protected goBackToList(): void {
+    const user = this.store.user()
+    if (user?.userId && this.accessDenied()) {
+      this.api
+        .sendNotification({
+          userId: user.userId,
+          title: 'Phản hồi từ chối truy cập chi tiết booking',
+          message: `Người dùng ${user.fullName || user.username} đã quay lại trang sau khi nhận thông báo từ chối truy cập booking #${this.id}.`,
+          notificationType: 1,
+        })
+        .pipe(catchError(() => EMPTY))
+        .subscribe()
+    }
+    void this.router.navigate([this.store.isRequester() ? '/app/bookings/my' : '/app/management/bookings'])
+  }
+
+  private load(): void {
+    this.loading.set(true)
+    this.accessDenied.set(false)
+    this.errorMessage.set('')
+    forkJoin({
+      booking: this.api.booking(this.id).pipe(
+        timeout(2500),
+        catchError((err: any) => {
+          this.accessDenied.set(true)
+          const msg =
+            err?.message ||
+            err?.error?.message ||
+            err?.error?.detail ||
+            (err?.name === 'TimeoutError'
+              ? 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
+              : 'Bạn không có quyền xem booking này.')
+          this.errorMessage.set(msg)
+          return of(null)
+        }),
+      ),
+      logs: this.api.usageLogsByBooking(this.id).pipe(catchError(() => of([]))),
+      violations: this.api.violationsByBooking(this.id).pipe(
+        catchError((err: any) => {
+          if (!this.errorMessage()) {
+            this.accessDenied.set(true)
+            const msg =
+              err?.message ||
+              err?.error?.message ||
+              err?.error?.detail ||
+              'Bạn không có quyền xem vi phạm của booking này.'
+            this.errorMessage.set(msg)
+          }
+          return of([])
+        }),
+      ),
+    }).subscribe({
+      next: ({ booking, logs, violations }) => {
+        this.booking.set(booking)
+        this.logs.set(logs)
+        this.violations.set(violations)
+        this.loading.set(false)
+      },
+      error: () => {
+        this.booking.set(null)
+        this.loading.set(false)
+      },
+    })
+  }
 }

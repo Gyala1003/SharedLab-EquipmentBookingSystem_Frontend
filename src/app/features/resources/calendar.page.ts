@@ -2,7 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { forkJoin } from 'rxjs'
+import { catchError, forkJoin, of, timeout } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { CalendarEventResponse, EquipmentResponse, LabRoomResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -124,9 +124,19 @@ export class CalendarPage implements OnInit {
     if (qEquipment > 0) this.equipmentId = qEquipment
     if (qFrom && !Number.isNaN(new Date(qFrom).getTime())) this.focus.set(new Date(qFrom))
 
-    forkJoin({ labs: this.api.labs(), equipments: this.api.equipments() }).subscribe({
-      next: ({ labs, equipments }) => { this.labs.set(labs); this.equipments.set(equipments); this.load() },
-      error: () => { this.loading.set(false); this.toast.error('Không tải được tài nguyên') },
+    forkJoin({
+      labs: this.api.labs().pipe(catchError(() => of([]))),
+      equipments: this.api.equipments().pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ labs, equipments }) => {
+        this.labs.set(labs)
+        this.equipments.set(equipments)
+        this.load()
+      },
+      error: () => {
+        this.loading.set(false)
+        this.toast.error('Không tải được tài nguyên')
+      },
     })
   }
 
@@ -135,7 +145,23 @@ export class CalendarPage implements OnInit {
     const focus = this.focus()
     const from = new Date(focus.getFullYear(), focus.getMonth(), 1)
     const to = new Date(focus.getFullYear(), focus.getMonth() + 1, 1)
-    this.api.calendar(from.toISOString(), to.toISOString(), this.equipmentId ? undefined : (this.labId ?? undefined), this.equipmentId ?? undefined).subscribe({ next: (items) => { this.events.set(items); this.loading.set(false) }, error: () => { this.events.set([]); this.loading.set(false); this.toast.error('Không tải được lịch', 'Kiểm tra backend hoặc quyền truy cập.') } })
+    this.api
+      .calendar(from.toISOString(), to.toISOString(), this.equipmentId ? undefined : (this.labId ?? undefined), this.equipmentId ?? undefined)
+      .pipe(
+        timeout(3000),
+        catchError(() => of([])),
+      )
+      .subscribe({
+        next: (items) => {
+          this.events.set(items)
+          this.loading.set(false)
+        },
+        error: () => {
+          this.events.set([])
+          this.loading.set(false)
+          this.toast.error('Không tải được lịch', 'Kiểm tra backend hoặc quyền truy cập.')
+        },
+      })
   }
 
   protected onLabChange(): void { this.equipmentId = null; this.load() }

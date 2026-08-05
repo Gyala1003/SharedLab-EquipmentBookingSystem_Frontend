@@ -66,7 +66,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           timestamp: new Date(),
           details: normalizedErr.fieldErrors,
         })
-        void router.navigate(['/error'])
       }
 
       return throwError(() => normalizedErr)

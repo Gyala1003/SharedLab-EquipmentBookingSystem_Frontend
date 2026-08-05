@@ -10,7 +10,7 @@ import { IconComponent } from '../../shared/ui/icon'
 @Component({
   selector: 'app-error-page',
   standalone: true,
-  imports: [DatePipe, RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent],
   template: `
     <section class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div class="w-full max-w-xl rounded-[28px] border border-rose-200 bg-white p-6 shadow-2xl shadow-rose-950/5 sm:p-8">

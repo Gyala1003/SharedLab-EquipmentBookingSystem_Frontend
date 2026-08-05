@@ -372,14 +372,17 @@ export class AppLayoutComponent implements OnInit {
 
   private detectPendingCheckout(userId: number): void {
     const now = Date.now()
-    this.api.bookingsByUser(userId).subscribe((bookings) => {
-      const candidates = bookings
-        .filter((b) => b.status === 'Approved' && +new Date(b.endTime) < now)
-        .sort((a, b) => +new Date(b.endTime) - +new Date(a.endTime))
-        .slice(0, 3)
-      if (!candidates.length) return
-      forkJoin(candidates.map((b) => this.api.usageLogsByBooking(b.bookingId))).subscribe(
-        (logsList) => {
+    this.api
+      .bookingsByUser(userId)
+      .pipe(catchError(() => of([])))
+      .subscribe((bookings) => {
+        const candidates = bookings
+          .filter((b) => b.status === 'Approved' && +new Date(b.endTime) < now)
+          .sort((a, b) => +new Date(b.endTime) - +new Date(a.endTime))
+          .slice(0, 3)
+        if (!candidates.length) return
+        forkJoin(candidates.map((b) => this.api.usageLogsByBooking(b.bookingId).pipe(catchError(() => of([])))))
+          .subscribe((logsList) => {
           for (let i = 0; i < candidates.length; i++) {
             const booking = candidates[i]
             const pendingLog = logsList[i].find((log) => log.actualCheckin && !log.actualCheckout)
