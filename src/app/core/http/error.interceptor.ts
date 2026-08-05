@@ -43,11 +43,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         clearSession(tokens)
         void router.navigate(['/login'])
       }
-      if (error.status === 403) {
-        void router.navigate(['/403'])
-      }
-
       const normalizedErr = normalize(error)
+
+      if (error.status === 403) {
+        errorState.setError({
+          status: 403,
+          statusText: 'Forbidden / Không có quyền truy cập',
+          message: normalizedErr.message || 'Bạn không có quyền truy cập vào tài nguyên này.',
+          url: req.url,
+          timestamp: new Date(),
+          details: normalizedErr.fieldErrors,
+        })
+      }
 
       // Catch Backend Internal Server Error (5xx) or Connection Failure (0)
       if (error.status >= 500 || error.status === 0) {
@@ -75,13 +82,13 @@ function clearSession(tokens: TokenStorage): void {
 
 function normalize(error: HttpErrorResponse): ApiError {
   const body = error.error as
-    | { message?: string; title?: string; code?: string; errors?: Record<string, string[]> }
+    | { message?: string; title?: string; detail?: string; error?: string; code?: string; errors?: Record<string, string[]> }
     | string
     | undefined
   const message =
     typeof body === 'string'
       ? body
-      : body?.message ?? body?.title ?? error.message ?? 'Đã xảy ra lỗi kết nối với Backend.'
+      : body?.detail ?? body?.message ?? body?.error ?? body?.title ?? error.message ?? 'Đã xảy ra lỗi kết nối với Backend.'
   return new ApiError(
     error.status,
     message,

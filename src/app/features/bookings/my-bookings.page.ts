@@ -2,7 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { forkJoin, of } from 'rxjs'
+import { EMPTY, forkJoin, of, timeout } from 'rxjs'
 import { catchError } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingItemResponse, BookingResponse, UsageLogResponse } from '../../core/api/system.models'
@@ -270,10 +270,45 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
         [open]="detailOpen()"
         [title]="detailBooking() ? 'Booking #BK-' + detailBooking()!.bookingId.toString().padStart(5, '0') : ('bookings.detailTitle' | t)"
         subtitle="{{ 'bookings.detailSubtitle' | t }}"
-        (close)="detailOpen.set(false)"
+        (close)="closeDetail()"
       >
         @if (detailLoading()) {
           <div class="space-y-3"><div class="skeleton h-8 rounded-xl"></div><div class="skeleton h-32 rounded-xl"></div></div>
+        } @else if (detailAccessDenied()) {
+          <div class="rounded-2xl border border-amber-200 bg-amber-50/90 p-6 text-center space-y-4 shadow-sm">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner">
+              <app-icon name="shield" [size]="28" />
+            </div>
+            <div>
+              <span class="inline-flex items-center gap-1 rounded-full bg-amber-200/80 px-3 py-0.5 text-[11px] font-black text-amber-900">
+                Phát hiện ngoại lệ Backend (BE Exception)
+              </span>
+              <h3 class="mt-1 font-black text-slate-950 text-lg">Không có quyền xem chi tiết</h3>
+            </div>
+            
+            <div class="rounded-xl bg-white/90 p-4 border border-amber-200 text-left text-xs text-slate-800 space-y-1.5 shadow-sm">
+              <span class="font-black text-amber-900 flex items-center gap-1.5">
+                <app-icon name="alert" [size]="15" class="text-amber-600" />
+                Ghi chú thông báo ngoại lệ từ Backend:
+              </span>
+              <p class="whitespace-pre-line leading-relaxed font-bold text-amber-950 bg-amber-100/60 p-2.5 rounded-lg border border-amber-200/60 font-mono text-xs">
+                {{ detailErrorMessage() || 'Bạn không có quyền xem booking này.' }}
+              </p>
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+              Hệ thống đã nhận diện được ngoại lệ từ BE. Bạn có thể nhấn <strong>"Gửi báo lỗi về Backend"</strong> để cập nhật Data hoặc nhấn <strong>"Quay lại trang"</strong> để mở khóa ứng dụng và tiếp tục công việc.
+            </p>
+
+            <div class="pt-2 flex flex-wrap justify-center gap-2">
+              <button type="button" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition" (click)="sendErrorReportToBE()">
+                <app-icon name="send" [size]="15" /> Gửi báo lỗi đến Data (BE)
+              </button>
+              <button type="button" class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-50 transition shadow-sm" (click)="closeDetail()">
+                <app-icon name="arrow-left" [size]="15" /> Quay lại trang tiếp tục
+              </button>
+            </div>
+          </div>
         } @else if (detailBooking(); as detail) {
           <div class="space-y-5">
             <!-- Thẻ thông tin tổng quan -->
@@ -392,6 +427,8 @@ export class MyBookingsPage implements OnInit {
   // Modal State
   protected readonly detailOpen = signal(false)
   protected readonly detailLoading = signal(false)
+  protected readonly detailAccessDenied = signal(false)
+  protected readonly detailErrorMessage = signal('')
   protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
 
   protected readonly tabs = computed(() => [
@@ -502,21 +539,79 @@ export class MyBookingsPage implements OnInit {
     return false
   }
 
+  protected currentBookingId = 0
+
   protected openDetail(booking: BookingResponse | BookingDetailResponse): void {
+    this.currentBookingId = booking.bookingId
     this.detailBooking.set(null)
     this.detailLoading.set(true)
+    this.detailAccessDenied.set(false)
+    this.detailErrorMessage.set('')
     this.detailOpen.set(true)
 
-    this.api.booking(booking.bookingId).subscribe({
-      next: (detail) => {
-        this.detailBooking.set(detail)
-        this.detailLoading.set(false)
-      },
-      error: () => {
-        this.detailLoading.set(false)
-        this.toast.error('Không tải được chi tiết booking')
-      },
-    })
+    this.api
+      .booking(booking.bookingId)
+      .pipe(timeout(10000))
+      .subscribe({
+        next: (detail) => {
+          this.detailBooking.set(detail)
+          this.detailLoading.set(false)
+        },
+        error: (err: any) => {
+          this.detailLoading.set(false)
+          this.detailAccessDenied.set(true)
+          const msg =
+            err?.message ||
+            err?.error?.message ||
+            err?.error?.detail ||
+            (err?.name === 'TimeoutError'
+              ? 'Máy chủ Backend đang xử lý lâu hoặc tạm dừng (Timeout 10s).'
+              : 'Tài khoản không đủ thẩm quyền để truy cập thông tin booking này từ Backend.')
+          this.detailErrorMessage.set(msg)
+        },
+      })
+  }
+
+  protected sendErrorReportToBE(): void {
+    const user = this.store.user()
+    if (!user?.userId) return
+    const errorMsg = this.detailErrorMessage() || 'Ngoại lệ phân quyền xem chi tiết booking từ BE'
+    this.api
+      .sendNotification({
+        userId: user.userId,
+        title: 'Báo cáo lỗi & Đồng bộ Data Backend',
+        message: `[Báo lỗi FE/BE Data] Khách hàng ${user.fullName || user.username} (User ID ${user.userId}) báo cáo ngoại lệ tại Booking #${this.currentBookingId || ''}: ${errorMsg}`,
+        notificationType: 1,
+      })
+      .pipe(catchError(() => EMPTY))
+      .subscribe({
+        next: () => {
+          this.toast.success('Đã gửi thông tin báo lỗi về Backend (Data)!', 'Bạn có thể tiếp tục thao tác bình thường.')
+        },
+        error: () => {
+          this.toast.info('Đã hoàn tất phản hồi về Backend.', 'Ứng dụng đã sẵn sàng tiếp tục.')
+        },
+      })
+  }
+
+  protected closeDetail(): void {
+    const user = this.store.user()
+    if (user?.userId && this.detailAccessDenied()) {
+      this.api
+        .sendNotification({
+          userId: user.userId,
+          title: 'Phản hồi từ chối truy cập booking',
+          message: `Người dùng ${user.fullName || user.username} đã quay lại trang sau khi xem thông báo từ chối truy cập booking.`,
+          notificationType: 1,
+        })
+        .pipe(catchError(() => EMPTY))
+        .subscribe()
+    }
+    this.detailOpen.set(false)
+    this.detailLoading.set(false)
+    this.detailAccessDenied.set(false)
+    this.detailErrorMessage.set('')
+    this.detailBooking.set(null)
   }
 
   protected confirmCancel(booking: BookingResponse | BookingDetailResponse): void {

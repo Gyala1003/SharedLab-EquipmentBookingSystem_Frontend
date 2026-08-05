@@ -2,8 +2,10 @@ import { DatePipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
+import { catchError, EMPTY } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingResponse } from '../../core/api/system.models'
+import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
@@ -172,9 +174,40 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
     </app-modal>
 
     <!-- Modal Chi tiết booking -->
-    <app-modal [open]="detailOpen()" [title]="detailBooking() ? '#BK-' + detailBooking()!.bookingId.toString().padStart(5,'0') : ('common.detail' | t)" [subtitle]="'bookings.detailSubtitle' | t" (close)="detailOpen.set(false)">
+    <app-modal [open]="detailOpen()" [title]="detailBooking() ? '#BK-' + detailBooking()!.bookingId.toString().padStart(5,'0') : ('common.detail' | t)" [subtitle]="'bookings.detailSubtitle' | t" (close)="closeDetail()">
       @if (detailLoading()) {
         <div class="space-y-3"><div class="skeleton h-8 rounded-xl"></div><div class="skeleton h-20 rounded-xl"></div><div class="skeleton h-12 rounded-xl"></div></div>
+      } @else if (detailAccessDenied()) {
+        <div class="rounded-2xl border border-amber-200 bg-amber-50/90 p-6 text-center space-y-4 shadow-sm">
+          <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner">
+            <app-icon name="lock" [size]="28" />
+          </div>
+          <div>
+            <span class="inline-flex items-center gap-1 rounded-full bg-amber-200/80 px-3 py-0.5 text-[11px] font-black text-amber-900">
+              Lỗi HTTP 403 · Access Denied
+            </span>
+            <h3 class="mt-1 font-black text-slate-950 text-lg">Không có quyền xem chi tiết</h3>
+          </div>
+          
+          <div class="rounded-xl bg-white/90 p-4 border border-amber-200 text-left text-xs text-slate-800 space-y-1.5 shadow-sm">
+            <span class="font-black text-amber-900 flex items-center gap-1.5">
+              <app-icon name="alert" [size]="15" class="text-amber-600" />
+              Ghi chú thông báo từ Backend:
+            </span>
+            <p class="whitespace-pre-line leading-relaxed font-semibold text-amber-950">
+              {{ detailErrorMessage() || 'Tài khoản không đủ thẩm quyền quản lý hoặc xem chi tiết booking này.' }}
+            </p>
+          </div>
+
+          <p class="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+            Nhấn <strong>"Quay lại trang"</strong> bên dưới để đóng thông báo, phản hồi về Backend và tiếp tục thao tác bình thường.
+          </p>
+          <div class="pt-2 flex justify-center">
+            <button type="button" class="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-6 py-2.5 text-xs font-black text-white shadow-md shadow-amber-600/20 hover:bg-amber-700 transition" (click)="closeDetail()">
+              <app-icon name="arrow-left" [size]="16" /> Quay lại trang
+            </button>
+          </div>
+        </div>
       } @else if (detailBooking()) {
         <div class="grid gap-4">
           <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-2">
@@ -228,6 +261,7 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
 export class BookingsManagementPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   protected readonly items = signal<BookingResponse[]>([])
   protected readonly loading = signal(true)
@@ -235,6 +269,8 @@ export class BookingsManagementPage implements OnInit {
   protected readonly rejectOpen = signal(false)
   protected readonly detailOpen = signal(false)
   protected readonly detailLoading = signal(false)
+  protected readonly detailAccessDenied = signal(false)
+  protected readonly detailErrorMessage = signal('')
   protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
   protected rejectTarget: BookingResponse | null = null
   protected rejectReason = ''
@@ -304,11 +340,44 @@ export class BookingsManagementPage implements OnInit {
   protected openDetail(item: BookingResponse): void {
     this.detailBooking.set(null)
     this.detailLoading.set(true)
+    this.detailAccessDenied.set(false)
+    this.detailErrorMessage.set('')
     this.detailOpen.set(true)
     this.api.booking(item.bookingId).subscribe({
-      next: (detail) => { this.detailBooking.set(detail); this.detailLoading.set(false) },
-      error: () => { this.detailLoading.set(false); this.toast.error('Không tải được chi tiết booking') }
+      next: (detail) => {
+        this.detailBooking.set(detail)
+        this.detailLoading.set(false)
+      },
+      error: (err: any) => {
+        this.detailLoading.set(false)
+        this.detailAccessDenied.set(true)
+        const msg =
+          err?.message ||
+          err?.error?.message ||
+          'Tài khoản không đủ quyền hạn quản lý hoặc xem booking này từ Backend.'
+        this.detailErrorMessage.set(msg)
+      },
     })
+  }
+
+  protected closeDetail(): void {
+    const user = this.store.user()
+    if (user?.userId && this.detailAccessDenied()) {
+      this.api
+        .sendNotification({
+          userId: user.userId,
+          title: 'Phản hồi từ chối truy cập quản lý booking',
+          message: `Người dùng ${user.fullName || user.username} đã quay lại trang sau khi xem thông báo không đủ quyền quản lý booking.`,
+          notificationType: 1,
+        })
+        .pipe(catchError(() => EMPTY))
+        .subscribe()
+    }
+    this.detailOpen.set(false)
+    this.detailLoading.set(false)
+    this.detailAccessDenied.set(false)
+    this.detailErrorMessage.set('')
+    this.detailBooking.set(null)
   }
 
   protected openReject(item: BookingResponse): void {
@@ -336,8 +405,8 @@ export class BookingsManagementPage implements OnInit {
     this.actioning.set(true)
     const req = actionType === 'approve' ? this.api.approveBooking(item.bookingId)
       : actionType === 'complete' ? this.api.completeBooking(item.bookingId)
-      : actionType === 'no-show' ? this.api.noShowBooking(item.bookingId)
-      : this.api.cancelBooking(item.bookingId)
+        : actionType === 'no-show' ? this.api.noShowBooking(item.bookingId)
+          : this.api.cancelBooking(item.bookingId)
     req.subscribe({
       next: () => {
         this.actioning.set(false)

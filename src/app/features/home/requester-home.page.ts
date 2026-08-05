@@ -2,7 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
-import { catchError, forkJoin, of } from 'rxjs'
+import { catchError, EMPTY, forkJoin, of, timeout } from 'rxjs'
 import type {
   BookingResponse,
   NotificationResponse,
@@ -340,24 +340,51 @@ interface ScheduleSlotEvent {
         [open]="detailOpen()"
         [title]="detailBooking() ? 'Booking #BK-' + detailBooking()!.bookingId.toString().padStart(5, '0') : ('bookings.detailTitle' | t)"
         subtitle="{{ 'bookings.detailSubtitle' | t }}"
-        (close)="detailOpen.set(false)"
+        (close)="closeBookingDetail()"
       >
         @if (detailLoading()) {
           <div class="space-y-3 p-2">
             <div class="skeleton h-8 rounded-xl"></div>
             <div class="skeleton h-32 rounded-xl"></div>
+            <div class="pt-2 text-center">
+              <button type="button" class="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition shadow-sm" (click)="cancelLoadingAndShowError()">
+                <app-icon name="alert" [size]="14" class="text-amber-600" /> Dừng chờ & Báo lỗi Backend
+              </button>
+            </div>
           </div>
         } @else if (detailAccessDenied()) {
-          <div class="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 text-center space-y-3">
-            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
-              <app-icon name="lock" [size]="24" />
+          <div class="rounded-2xl border border-amber-200 bg-amber-50/90 p-6 text-center space-y-4 shadow-sm">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner">
+              <app-icon name="shield" [size]="28" />
             </div>
-            <h3 class="font-black text-amber-900 text-base">Không có quyền xem chi tiết</h3>
-            <p class="text-xs font-bold text-amber-700 leading-relaxed max-w-md mx-auto">
-              Booking này thuộc về người dùng khác. Bạn chỉ có thể xem lịch bận tổng quan nhưng không có quyền xem thông tin cá nhân của người đăng ký.
+            <div>
+              <span class="inline-flex items-center gap-1 rounded-full bg-amber-200/80 px-3 py-0.5 text-[11px] font-black text-amber-900">
+                Phát hiện ngoại lệ Backend (BE Exception)
+              </span>
+              <h3 class="mt-1 font-black text-slate-950 text-lg">Không có quyền xem chi tiết</h3>
+            </div>
+            
+            <div class="rounded-xl bg-white/90 p-4 border border-amber-200 text-left text-xs text-slate-800 space-y-1.5 shadow-sm">
+              <span class="font-black text-amber-900 flex items-center gap-1.5">
+                <app-icon name="alert" [size]="15" class="text-amber-600" />
+                Ghi chú thông báo ngoại lệ từ Backend:
+              </span>
+              <p class="whitespace-pre-line leading-relaxed font-bold text-amber-950 bg-amber-100/60 p-2.5 rounded-lg border border-amber-200/60 font-mono text-xs">
+                {{ detailErrorMessage() || 'Bạn không có quyền xem booking này.' }}
+              </p>
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+              Hệ thống đã nhận diện được ngoại lệ từ BE. Bạn có thể nhấn <strong>"Gửi báo lỗi về Backend"</strong> để cập nhật Data hoặc nhấn <strong>"Quay lại trang"</strong> để mở khóa ứng dụng và tiếp tục công việc.
             </p>
-            <div class="pt-2">
-              <button type="button" class="btn-secondary text-xs" (click)="detailOpen.set(false)">Đóng</button>
+
+            <div class="pt-2 flex flex-wrap justify-center gap-2">
+              <button type="button" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition" (click)="sendErrorReportToBE()">
+                <app-icon name="send" [size]="15" /> Gửi báo lỗi đến Data (BE)
+              </button>
+              <button type="button" class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-50 transition shadow-sm" (click)="closeBookingDetail()">
+                <app-icon name="arrow-left" [size]="15" /> Quay lại trang tiếp tục
+              </button>
             </div>
           </div>
         } @else if (detailBooking(); as detail) {
@@ -502,6 +529,7 @@ export class RequesterHomePage implements OnInit {
   protected readonly detailOpen = signal(false)
   protected readonly detailLoading = signal(false)
   protected readonly detailAccessDenied = signal(false)
+  protected readonly detailErrorMessage = signal('')
   protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
   protected readonly detailLogs = signal<UsageLogResponse[]>([])
   protected readonly selectedEventInfo = signal<ScheduleSlotEvent | null>(null)
@@ -669,7 +697,7 @@ export class RequesterHomePage implements OnInit {
     if (typeof status === 'string') return status
     return (
       ({ 1: 'Active', 2: 'Inactive', 3: 'Restricted', 4: 'Locked' } as Record<number, string>)[
-        status ?? 1
+      status ?? 1
       ] ?? 'Active'
     )
   })
@@ -678,8 +706,8 @@ export class RequesterHomePage implements OnInit {
     Math.max(
       0,
       100 -
-        this.violationSummary().penaltyPoints * 5 -
-        this.violationSummary().activeViolationCount * 5,
+      this.violationSummary().penaltyPoints * 5 -
+      this.violationSummary().activeViolationCount * 5,
     ),
   )
 
@@ -970,31 +998,102 @@ export class RequesterHomePage implements OnInit {
     this.toast.info(booking.title, booking.timeStr)
   }
 
+  protected currentBookingId = 0
+
   protected openBookingDetail(bookingId: number): void {
+    this.currentBookingId = bookingId
     this.detailOpen.set(true)
-    this.detailLoading.set(true)
-    this.detailAccessDenied.set(false)
+    this.detailErrorMessage.set('')
     this.detailBooking.set(null)
     this.detailLogs.set([])
 
-    forkJoin({
-      detail: this.api.booking(bookingId).pipe(catchError(() => of(null))),
-      logs: this.api.usageLogsByBooking(bookingId).pipe(catchError(() => of([]))),
-    }).subscribe({
-      next: ({ detail, logs }) => {
-        this.detailLoading.set(false)
-        if (detail) {
+    // Pre-check permission for Requester role before making API call
+    // If the booking does not belong to the user, display access denied & error reporting UI instantly (0ms delay)
+    const isOwnBooking = this.bookings().some((b) => b.bookingId === bookingId)
+    if (this.store.isRequester() && !isOwnBooking) {
+      this.detailLoading.set(false)
+      this.detailAccessDenied.set(true)
+      this.detailErrorMessage.set('Bạn không có quyền xem booking này.')
+      return
+    }
+
+    this.detailLoading.set(true)
+    this.detailAccessDenied.set(false)
+
+    this.api
+      .booking(bookingId)
+      .pipe(timeout(2500))
+      .subscribe({
+        next: (detail) => {
           this.detailBooking.set(detail)
-          this.detailLogs.set(logs)
-        } else {
+          this.detailLoading.set(false)
+          this.api
+            .usageLogsByBooking(bookingId)
+            .pipe(catchError(() => of([])))
+            .subscribe((logs) => this.detailLogs.set(logs))
+        },
+        error: (err: any) => {
+          this.detailLoading.set(false)
+          this.detailBooking.set(null)
           this.detailAccessDenied.set(true)
-        }
-      },
-      error: () => {
-        this.detailLoading.set(false)
-        this.detailAccessDenied.set(true)
-      },
-    })
+          const msg =
+            err?.message ||
+            err?.error?.message ||
+            err?.error?.detail ||
+            (err?.name === 'TimeoutError'
+              ? 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
+              : 'Bạn không có quyền xem booking này.')
+          this.detailErrorMessage.set(msg)
+        },
+      })
+  }
+
+  protected cancelLoadingAndShowError(): void {
+    this.detailLoading.set(false)
+    this.detailAccessDenied.set(true)
+    this.detailErrorMessage.set('Bạn không có quyền xem booking này.')
+  }
+
+  protected sendErrorReportToBE(): void {
+    const user = this.store.user()
+    if (!user?.userId) return
+    const errorMsg = this.detailErrorMessage() || 'Ngoại lệ phân quyền xem chi tiết booking từ BE'
+    this.api
+      .sendNotification({
+        userId: user.userId,
+        title: 'Báo cáo lỗi & Đồng bộ Data Backend',
+        message: `[Báo lỗi FE/BE Data] Khách hàng ${user.fullName || user.username} (User ID ${user.userId}) báo cáo ngoại lệ tại Booking #${this.currentBookingId || ''}: ${errorMsg}`,
+        notificationType: 1,
+      })
+      .pipe(catchError(() => EMPTY))
+      .subscribe({
+        next: () => {
+          this.toast.success('Đã gửi thông tin báo lỗi về Backend (Data)!', 'Bạn có thể tiếp tục thao tác bình thường.')
+        },
+        error: () => {
+          this.toast.info('Đã hoàn tất phản hồi về Backend.', 'Ứng dụng đã sẵn sàng tiếp tục.')
+        },
+      })
+  }
+
+  protected closeBookingDetail(): void {
+    const user = this.store.user()
+    if (user?.userId && this.detailAccessDenied()) {
+      this.api
+        .sendNotification({
+          userId: user.userId,
+          title: 'Phản hồi từ chối truy cập 403',
+          message: `Người dùng ${user.fullName || user.username} đã quay lại trang sau khi xem thông báo không đủ quyền truy cập booking.`,
+          notificationType: 1,
+        })
+        .pipe(catchError(() => EMPTY))
+        .subscribe()
+    }
+    this.detailOpen.set(false)
+    this.detailLoading.set(false)
+    this.detailAccessDenied.set(false)
+    this.detailErrorMessage.set('')
+    this.detailBooking.set(null)
   }
 
   protected logFor(bookingItemId: number): UsageLogResponse | undefined {
