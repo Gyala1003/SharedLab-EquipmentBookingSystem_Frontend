@@ -1,6 +1,8 @@
-import { Component } from '@angular/core'
+import { Component, inject } from '@angular/core'
 import { RouterLink } from '@angular/router'
 import { TranslatePipe } from '@ngx-translate/core'
+import { AuthStore } from '../../../../core/auth/auth.store'
+import { landingPath } from '../../../../core/auth/auth.guard'
 
 interface ScheduleSlot {
   start: number
@@ -19,6 +21,12 @@ interface EquipmentRow {
   templateUrl: './hero.component.html',
 })
 export class HeroComponent {
+  protected readonly store = inject(AuthStore)
+
+  protected get targetLink(): string {
+    return this.store.isAuthenticated() ? landingPath(this.store.role()) : '/auth/login'
+  }
+
   readonly hours: string[] = ['08:00', '10:00', '12:00', '14:00', '16:00']
 
   readonly equipmentRows: EquipmentRow[] = [

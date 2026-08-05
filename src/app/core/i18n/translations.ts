@@ -209,6 +209,8 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'equipments.retired': { vi: 'Ngừng sử dụng', en: 'Retired' },
 
   // Home Page
+  'home.hero.ctaPrimary': { vi: 'Đăng nhập ngay', en: 'Log in now' },
+  'home.hero.ctaWorkspace': { vi: 'Truy cập hệ thống', en: 'Go to Workspace' },
   'home.welcome': { vi: 'Chào mừng trở lại', en: 'Welcome back' },
   'home.greeting': { vi: 'Chào {name}, sẵn sàng nghiên cứu chưa?', en: 'Hi {name}, ready to research?' },
   'home.sub': { vi: 'Theo dõi lịch đặt, hàng chờ và trạng thái tài khoản của bạn tại một nơi.', en: 'Track your bookings, waitlists, and account status in one place.' },

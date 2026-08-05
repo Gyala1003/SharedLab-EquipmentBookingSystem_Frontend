@@ -19,14 +19,17 @@
           <app-icon name="menu" [size]="20" />
         </button>
 
-        <div class="min-w-0 flex-1">
+        <a
+          [routerLink]="homeLink()"
+          class="min-w-0 flex-1 group transition hover:opacity-85 cursor-pointer"
+        >
           <p class="text-[10px] font-black tracking-[0.2em] text-blue-700 uppercase">
             {{ 'header.workspace' | t }}
           </p>
-          <p class="mt-1 truncate text-sm font-bold text-slate-600">
+          <p class="mt-1 truncate text-sm font-bold text-slate-600 group-hover:text-blue-700">
             {{ 'header.subtitle' | t }}
           </p>
-        </div>
+        </a>
       } @else {
         <!-- CHƯA ĐĂNG NHẬP (Trang Home): Hiện Logo & Tên App (Ẩn nút Toggle) -->
         <a routerLink="/" class="flex items-center gap-3">

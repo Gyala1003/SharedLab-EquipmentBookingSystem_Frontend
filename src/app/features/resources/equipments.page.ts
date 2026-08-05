@@ -10,12 +10,13 @@ import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
+import { SearchableSelectComponent, type SelectOption } from '../../shared/ui/searchable-select'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-equipments-page',
-  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, SearchableSelectComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <app-page-header [title]="'equipments.title' | t" [subtitle]="'equipments.subtitle' | t">
@@ -24,8 +25,8 @@ import { ToastService } from '../../shared/ui/toast.service'
       </app-page-header>
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_auto]">
-        <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="{{ 'equipments.searchPlaceholder' | t }}" /></div></div>
-        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId"><option [ngValue]="null">{{ 'calendar.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName | t }}</option> }</select></div>
+        <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="{{ 'equipments.searchPlaceholder' | t }}" /></div></div>
+        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><app-searchable-select [options]="labOptions()" [(ngModel)]="labId" placeholder="{{ 'calendar.allLabs' | t }}" searchPlaceholder="Tìm tên, mã phòng..." (selectionChange)="load()" /></div>
         <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">{{ 'equipments.ready' | t }}</option><option [value]="2">{{ 'equipments.inUse' | t }}</option><option [value]="3">{{ 'labs.maintenance' | t }}</option><option [value]="4">{{ 'equipments.broken' | t }}</option><option [value]="5">{{ 'equipments.retired' | t }}</option></select></div>
         <div class="flex items-end"><button class="btn-primary w-full" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>
@@ -68,7 +69,7 @@ import { ToastService } from '../../shared/ui/toast.service'
       <!-- Modal Tạo thiết bị -->
       <app-modal [open]="createOpen()" title="Thêm thiết bị mới" subtitle="Thiết bị phải thuộc một phòng lab đang tồn tại." (close)="createOpen.set(false)">
         <form class="grid gap-4" (ngSubmit)="create()">
-          <div><label class="field-label">Phòng lab *</label><select class="input-shell" required [(ngModel)]="form.labId" name="labId"><option [ngValue]="null">Chọn phòng lab</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option> }</select></div>
+          <div><label class="field-label">Phòng lab *</label><app-searchable-select [options]="labOptions()" [(ngModel)]="form.labId" name="labId" [allowNull]="false" placeholder="Chọn phòng lab" searchPlaceholder="Tìm tên, mã phòng..." /></div>
           <div><label class="field-label">Tên thiết bị *</label><input class="input-shell" required [(ngModel)]="form.equipmentName" name="equipmentName" placeholder="Máy quang phổ FTIR" /></div>
           <div><label class="field-label">Model / thông số</label><textarea class="textarea-shell" [(ngModel)]="form.modelSpecs" name="modelSpecs" placeholder="Hãng, model, dải đo..."></textarea></div>
           <div><label class="field-label">URL ảnh</label><input class="input-shell" [(ngModel)]="form.imageUrl" name="imageUrl" placeholder="https://..." /></div>
@@ -81,7 +82,7 @@ import { ToastService } from '../../shared/ui/toast.service'
       <app-modal [open]="editOpen()" [title]="'Chỉnh sửa: ' + editingItem()?.equipmentName" subtitle="Cập nhật thông tin kỹ thuật hoặc chuyển thiết bị sang phòng khác." (close)="editOpen.set(false)">
         <form class="grid gap-4" (ngSubmit)="save()">
           <div><label class="field-label">Tên thiết bị *</label><input class="input-shell" required [(ngModel)]="editForm.equipmentName" name="eequipmentName" /></div>
-          <div><label class="field-label">Phòng lab *</label><select class="input-shell" required [(ngModel)]="editForm.labId" name="elaborId"><option [ngValue]="null">Chọn phòng lab</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }}</option> }</select></div>
+          <div><label class="field-label">Phòng lab *</label><app-searchable-select [options]="labOptions()" [(ngModel)]="editForm.labId" name="elaborId" [allowNull]="false" placeholder="Chọn phòng lab" searchPlaceholder="Tìm tên, mã phòng..." /></div>
           <div><label class="field-label">Model / thông số</label><textarea class="textarea-shell" [(ngModel)]="editForm.modelSpecs" name="emodelSpecs"></textarea></div>
           <div><label class="field-label">URL ảnh</label><input class="input-shell" [(ngModel)]="editForm.imageUrl" name="eimageUrl" /></div>
           <div><label class="field-label">Hướng dẫn sử dụng</label><textarea class="textarea-shell" [(ngModel)]="editForm.usageGuideline" name="eusageGuideline"></textarea></div>
@@ -113,6 +114,14 @@ export class EquipmentsPage implements OnInit {
   protected form = { labId: null as number | null, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
   protected editForm = { labId: null as number | null, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
   protected readonly labMap = computed(() => new Map(this.labs().map((lab) => [lab.labId, lab.labName])))
+  protected readonly labOptions = computed<SelectOption[]>(() =>
+    this.labs().map((lab) => ({
+      value: lab.labId,
+      label: lab.labName,
+      code: lab.roomCode,
+      sublabel: lab.location,
+    })),
+  )
 
   ngOnInit(): void { this.api.labs().subscribe({ next: (labs) => { this.labs.set(labs); this.load() }, error: () => { this.loading.set(false); this.toast.error('Không tải được phòng lab') } }) }
 

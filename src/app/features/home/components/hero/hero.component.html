@@ -28,12 +28,21 @@
         </p>
 
         <div class="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <a
-            routerLink="/auth/login"
-            class="inline-flex items-center justify-center rounded-md bg-blue-600 px-7 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
-          >
-            {{ 'home.hero.ctaPrimary' | translate }}
-          </a>
+          @if (store.isAuthenticated()) {
+            <a
+              [routerLink]="targetLink"
+              class="inline-flex items-center justify-center rounded-md bg-blue-600 px-7 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+            >
+              {{ 'home.hero.ctaWorkspace' | translate }}
+            </a>
+          } @else {
+            <a
+              routerLink="/auth/login"
+              class="inline-flex items-center justify-center rounded-md bg-blue-600 px-7 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+            >
+              {{ 'home.hero.ctaPrimary' | translate }}
+            </a>
+          }
           <a
             routerLink="/"
             fragment="feature"

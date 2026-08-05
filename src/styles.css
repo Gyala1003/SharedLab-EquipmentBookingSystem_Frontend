@@ -97,13 +97,19 @@ textarea:focus-visible {
   border: 1px solid #dbeafe;
   border-radius: 14px;
   background: #ffffff;
-  padding: 0 16px;
+  padding-left: 16px;
+  padding-right: 16px;
   font-size: 14px;
   font-weight: 500;
   color: #0f172a;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
+
+.input-shell.pl-9, input.input-shell.pl-9 { padding-left: 2.25rem !important; }
+.input-shell.pl-10, input.input-shell.pl-10 { padding-left: 2.5rem !important; }
+.input-shell.pl-11, input.input-shell.pl-11 { padding-left: 2.75rem !important; }
+.input-shell.pl-12, input.input-shell.pl-12 { padding-left: 3rem !important; }
 
 .input-shell:hover, select.input-shell:hover {
   border-color: #93c5fd;

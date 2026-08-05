@@ -11,6 +11,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
+import { SearchableSelectComponent, type SelectOption } from '../../shared/ui/searchable-select'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf, toDateInput } from '../../shared/utils/presentation'
@@ -23,7 +24,7 @@ interface CalendarDay {
 
 @Component({
   selector: 'app-calendar-page',
-  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [DatePipe, NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent, SearchableSelectComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <app-page-header [title]="'calendar.title' | t" [subtitle]="'calendar.subtitle' | t">
@@ -32,10 +33,10 @@ interface CalendarDay {
       </app-page-header>
 
       <div class="filter-bar lg:grid-cols-[1fr_1fr_1fr_auto]">
-        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><select class="input-shell" [(ngModel)]="labId" (ngModelChange)="onLabChange()"><option [ngValue]="null">{{ 'calendar.allLabs' | t }}</option>@for (lab of labs(); track lab.labId) { <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option> }</select></div>
-        <div><label class="field-label">{{ 'calendar.equipmentFilter' | t }}</label><select class="input-shell" [(ngModel)]="equipmentId" (ngModelChange)="load()"><option [ngValue]="null">{{ 'calendar.allEquipments' | t }}</option>@for (item of filteredEquipments(); track item.equipmentId) { <option [ngValue]="item.equipmentId">{{ item.equipmentName }}</option> }</select></div>
+        <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><app-searchable-select [options]="labOptions()" [(ngModel)]="labId" placeholder="{{ 'calendar.allLabs' | t }}" searchPlaceholder="Tìm tên, mã phòng..." (selectionChange)="onLabChange()" /></div>
+        <div><label class="field-label">{{ 'calendar.equipmentFilter' | t }}</label><app-searchable-select [options]="equipmentOptions()" [(ngModel)]="equipmentId" placeholder="{{ 'calendar.allEquipments' | t }}" searchPlaceholder="Tìm thiết bị, model..." (selectionChange)="load()" /></div>
         <div><label class="field-label">{{ 'calendar.eventTypeFilter' | t }}</label><select class="input-shell" [(ngModel)]="eventType"><option value="">{{ 'calendar.bookingAndMaintenance' | t }}</option><option value="Booking">Booking</option><option value="Maintenance">{{ 'maintenances.scheduled' | t }}</option></select></div>
-        <div class="flex items-end gap-2"><button class="btn-secondary" type="button" (click)="shiftMonth(-1)"><app-icon name="chevron-left" [size]="17" /></button><button class="btn-secondary" type="button" (click)="today()">{{ 'calendar.today' | t }}</button><button class="btn-secondary" type="button" (click)="shiftMonth(1)"><app-icon name="chevron-right" [size]="17" /></button></div>
+        <div class="flex items-end gap-2"><button class="btn-secondary" type="button" (click)="shiftMonth(-1)"><app-icon name="chevron-left" [size]="17" /></button><button class="btn-secondary min-w-[120px] font-bold" type="button" (click)="today()" title="{{ 'calendar.today' | t }}">{{ monthTitle() }}</button><button class="btn-secondary" type="button" (click)="shiftMonth(1)"><app-icon name="chevron-right" [size]="17" /></button></div>
       </div>
 
       <article class="card-surface overflow-hidden">
@@ -100,6 +101,20 @@ export class CalendarPage implements OnInit {
   protected readonly monthTitle = computed(() => new Intl.DateTimeFormat(this.languageStore.lang() === 'en' ? 'en-US' : 'vi-VN', { month: 'long', year: 'numeric' }).format(this.focus()))
   protected readonly filteredEquipments = computed(() => this.labId ? this.equipments().filter((item) => item.labId === this.labId) : this.equipments())
   protected readonly filteredEvents = computed(() => this.events().filter((event) => !this.eventType || event.eventType === this.eventType).sort((a, b) => +new Date(a.startTime) - +new Date(b.startTime)))
+  protected readonly labOptions = computed<SelectOption[]>(() =>
+    this.labs().map((lab) => ({
+      value: lab.labId,
+      label: lab.labName,
+      code: lab.roomCode,
+      sublabel: lab.location,
+    })),
+  )
+  protected readonly equipmentOptions = computed<SelectOption[]>(() =>
+    this.filteredEquipments().map((item) => ({
+      value: item.equipmentId,
+      label: item.equipmentName,
+    })),
+  )
 
   protected readonly calendarDays = computed<CalendarDay[]>(() => {
     const focus = this.focus()

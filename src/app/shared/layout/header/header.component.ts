@@ -10,6 +10,7 @@ import {
 import { NgClass } from '@angular/common'
 import { Router, RouterLink } from '@angular/router'
 import { AuthStore } from '../../../core/auth/auth.store'
+import { landingPath } from '../../../core/auth/auth.guard'
 import { LanguageStore } from '../../../core/i18n/language.store'
 import { NotificationBadgeService } from '../../../core/api/notification-badge.service'
 import { TranslatePipe } from '../../../core/i18n/translate.pipe'
@@ -25,6 +26,7 @@ import { ToastService } from '../../ui/toast.service'
 export class HeaderComponent {
   protected readonly store = inject(AuthStore)
   protected readonly lang = inject(LanguageStore)
+  protected readonly homeLink = computed(() => landingPath(this.store.role()))
   protected readonly badge = inject(NotificationBadgeService)
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)

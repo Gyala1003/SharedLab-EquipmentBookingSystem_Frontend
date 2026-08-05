@@ -67,7 +67,7 @@ export class AuthStore {
       const user = await firstValueFrom(this.auth.me())
       this.setUser(user, this.tokens.isPersistent)
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
+      if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
         this.clear()
       } else if (!cachedUser) {
         this.clear()
