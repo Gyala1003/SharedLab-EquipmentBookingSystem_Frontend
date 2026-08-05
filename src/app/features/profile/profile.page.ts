@@ -250,7 +250,6 @@ export class ProfilePage {
     departmentName: string | null
   }): Array<{ label: string; value: string; icon: string }> {
     return [
-      { label: this.languageStore.t('profile.userId'), value: `#${user.userId}`, icon: 'user' },
       { label: this.languageStore.t('profile.fullName'), value: user.fullName, icon: 'user' },
       { label: this.languageStore.t('profile.username'), value: user.username, icon: 'shield' },
       { label: this.languageStore.t('profile.email'), value: user.email, icon: 'mail' },

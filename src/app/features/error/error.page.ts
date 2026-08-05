@@ -97,7 +97,7 @@ export class ErrorPage {
 
   goBack(): void {
     const user = this.store.user()
-    if (user?.userId) {
+    if (user?.userId && this.store.isAdmin()) {
       this.systemApi
         .sendNotification({
           userId: user.userId,
