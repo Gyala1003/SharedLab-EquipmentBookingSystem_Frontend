@@ -193,6 +193,8 @@
   },
   "common": {
     "error": "Something went wrong",
-    "retry": "Retry"
+    "retry": "Retry",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all"
   }
 }

@@ -187,85 +187,90 @@ export interface SlotWithStatus extends TimeSlot {
                     <input class="input-shell bg-white" [ngModel]="labNote" (ngModelChange)="onLabNoteChange($event)" placeholder="{{ 'bookingForm.step1.roomNotePlaceholder' | t }}" />
                   </div>
 
-                  <!-- Equipment section toggle -->
-                  <div class="rounded-2xl border border-violet-200/70 bg-white/70 p-4">
-                    <button
-                      type="button"
-                      class="flex w-full items-center justify-between gap-3 text-left"
-                      (click)="toggleAddEquipment()"
-                    >
+                  <!-- Automatic Equipment list for selected Lab -->
+                  <div class="rounded-2xl border border-violet-200/80 bg-white/90 p-4 sm:p-5 shadow-sm space-y-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-3">
                       <div class="flex items-center gap-3">
-                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 shadow-sm">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 shadow-sm">
                           <app-icon name="microscope" [size]="18" />
                         </span>
                         <div>
-                          <p class="font-black text-slate-900 text-sm">{{ 'bookingForm.step1.addEquipmentTitle' | t }}</p>
-                          <p class="mt-0.5 text-xs text-slate-500">{{ 'bookingForm.step1.addEquipmentSubtitle' | t }}</p>
+                          <p class="font-black text-slate-900 text-sm">{{ 'bookingForm.step1.equipmentsInLabTitle' | t }}</p>
+                          <p class="text-xs text-slate-500">{{ 'bookingForm.step1.equipmentsInLabSubtitle' | t: { name: (selectedLab()!.labName | t) } }}</p>
                         </div>
                       </div>
-                      <!-- Toggle switch -->
-                      <div
-                        class="relative h-6 w-11 rounded-full transition-colors duration-200"
-                        [ngClass]="addEquipment() ? 'bg-cyan-500' : 'bg-slate-200'"
-                      >
-                        <div
-                          class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200"
-                          [ngClass]="addEquipment() ? 'translate-x-5' : 'translate-x-0.5'"
-                        ></div>
-                      </div>
-                    </button>
 
-                    <!-- Equipment list (shown when toggle is on) -->
-                    @if (addEquipment()) {
-                      <div class="mt-4 border-t border-slate-100 pt-4">
-                        <div class="flex items-center justify-between mb-3">
-                          <p class="text-xs font-black text-slate-700">{{ 'bookingForm.step1.equipmentsInLab' | t: { name: (selectedLab()!.labName | t) } }}</p>
+                      @if (availableEquipments().length > 0) {
+                        <div class="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-100 transition"
+                            (click)="selectAllEquipments()"
+                          >
+                            <app-icon name="check" [size]="13" /> {{ 'common.selectAll' | t }}
+                          </button>
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition"
+                            (click)="deselectAllEquipments()"
+                          >
+                            {{ 'common.deselectAll' | t }}
+                          </button>
                           <span class="rounded-full bg-cyan-50 px-3 py-0.5 text-[11px] font-black text-cyan-700 border border-cyan-200">
-                            {{ selectedEquipmentCount() }} {{ 'bookingForm.step1.selectedCount' | t }}
+                            {{ selectedEquipmentCount() }}/{{ availableEquipments().length }} {{ 'bookingForm.step1.equipmentsUnit' | t }}
                           </span>
                         </div>
-                        @if (availableEquipments().length === 0) {
-                          <app-data-state
-                            title="{{ 'bookingForm.step1.noEquipment' | t }}"
-                            message="{{ 'bookingForm.step1.noEquipmentMsg' | t }}"
-                            icon="microscope"
-                          />
-                        } @else {
-                          <div class="grid gap-2 sm:grid-cols-2">
-                            @for (equipment of availableEquipments(); track equipment.equipmentId) {
-                              <button
-                                type="button"
-                                class="flex items-center gap-3 rounded-xl border p-3 text-left transition"
-                                [ngClass]="isEquipmentSelected(equipment.equipmentId)
-                                  ? 'border-cyan-300 bg-cyan-50 shadow-sm'
-                                  : equipment.status === 'Available'
-                                    ? 'border-slate-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/30'
-                                    : 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'"
-                                [disabled]="equipment.status !== 'Available'"
-                                (click)="toggleEquipment(equipment)"
-                              >
-                                <span
-                                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-sm"
-                                  [ngClass]="isEquipmentSelected(equipment.equipmentId) ? 'bg-cyan-500 text-white' : 'bg-white text-cyan-600'"
-                                >
-                                  <app-icon name="microscope" [size]="16" />
-                                </span>
-                                <span class="min-w-0 flex-1">
-                                  <span class="block truncate text-sm font-black text-slate-900">{{ equipment.equipmentName | t }}</span>
-                                  @if (equipment.status !== 'Available') {
-                                    <span class="mt-0.5 block text-[10px] font-bold text-rose-500">{{ 'bookingForm.step1.statusUnavailable' | t }}</span>
-                                  } @else {
-                                    <span class="mt-0.5 block text-[10px] font-bold text-emerald-600">{{ 'bookingForm.step1.badgeAvailable' | t }}</span>
-                                  }
-                                </span>
-                                @if (isEquipmentSelected(equipment.equipmentId)) {
-                                  <span class="shrink-0 text-cyan-600">
-                                    <app-icon name="check" [size]="16" />
-                                  </span>
-                                }
-                              </button>
-                            }
-                          </div>
+                      }
+                    </div>
+
+                    @if (availableEquipments().length === 0) {
+                      <app-data-state
+                        title="{{ 'bookingForm.step1.noEquipment' | t }}"
+                        message="{{ 'bookingForm.step1.noEquipmentMsg' | t }}"
+                        icon="microscope"
+                      />
+                    } @else {
+                      <div class="grid gap-2.5 sm:grid-cols-2">
+                        @for (equipment of availableEquipments(); track equipment.equipmentId) {
+                          <button
+                            type="button"
+                            class="group relative flex items-center gap-3.5 rounded-2xl border p-3.5 text-left transition duration-150"
+                            [ngClass]="isEquipmentSelected(equipment.equipmentId)
+                              ? 'border-cyan-400 bg-gradient-to-r from-cyan-50/90 to-indigo-50/70 shadow-sm ring-1 ring-cyan-300/50'
+                              : equipment.status === 'Available'
+                                ? 'border-slate-200 bg-white hover:border-cyan-300 hover:bg-slate-50/80'
+                                : 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'"
+                            [disabled]="equipment.status !== 'Available'"
+                            (click)="toggleEquipment(equipment)"
+                          >
+                            <!-- Checkbox icon -->
+                            <span
+                              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition duration-150"
+                              [ngClass]="isEquipmentSelected(equipment.equipmentId)
+                                ? 'border-cyan-500 bg-cyan-500 text-white shadow-sm'
+                                : 'border-slate-300 bg-white group-hover:border-cyan-400'"
+                            >
+                              @if (isEquipmentSelected(equipment.equipmentId)) {
+                                <app-icon name="check" [size]="14" />
+                              }
+                            </span>
+
+                            <span
+                              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition"
+                              [ngClass]="isEquipmentSelected(equipment.equipmentId) ? 'bg-cyan-100 text-cyan-700' : 'bg-slate-100 text-slate-500'"
+                            >
+                              <app-icon name="microscope" [size]="16" />
+                            </span>
+
+                            <div class="min-w-0 flex-1">
+                              <p class="truncate text-xs font-black text-slate-900">{{ equipment.equipmentName | t }}</p>
+                              @if (equipment.status !== 'Available') {
+                                <span class="mt-0.5 inline-block text-[10px] font-bold text-rose-500">{{ 'bookingForm.step1.statusUnavailable' | t }}</span>
+                              } @else {
+                                <span class="mt-0.5 inline-block text-[10px] font-bold text-emerald-600">{{ 'bookingForm.step1.badgeAvailable' | t }}</span>
+                              }
+                            </div>
+                          </button>
                         }
                       </div>
                     }
@@ -734,6 +739,7 @@ export class BookingFormPage implements OnInit {
   ngOnInit(): void {
     const q = this.route.snapshot.queryParams
     if (q['labId']) this.labId.set(Number(q['labId']))
+    const targetEquipmentId = q['equipmentId'] ? Number(q['equipmentId']) : null
     if (q['waitlistId']) this.sourceWaitlistId = Number(q['waitlistId'])
 
     forkJoin({ labs: this.api.labs(), equipments: this.api.equipments(), rules: this.api.priorityRules(true) }).subscribe({
@@ -742,11 +748,19 @@ export class BookingFormPage implements OnInit {
         this.equipments.set(equipments)
         this.rules.set(rules)
 
-        const preselectedId = this.labId()
+        let preselectedId = this.labId()
+        if (!preselectedId && targetEquipmentId) {
+          const equip = equipments.find((e) => e.equipmentId === targetEquipmentId)
+          if (equip) {
+            preselectedId = equip.labId
+            this.labId.set(equip.labId)
+          }
+        }
+
         if (preselectedId) {
           const lab = labs.find((item) => item.labId === preselectedId)
           if (lab) {
-            this.selected.set([{ key: `lab-${lab.labId}`, resourceType: 1, labId: lab.labId, equipmentId: null, name: lab.labName, note: '' }])
+            this.selectLab(lab, targetEquipmentId)
           }
         }
       },
@@ -756,36 +770,76 @@ export class BookingFormPage implements OnInit {
 
   protected setMode(mode: 'lab' | 'equipment'): void { this.mode.set(mode); this.selected.set([]); if (this.labId()) this.onLabChange() }
 
-  protected selectLab(lab: LabRoomResponse): void {
+  protected selectLab(lab: LabRoomResponse, targetEquipmentId?: number | null): void {
     if (lab.status !== 'Available') return
     this.labId.set(lab.labId)
-    this.addEquipment.set(false)
     this.labNote = ''
-    // Set the lab as the primary selected resource
-    this.selected.set([{ key: `lab-${lab.labId}`, resourceType: 1, labId: lab.labId, equipmentId: null, name: lab.labName, note: '' }])
+
+    const initial: SelectedResource[] = [
+      {
+        key: `lab-${lab.labId}`,
+        resourceType: 1,
+        labId: lab.labId,
+        equipmentId: null,
+        name: lab.labName,
+        note: '',
+      },
+    ]
+
+    // Nếu người dùng truy cập từ trang chi tiết thiết bị (có targetEquipmentId), chọn luôn thiết bị đó
+    if (targetEquipmentId) {
+      const equip = this.equipments().find(
+        (e) => e.equipmentId === targetEquipmentId && e.status === 'Available',
+      )
+      if (equip) {
+        initial.push({
+          key: `equipment-${equip.equipmentId}`,
+          resourceType: 2,
+          labId: null,
+          equipmentId: equip.equipmentId,
+          name: equip.equipmentName,
+          note: '',
+        })
+      }
+    }
+
+    this.selected.set(initial)
+  }
+
+  protected selectAllEquipments(): void {
+    const currentLabId = this.labId()
+    if (!currentLabId) return
+    const available = this.availableEquipments().filter((e) => e.status === 'Available')
+    this.selected.update((current) => {
+      const nonEquips = current.filter((s) => s.resourceType !== 2)
+      const equipItems: SelectedResource[] = available.map((e) => ({
+        key: `equipment-${e.equipmentId}`,
+        resourceType: 2,
+        labId: null,
+        equipmentId: e.equipmentId,
+        name: e.equipmentName,
+        note: '',
+      }))
+      return [...nonEquips, ...equipItems]
+    })
+  }
+
+  protected deselectAllEquipments(): void {
+    this.selected.update((current) => current.filter((s) => s.resourceType !== 2))
   }
 
   protected onLabChange(): void {
-    this.addEquipment.set(false)
     this.labNote = ''
     this.selected.set([])
     const lab = this.labs().find((item) => item.labId === this.labId())
     if (lab) {
-      this.selected.set([{ key: `lab-${lab.labId}`, resourceType: 1, labId: lab.labId, equipmentId: null, name: lab.labName, note: '' }])
+      this.selectLab(lab)
     }
   }
 
   protected onLabNoteChange(note: string): void {
     this.labNote = note
     this.selected.update((items) => items.map((item) => item.resourceType === 1 ? { ...item, note } : item))
-  }
-
-  protected toggleAddEquipment(): void {
-    this.addEquipment.update((v) => !v)
-    if (!this.addEquipment()) {
-      // Remove all equipment selections when toggling off
-      this.selected.update((items) => items.filter((item) => item.resourceType !== 2))
-    }
   }
 
   protected toggleEquipment(item: EquipmentResponse): void {

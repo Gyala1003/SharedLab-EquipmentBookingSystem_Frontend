@@ -1,4 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { of } from 'rxjs'
+import { catchError } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { PolicyResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -287,9 +289,19 @@ export class PolicyPage implements OnInit {
 
   private load(): void {
     this.loading.set(true)
-    this.api.getPolicy().subscribe({
-      next: (data) => { this.customPolicy.set(data); this.loading.set(false) },
-      error: () => { this.loading.set(false) },
-    })
+    this.api
+      .getPolicy()
+      .pipe(catchError(() => of(null)))
+      .subscribe({
+        next: (data) => {
+          if (data) {
+            this.customPolicy.set(data)
+          }
+          this.loading.set(false)
+        },
+        error: () => {
+          this.loading.set(false)
+        },
+      })
   }
 }

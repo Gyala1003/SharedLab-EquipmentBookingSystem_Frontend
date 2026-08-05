@@ -65,6 +65,8 @@ export const translations: Record<string, { vi: string; en: string }> = {
   // Common Actions, Pagination & Form
   'common.search': { vi: 'Tìm kiếm', en: 'Search' },
   'common.all': { vi: 'Tất cả', en: 'All' },
+  'common.selectAll': { vi: 'Chọn tất cả', en: 'Select all' },
+  'common.deselectAll': { vi: 'Bỏ chọn tất cả', en: 'Deselect all' },
   'common.reset': { vi: 'Đặt lại', en: 'Reset' },
   'common.noData': { vi: 'Chưa có dữ liệu', en: 'No data available' },
   'common.details': { vi: 'Xem chi tiết', en: 'View details' },
@@ -398,8 +400,8 @@ export const translations: Record<string, { vi: string; en: string }> = {
   // Calendar Page
   'calendar.title': { vi: 'Lịch tài nguyên dùng chung', en: 'Shared Resource Calendar' },
   'calendar.subtitle': { vi: 'Theo dõi booking và bảo trì trên toàn bộ phòng lab, thiết bị theo tháng hoặc dạng danh sách.', en: 'Track bookings and maintenance across all labs and equipment by month or list.' },
-  'calendar.createBooking': { vi: '+ Tạo booking', en: '+ Create Booking' },
-  'calendar.scheduleMaintenance': { vi: '+ Lên lịch bảo trì', en: '+ Schedule Maintenance' },
+  'calendar.createBooking': { vi: 'Tạo booking', en: 'Create Booking' },
+  'calendar.scheduleMaintenance': { vi: 'Lên lịch bảo trì', en: 'Schedule Maintenance' },
   'calendar.allLabs': { vi: 'Tất cả phòng', en: 'All Labs' },
   'calendar.allEquipments': { vi: 'Tất cả thiết bị', en: 'All Equipment' },
   'calendar.bookingAndMaintenance': { vi: 'Booking & bảo trì', en: 'Booking & Maintenance' },
@@ -663,6 +665,9 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'bookingForm.step1.equipmentsTitle': { vi: 'Thiết bị trong phòng', en: 'Available Equipment' },
   'bookingForm.step1.equipmentsSubtitle': { vi: 'Chọn một hoặc nhiều thiết bị sẵn sàng', en: 'Select one or more available equipment items' },
   'bookingForm.step1.selectedCount': { vi: 'đã chọn', en: 'selected' },
+  'bookingForm.step1.equipmentsInLabTitle': { vi: 'Danh sách thiết bị đi kèm', en: 'Included Equipment List' },
+  'bookingForm.step1.equipmentsInLabSubtitle': { vi: 'Danh sách thiết bị thuộc {name}. Tích chọn thiết bị nếu bạn có nhu cầu sử dụng.', en: 'Available equipment in {name}. Select the equipment you wish to use.' },
+  'bookingForm.step1.equipmentsUnit': { vi: 'thiết bị', en: 'equipment' },
   'bookingForm.step1.noEquipment': { vi: 'Không có thiết bị', en: 'No Equipment' },
   'bookingForm.step1.noEquipmentMsg': { vi: 'Phòng này chưa có thiết bị hoặc không thể tải dữ liệu.', en: 'This room has no available equipment or failed to load data.' },
 

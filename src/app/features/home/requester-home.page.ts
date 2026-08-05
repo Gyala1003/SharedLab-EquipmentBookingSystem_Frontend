@@ -100,18 +100,6 @@ interface ScheduleSlotEvent {
                   type="button"
                   class="rounded-lg px-3 py-1.5 transition"
                   [ngClass]="
-                    calendarMode() === 'Today'
-                      ? 'bg-white text-indigo-700 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                  "
-                  (click)="setCalendarMode('Today')"
-                >
-                  {{ 'home.today' | t }}
-                </button>
-                <button
-                  type="button"
-                  class="rounded-lg px-3 py-1.5 transition"
-                  [ngClass]="
                     calendarMode() === 'Day'
                       ? 'bg-white text-indigo-700 shadow-sm'
                       : 'text-slate-500 hover:text-slate-800'
@@ -131,18 +119,6 @@ interface ScheduleSlotEvent {
                   (click)="setCalendarMode('Week')"
                 >
                   {{ 'home.week' | t }}
-                </button>
-                <button
-                  type="button"
-                  class="rounded-lg px-3 py-1.5 transition"
-                  [ngClass]="
-                    calendarMode() === 'Month'
-                      ? 'bg-white text-indigo-700 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                  "
-                  (click)="setCalendarMode('Month')"
-                >
-                  {{ 'home.month' | t }}
                 </button>
               </div>
 
@@ -173,11 +149,11 @@ interface ScheduleSlotEvent {
           <div
             class="mt-2 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-inner [scrollbar-width:thin]"
           >
-            <table class="w-full min-w-[980px] border-collapse text-left text-xs">
+            <table class="w-full table-fixed border-collapse text-left text-xs">
               <thead>
                 <tr class="bg-[#1d4ed8] text-white">
                   <th
-                    class="border-r border-blue-500/30 px-3 py-3 font-extrabold whitespace-nowrap"
+                    class="w-28 border-r border-blue-500/30 px-3 py-3 font-extrabold whitespace-nowrap text-center"
                   >
                     {{ 'home.timeSlot' | t }}
                   </th>
@@ -542,7 +518,7 @@ export class RequesterHomePage implements OnInit {
   protected readonly notifications = signal<NotificationResponse[]>([])
   protected readonly calendarEvents = signal<CalendarEventResponse[]>([])
   protected readonly unreadCount = signal(0)
-  protected readonly calendarMode = signal<'Today' | 'Day' | 'Week' | 'Month'>('Month')
+  protected readonly calendarMode = signal<'Day' | 'Week'>('Week')
   protected readonly calendarFocus = signal(new Date())
 
   protected readonly violationSummary = signal<UserViolationSummaryResponse>({
@@ -609,18 +585,16 @@ export class RequesterHomePage implements OnInit {
     const mode = this.calendarMode()
 
     let startDate: Date
-    let colCount = 12
+    let colCount = 7
 
     if (mode === 'Day') {
       startDate = new Date(year, month, focus.getDate())
-      colCount = 7
-    } else if (mode === 'Week') {
+      colCount = 1
+    } else {
+      // 7 ngày trong tuần từ Thứ Hai
       const dayOfWeek = (focus.getDay() + 6) % 7
       startDate = new Date(year, month, focus.getDate() - dayOfWeek)
       colCount = 7
-    } else {
-      startDate = new Date(year, month, 1)
-      colCount = 12
     }
 
     return Array.from({ length: colCount }, (_, i) => {
@@ -795,19 +769,32 @@ export class RequesterHomePage implements OnInit {
     const from = new Date(focus.getFullYear(), focus.getMonth(), 1).toISOString()
     const to = new Date(focus.getFullYear(), focus.getMonth() + 1, 1).toISOString()
 
-    forkJoin({
-      bookings: this.workspace.bookingsByUser(user.userId).pipe(catchError(() => of([]))),
-      waitlists: this.workspace.waitlistsByUser(user.userId).pipe(catchError(() => of([]))),
-      notifications: this.workspace
-        .notifications(user.userId, 1, 10)
-        .pipe(catchError(() => of([]))),
-      unread: this.workspace
-        .unreadCount(user.userId)
-        .pipe(catchError(() => of({ userId: user.userId, unreadCount: 0 }))),
-      calendarEvents: this.api
-        .calendar(from, to)
-        .pipe(catchError(() => of([]))),
-      violations: this.workspace.violationSummary(user.userId).pipe(
+    this.workspace
+      .bookingsByUser(user.userId)
+      .pipe(catchError(() => of([])))
+      .subscribe((res) => {
+        this.bookings.set(res)
+        this.loading.set(false)
+      })
+
+    this.workspace
+      .waitlistsByUser(user.userId)
+      .pipe(catchError(() => of([])))
+      .subscribe((res) => this.waitlists.set(res))
+
+    this.workspace
+      .notifications(user.userId, 1, 10)
+      .pipe(catchError(() => of([])))
+      .subscribe((res) => this.notifications.set(res))
+
+    this.workspace
+      .unreadCount(user.userId)
+      .pipe(catchError(() => of({ userId: user.userId, unreadCount: 0 })))
+      .subscribe((res) => this.unreadCount.set(res.unreadCount))
+
+    this.workspace
+      .violationSummary(user.userId)
+      .pipe(
         catchError(() =>
           of({
             userId: user.userId,
@@ -820,28 +807,17 @@ export class RequesterHomePage implements OnInit {
             activeViolations: [],
           }),
         ),
-      ),
-    }).subscribe({
-      next: (result) => {
-        this.bookings.set(result.bookings)
-        this.waitlists.set(result.waitlists)
-        this.notifications.set(result.notifications)
-        this.unreadCount.set(result.unread.unreadCount)
-        this.calendarEvents.set(result.calendarEvents)
-        this.violationSummary.set(result.violations)
-        this.loading.set(false)
-      },
-      error: () => {
-        this.loading.set(false)
-      },
-    })
+      )
+      .subscribe((res) => this.violationSummary.set(res))
+
+    this.api
+      .calendar(from, to)
+      .pipe(catchError(() => of([])))
+      .subscribe((res) => this.calendarEvents.set(res))
   }
 
-  protected setCalendarMode(mode: 'Today' | 'Day' | 'Week' | 'Month'): void {
+  protected setCalendarMode(mode: 'Day' | 'Week'): void {
     this.calendarMode.set(mode)
-    if (mode === 'Today') {
-      this.calendarFocus.set(new Date())
-    }
   }
 
   protected shiftFocus(offset: number): void {
@@ -851,12 +827,10 @@ export class RequesterHomePage implements OnInit {
       const next = new Date(cur)
       next.setDate(cur.getDate() + offset)
       this.calendarFocus.set(next)
-    } else if (mode === 'Week') {
+    } else {
       const next = new Date(cur)
       next.setDate(cur.getDate() + offset * 7)
       this.calendarFocus.set(next)
-    } else {
-      this.calendarFocus.set(new Date(cur.getFullYear(), cur.getMonth() + offset, 1))
     }
     this.reloadCalendarData()
   }

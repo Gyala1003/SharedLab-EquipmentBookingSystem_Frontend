@@ -193,6 +193,8 @@
   },
   "common": {
     "error": "Đã có lỗi xảy ra",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "selectAll": "Chọn tất cả",
+    "deselectAll": "Bỏ chọn tất cả"
   }
 }

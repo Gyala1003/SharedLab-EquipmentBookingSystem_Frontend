@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { Observable, of } from 'rxjs'
-import { catchError } from 'rxjs/operators'
+import { catchError, shareReplay, tap } from 'rxjs/operators'
 import { env } from '../config/env'
 import type {
   AuditLogResponse,
@@ -84,8 +84,28 @@ export class SystemService {
   private readonly http = inject(HttpClient)
   private readonly base = env.apiBaseUrl
 
-  labs(): Observable<LabRoomResponse[]> {
-    return this.http.get<LabRoomResponse[]>(`${this.base}/LabRooms`)
+  private labsCache$?: Observable<LabRoomResponse[]>
+  private equipmentsCache$?: Observable<EquipmentResponse[]>
+
+  invalidateLabsCache(): void {
+    this.labsCache$ = undefined
+  }
+
+  invalidateEquipmentsCache(): void {
+    this.equipmentsCache$ = undefined
+  }
+
+  labs(forceRefresh = false): Observable<LabRoomResponse[]> {
+    if (!this.labsCache$ || forceRefresh) {
+      this.labsCache$ = this.http.get<LabRoomResponse[]>(`${this.base}/LabRooms`).pipe(
+        shareReplay({ bufferSize: 1, refCount: false }),
+        catchError((err) => {
+          this.labsCache$ = undefined
+          throw err
+        }),
+      )
+    }
+    return this.labsCache$
   }
 
   searchLabs(query: LabSearch): Observable<PagedResponse<LabRoomResponse>> {
@@ -97,23 +117,40 @@ export class SystemService {
   }
 
   createLab(payload: { labName: string; roomCode: string; location: string; capacity: number; description: string | null; imageUrl: string | null; usageGuideline: string | null; managerId: number }): Observable<LabRoomDetailResponse> {
-    return this.http.post<LabRoomDetailResponse>(`${this.base}/LabRooms`, payload)
+    return this.http.post<LabRoomDetailResponse>(`${this.base}/LabRooms`, payload).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
   }
 
   updateLab(id: number, payload: { labName: string; location: string; capacity: number; description: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<void> {
-    return this.http.put<void>(`${this.base}/LabRooms/${id}`, payload)
+    return this.http.put<void>(`${this.base}/LabRooms/${id}`, payload).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
   }
 
   changeLabManager(id: number, managerId: number): Observable<void> {
-    return this.http.put<void>(`${this.base}/LabRooms/${id}/manager`, { managerId })
+    return this.http.put<void>(`${this.base}/LabRooms/${id}/manager`, { managerId }).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
   }
 
   deleteLab(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.base}/LabRooms/${id}`)
+    return this.http.delete<void>(`${this.base}/LabRooms/${id}`).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
   }
 
-  equipments(): Observable<EquipmentResponse[]> {
-    return this.http.get<EquipmentResponse[]>(`${this.base}/Equipments`)
+  equipments(forceRefresh = false): Observable<EquipmentResponse[]> {
+    if (!this.equipmentsCache$ || forceRefresh) {
+      this.equipmentsCache$ = this.http.get<EquipmentResponse[]>(`${this.base}/Equipments`).pipe(
+        shareReplay({ bufferSize: 1, refCount: false }),
+        catchError((err) => {
+          this.equipmentsCache$ = undefined
+          throw err
+        }),
+      )
+    }
+    return this.equipmentsCache$
   }
 
   searchEquipments(query: EquipmentSearch): Observable<PagedResponse<EquipmentResponse>> {
@@ -129,15 +166,21 @@ export class SystemService {
   }
 
   createEquipment(payload: { labId: number; equipmentName: string; modelSpecs: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<EquipmentDetailResponse> {
-    return this.http.post<EquipmentDetailResponse>(`${this.base}/Equipments`, payload)
+    return this.http.post<EquipmentDetailResponse>(`${this.base}/Equipments`, payload).pipe(
+      tap(() => this.invalidateEquipmentsCache()),
+    )
   }
 
   updateEquipment(id: number, payload: { labId: number; equipmentName: string; modelSpecs: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<void> {
-    return this.http.put<void>(`${this.base}/Equipments/${id}`, payload)
+    return this.http.put<void>(`${this.base}/Equipments/${id}`, payload).pipe(
+      tap(() => this.invalidateEquipmentsCache()),
+    )
   }
 
   deleteEquipment(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.base}/Equipments/${id}`)
+    return this.http.delete<void>(`${this.base}/Equipments/${id}`).pipe(
+      tap(() => this.invalidateEquipmentsCache()),
+    )
   }
 
   calendar(from: string, to: string, labId?: number, equipmentId?: number): Observable<CalendarEventResponse[]> {

@@ -1,52 +1,65 @@
 import { Pipe, PipeTransform, inject } from '@angular/core'
-import { LanguageStore } from './language.store'
+import { LanguageStore, type SupportedLocale } from './language.store'
 import { translations } from './translations'
+
+// Build a fast O(1) normalized lookup map once
+const normalizedTranslationMap = new Map<string, { vi?: string; en?: string }>()
+for (const [k, v] of Object.entries(translations)) {
+  const normKey = k.trim().normalize('NFC').toLowerCase()
+  if (!normalizedTranslationMap.has(normKey)) {
+    normalizedTranslationMap.set(normKey, v)
+  }
+}
+
+// Memoization cache for instant translation retrieval
+const translationCache = new Map<string, string>()
 
 export function findTranslation(key: string, lang: 'vi' | 'en'): string | null {
   if (!key) return null
-  const raw = key.trim()
+  const cacheKey = `${lang}:${key}`
+  const cached = translationCache.get(cacheKey)
+  if (cached !== undefined) {
+    return cached
+  }
 
-  // Extract optional (+N) suffix for aggregated items
+  const raw = key.trim()
   const matchExtra = raw.match(/\s*\(\+(\d+)\)$/)
   const suffix = matchExtra ? matchExtra[0] : ''
   const cleanKey = matchExtra ? raw.replace(/\s*\(\+(\d+)\)$/, '').trim() : raw
 
   const nfc = cleanKey.normalize('NFC')
-  const nfd = cleanKey.normalize('NFD')
+  const nfcLower = nfc.toLowerCase()
 
-  // Direct lookup
-  let entry = translations[cleanKey] || translations[nfc] || translations[nfd]
+  // 1. Direct lookup O(1)
+  let entry: { vi?: string; en?: string } | undefined = translations[cleanKey] || translations[nfc]
+  if (!entry) {
+    // 2. Fast normalized map lookup O(1)
+    entry = normalizedTranslationMap.get(nfcLower)
+  }
+
+  let result: string | null = null
+
   if (entry) {
     const text = entry[lang] || entry.vi || cleanKey
-    return text + suffix
+    result = text + suffix
+  } else if (lang === 'en') {
+    if (nfcLower.includes('mạng') || nfcLower.includes('hạ tầng')) result = 'Network & Infrastructure Lab' + suffix
+    else if (nfcLower.includes('điện tử') || nfcLower.includes('viễn thông')) result = 'Electronics & Telecom Lab' + suffix
+    else if (nfcLower.includes('sinh học')) result = 'Biology Laboratory' + suffix
+    else if (nfcLower.includes('hóa học')) result = 'Chemistry Laboratory' + suffix
+    else if (nfcLower.includes('robot') || nfcLower.includes('tự động hóa')) result = 'Robotics & Automation Lab' + suffix
+    else if (nfcLower.includes('ai') || nfcLower.includes('khoa học dữ liệu')) result = 'AI & Data Science Lab' + suffix
+    else if (nfcLower.includes('iot') || nfcLower.includes('nhúng')) result = 'IoT & Embedded Systems Lab' + suffix
+    else if (nfcLower.includes('vật lý') || nfcLower.includes('quang học')) result = 'Physics & Optics Lab' + suffix
+    else if (nfcLower.includes('cơ khí') || nfcLower.includes('in 3d')) result = 'Mechanical & 3D Printing Lab' + suffix
+    else if (nfcLower.includes('an toàn thông tin')) result = 'Information Security Lab' + suffix
   }
 
-  // Case-insensitive & NFC-normalized dictionary search
-  const nfcLower = nfc.toLowerCase()
-  for (const dictKey of Object.keys(translations)) {
-    const dictNfc = dictKey.trim().normalize('NFC').toLowerCase()
-    if (dictNfc === nfcLower) {
-      entry = translations[dictKey]
-      const text = entry[lang] || entry.vi || cleanKey
-      return text + suffix
-    }
+  if (result !== null) {
+    translationCache.set(cacheKey, result)
   }
 
-  // Fallback for Lab room names containing keywords when lang === 'en'
-  if (lang === 'en') {
-    if (nfcLower.includes('mạng') || nfcLower.includes('hạ tầng')) return 'Network & Infrastructure Lab' + suffix
-    if (nfcLower.includes('điện tử') || nfcLower.includes('viễn thông')) return 'Electronics & Telecom Lab' + suffix
-    if (nfcLower.includes('sinh học')) return 'Biology Laboratory' + suffix
-    if (nfcLower.includes('hóa học')) return 'Chemistry Laboratory' + suffix
-    if (nfcLower.includes('robot') || nfcLower.includes('tự động hóa')) return 'Robotics & Automation Lab' + suffix
-    if (nfcLower.includes('ai') || nfcLower.includes('khoa học dữ liệu')) return 'AI & Data Science Lab' + suffix
-    if (nfcLower.includes('iot') || nfcLower.includes('nhúng')) return 'IoT & Embedded Systems Lab' + suffix
-    if (nfcLower.includes('vật lý') || nfcLower.includes('quang học')) return 'Physics & Optics Lab' + suffix
-    if (nfcLower.includes('cơ khí') || nfcLower.includes('in 3d')) return 'Mechanical & 3D Printing Lab' + suffix
-    if (nfcLower.includes('an toàn thông tin')) return 'Information Security Lab' + suffix
-  }
-
-  return null
+  return result
 }
 
 export function translateDynamicLocation(text: string, lang: 'vi' | 'en' = 'en'): string {
@@ -74,9 +87,21 @@ export function translateDynamicLocation(text: string, lang: 'vi' | 'en' = 'en')
 export class TranslatePipe implements PipeTransform {
   private readonly languageStore = inject(LanguageStore)
 
-  transform(key: string | null | undefined, params?: Record<string, string | number>): string {
+  transform(
+    key: string | null | undefined,
+    langOrParams?: SupportedLocale | Record<string, string | number>,
+    params?: Record<string, string | number>,
+  ): string {
     if (!key) return ''
-    const lang = this.languageStore.lang()
+
+    let lang: SupportedLocale = this.languageStore.lang()
+    let actualParams: Record<string, string | number> | undefined = params
+
+    if (typeof langOrParams === 'string') {
+      lang = langOrParams as SupportedLocale
+    } else if (typeof langOrParams === 'object' && langOrParams !== null) {
+      actualParams = langOrParams
+    }
 
     let result = findTranslation(key, lang)
 
@@ -84,8 +109,8 @@ export class TranslatePipe implements PipeTransform {
       result = translateDynamicLocation(key, lang)
     }
 
-    if (params && result) {
-      for (const [k, v] of Object.entries(params)) {
+    if (actualParams && result) {
+      for (const [k, v] of Object.entries(actualParams)) {
         result = result.replace(new RegExp(`\\{+${k}\\}+`, 'g'), String(v))
       }
     }
