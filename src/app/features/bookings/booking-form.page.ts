@@ -453,7 +453,7 @@ export interface SlotWithStatus extends TimeSlot {
                       @if (selectedSlotRanges().length > 1) {
                         <p class="mt-2.5 text-[11px] font-bold text-violet-700 leading-5">
                           <app-icon name="sparkles" [size]="14" class="inline-block mr-1 text-violet-600" />
-                          Khung giờ không liên tục: Hệ thống sẽ tự động tạo {{ selectedSlotRanges().length }} đơn booking riêng biệt (mỗi đơn đóng/mở check-in theo đúng giờ của khung đó).
+                          {{ 'bookingForm.step2.nonContinuousNotice' | t: { count: selectedSlotRanges().length } }}
                         </p>
                       }
                     </div>
@@ -958,7 +958,7 @@ export class BookingFormPage implements OnInit {
 
   protected priorityFor(purpose: string): number { return this.rules().find((rule) => rule.purposeType === purpose)?.priorityLevel ?? this.purposesList().findIndex((item) => item.key === purpose) + 1 }
   protected purposeKey(): string { return this.purposesList().find((item) => item.value === this.purposeType)?.key ?? 'Other' }
-  protected purposeLabel(): string { return labelOf('purpose', this.purposeKey()) }
+  protected purposeLabel(): string { return labelOf('purpose', this.purposeKey(), this.languageStore.lang()) }
 
   protected submit(): void {
     if (!this.validSlotSelection() || !this.selected().length || !this.purposeDescription.trim()) {

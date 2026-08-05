@@ -147,12 +147,18 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
   },
 }
 
-export function labelOf(domain: string, value: ApiEnum | null | undefined, lang: 'vi' | 'en' = 'vi'): string {
+export function labelOf(domain: string, value: ApiEnum | null | undefined, lang?: 'vi' | 'en'): string {
   if (value === null || value === undefined || value === '') return '—'
   const key = String(value)
   const entry = maps[domain]?.[key]
   if (!entry) return key
-  return entry[lang] ?? entry.vi ?? key
+  const activeLang =
+    lang ??
+    (typeof localStorage !== 'undefined'
+      ? ((localStorage.getItem('app.lang') || localStorage.getItem('app.locale')) as 'vi' | 'en')
+      : null) ??
+    (typeof document !== 'undefined' && document.documentElement?.lang === 'en' ? 'en' : 'vi')
+  return entry[activeLang] ?? entry.en ?? entry.vi ?? key
 }
 
 export function toneOf(domain: string, value: ApiEnum | null | undefined): string {

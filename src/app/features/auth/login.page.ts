@@ -22,7 +22,7 @@ export class LoginPage {
   @ViewChild('passwordInput') private readonly passwordInput?: ElementRef<HTMLInputElement>
 
   protected readonly showPassword = signal(false)
-  protected readonly rememberMe = signal(true)
+  protected readonly rememberMe = signal(false)
   protected readonly errorKind = signal<LoginErrorKind>(null)
   protected readonly showSuccess = signal(false)
 

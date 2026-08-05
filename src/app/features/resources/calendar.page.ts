@@ -158,10 +158,14 @@ export class CalendarPage implements OnInit {
   protected load(): void {
     this.loading.set(true)
     const focus = this.focus()
-    const from = new Date(focus.getFullYear(), focus.getMonth(), 1)
-    const to = new Date(focus.getFullYear(), focus.getMonth() + 1, 1)
+    const first = new Date(focus.getFullYear(), focus.getMonth(), 1)
+    const mondayIndex = (first.getDay() + 6) % 7
+    const start = new Date(first)
+    start.setDate(first.getDate() - mondayIndex)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 42)
     this.api
-      .calendar(from.toISOString(), to.toISOString(), this.equipmentId ? undefined : (this.labId ?? undefined), this.equipmentId ?? undefined)
+      .calendar(start.toISOString(), end.toISOString(), this.equipmentId ? undefined : (this.labId ?? undefined), this.equipmentId ?? undefined)
       .pipe(
         timeout(3000),
         catchError(() => of([])),

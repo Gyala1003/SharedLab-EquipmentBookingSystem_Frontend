@@ -2,6 +2,21 @@ import { Component, input } from '@angular/core'
 
 @Component({
   selector: 'app-icon',
+  standalone: true,
+  styles: [
+    `
+      :host {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+      :host svg {
+        display: block;
+      }
+    `,
+  ],
   template: `
     <svg
       [attr.width]="size()"
