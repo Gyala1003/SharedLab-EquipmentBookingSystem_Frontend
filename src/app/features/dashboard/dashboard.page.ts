@@ -73,7 +73,7 @@ const EMPTY_DASHBOARD: DashboardResponse = {
           </div>
           <h1 class="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">{{ 'dashboard.title' | t }}</h1>
           <p class="mt-2 text-sm text-slate-500">
-            {{ (store.isAdmin() ? 'dashboard.subtitleAdmin' : 'dashboard.subtitleManager') | t }} • {{ 'common.from' | t }}...
+            {{ (store.isAdmin() ? 'dashboard.subtitleAdmin' : 'dashboard.subtitleManager') | t }} {{ 'common.from' | t }}...
           </p>
         </div>
 

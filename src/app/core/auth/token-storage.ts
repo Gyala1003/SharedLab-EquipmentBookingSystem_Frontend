@@ -26,7 +26,7 @@ export class TokenStorage {
     return this.isRemembered && Boolean(localStorage.getItem(this.ACCESS) || localStorage.getItem(this.REFRESH))
   }
 
-  set(access: string, refresh?: string, persistent = false): void {
+  set(access: string, refresh?: string, persistent: boolean = this.isRemembered): void {
     const target = persistent ? localStorage : sessionStorage
     const other = persistent ? sessionStorage : localStorage
 

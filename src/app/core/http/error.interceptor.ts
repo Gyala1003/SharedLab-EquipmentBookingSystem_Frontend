@@ -36,25 +36,21 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       const refreshToken = tokens.refresh
 
       if (error.status === 401 && !isAuthEndpoint) {
-        // 1. Check if another concurrent request ALREADY refreshed the token while this request was waiting/failing
         const reqAuthHeader = req.headers.get('Authorization')
         const reqToken = reqAuthHeader?.replace(/^Bearer\s+/i, '')
 
         if (currentToken && reqToken && reqToken !== currentToken) {
-          // Token in storage has ALREADY been updated! Simply retry with the updated access token without calling refresh API.
           return next(
             req.clone({ setHeaders: { Authorization: `Bearer ${currentToken}` } }),
           )
         }
 
-        // 2. If no refresh token is available, clear session and go to login
         if (!refreshToken) {
           authStore.clear()
           void router.navigate(['/login'])
           return throwError(() => normalize(error))
         }
 
-        // 3. Handle token refresh with locking mechanism
         if (!isRefreshing) {
           isRefreshing = true
           refreshTokenSubject.next(null)
@@ -74,6 +70,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
               catchError((refreshError: HttpErrorResponse) => {
                 isRefreshing = false
                 refreshTokenSubject.next(null)
+                if (refreshError.status === 0 || refreshError.status >= 500) {
+                  return throwError(() => normalize(refreshError))
+                }
                 authStore.clear()
                 void router.navigate(['/login'])
                 return throwError(() => normalize(refreshError))
@@ -83,7 +82,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
               }),
             )
         } else {
-          // Wait until refreshTokenSubject emits non-null fresh token
           return refreshTokenSubject.pipe(
             filter((token): token is string => token !== null),
             take(1),
@@ -95,7 +93,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           )
         }
       }
-
       const normalizedErr = normalize(error)
 
       if (error.status === 403) {
@@ -109,7 +106,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         })
       }
 
-      // Catch Backend Internal Server Error (5xx) or Connection Failure (0)
       if (error.status >= 500 || error.status === 0) {
         errorState.setError({
           status: error.status || 500,

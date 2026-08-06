@@ -2,6 +2,7 @@ import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { AuthStore } from '../../core/auth/auth.store'
+import type { LoginPayload } from '../../core/auth/auth.types'
 import { landingPath } from '../../core/auth/auth.guard'
 import { ApiError } from '../../core/http/api-error'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
@@ -27,7 +28,7 @@ export class LoginPage {
   protected readonly showSuccess = signal(false)
 
   protected readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email, Validators.maxLength(100)]],
+    email: ['', [Validators.required, Validators.maxLength(100)]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   })
 
@@ -42,9 +43,8 @@ export class LoginPage {
   protected emailErrorKey(): string | null {
     const control = this.form.controls.email
     if (!control.touched || control.valid) return null
-    if (control.hasError('required')) return 'auth.validation.emailRequired'
-    if (control.hasError('email') || control.hasError('maxlength'))
-      return 'auth.validation.emailInvalid'
+    if (control.hasError('required')) return 'auth.validation.identifierRequired'
+    if (control.hasError('maxlength')) return 'auth.validation.identifierInvalid'
     return null
   }
 
@@ -65,10 +65,17 @@ export class LoginPage {
     this.errorKind.set(null)
     this.showSuccess.set(false)
 
+    const identifier = this.form.controls.email.getRawValue().trim()
+    const payload: LoginPayload = {
+      email: identifier,
+      username: identifier,
+      password: this.form.controls.password.getRawValue(),
+    }
+
     let destination = '/'
 
     try {
-      const user = await this.store.login(this.form.getRawValue(), this.rememberMe())
+      const user = await this.store.login(payload, this.rememberMe())
       this.showSuccess.set(true)
 
       const redirect = this.route.snapshot.queryParamMap.get('redirect')
