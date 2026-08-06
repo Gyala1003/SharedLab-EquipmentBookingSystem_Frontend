@@ -46,26 +46,6 @@
 
       <div>
         <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-900">
-          {{ 'footer.quickLinks' | t }}
-        </h3>
-        <ul class="mt-4 flex flex-col gap-3">
-          @for (link of quickLinks; track link.fragment) {
-            <li>
-              <!-- THÊM DẤU < a ... > VÀO ĐÂY -->
-              <a
-                routerLink="/"
-                [fragment]="link.fragment"
-                class="text-sm text-gray-600 transition-colors hover:text-blue-600"
-              >
-                {{ link.label | t }}
-              </a>
-            </li>
-          }
-        </ul>
-      </div>
-
-      <div>
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-900">
           {{ 'footer.contact' | t }}
         </h3>
         <ul class="mt-4 flex flex-col gap-3 text-sm text-gray-600">

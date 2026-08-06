@@ -4,6 +4,17 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'app.tagline': { vi: 'Hệ thống Quản lý Lab', en: 'Lab Booking System' },
   'app.workspace': { vi: 'Shared Lab Workspace', en: 'Shared Lab Workspace' },
 
+ // Footer Translation Keys
+  'footer.description': { 
+    vi: 'Hệ thống quản lý và đặt lịch phòng thí nghiệm, thiết bị dùng chung hiệu quả, minh bạch và tối ưu tài nguyên.', 
+    en: 'Efficient, transparent, and resource-optimized lab and shared equipment booking management system.' 
+  },
+  'footer.contact': { vi: 'Thông tin liên hệ', en: 'Contact Us' },
+  'footer.address': { vi: 'Số 123 ABC, Phường DE, Quận FG, Hà Nội', en: '123 ABC Street, DE Ward, FG District, Hanoi' },
+  'footer.phone': { vi: '+84 (024) 1234 5678', en: '+84 (024) 1234 5678' },
+  'footer.email': { vi: 'contact@labbooking.vn', en: 'contact@labbooking.vn' },
+  'footer.copyright': { vi: 'Tất cả các quyền được bảo lưu.', en: 'All rights reserved.' },
+
   // Navigation Groups
   'nav.groups.overview': { vi: 'TỔNG QUAN', en: 'OVERVIEW' },
   'nav.groups.resources': { vi: 'TÀI NGUYÊN', en: 'RESOURCES' },
