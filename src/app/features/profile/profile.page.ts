@@ -47,14 +47,6 @@ import { labelOf } from '../../shared/utils/presentation'
                 <div><label class="field-label">{{ 'profile.fullName' | t }}</label><input class="input-shell" type="text" [value]="user.fullName" readonly /></div>
                 <div><label class="field-label">{{ 'profile.username' | t }}</label><input class="input-shell" type="text" [value]="user.username" readonly /></div>
                 <div><label class="field-label">{{ 'profile.email' | t }}</label><input class="input-shell" type="email" [value]="user.email" readonly /></div>
-                <div>
-                  <label class="field-label">{{ 'profile.createdAt' | t }}</label>
-                  <div class="input-shell flex items-center gap-2 text-slate-400"><app-icon name="calendar" [size]="16" /> {{ 'profile.notUpdated' | t }}</div>
-                </div>
-                <div>
-                  <label class="field-label">{{ 'profile.address' | t }}</label>
-                  <div class="input-shell flex items-center gap-2 text-slate-400"><app-icon name="map-pin" [size]="16" /> {{ 'profile.notUpdated' | t }}</div>
-                </div>
                 <div><label class="field-label">{{ 'profile.department' | t }}</label><input class="input-shell" type="text" [value]="user.departmentName || ('profile.notUpdated' | t)" readonly /></div>
               </div>
 
@@ -250,7 +242,6 @@ export class ProfilePage {
     departmentName: string | null
   }): Array<{ label: string; value: string; icon: string }> {
     return [
-      { label: this.languageStore.t('profile.userId'), value: `#${user.userId}`, icon: 'user' },
       { label: this.languageStore.t('profile.fullName'), value: user.fullName, icon: 'user' },
       { label: this.languageStore.t('profile.username'), value: user.username, icon: 'shield' },
       { label: this.languageStore.t('profile.email'), value: user.email, icon: 'mail' },

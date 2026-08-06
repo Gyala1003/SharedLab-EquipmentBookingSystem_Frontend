@@ -40,7 +40,7 @@ export class AuthStore {
   readonly logoutStatus = this._logoutStatus.asReadonly()
 
   /** Trả về AuthUser để trang Login điều hướng theo role ngay sau khi đăng nhập. */
-  async login(payload: LoginPayload, remember = true): Promise<AuthUser> {
+  async login(payload: LoginPayload, remember = false): Promise<AuthUser> {
     this._status.set('loading')
     this._error.set(null)
     try {
@@ -67,7 +67,7 @@ export class AuthStore {
       const user = await firstValueFrom(this.auth.me())
       this.setUser(user, this.tokens.isPersistent)
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
+      if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
         this.clear()
       } else if (!cachedUser) {
         this.clear()
@@ -127,8 +127,11 @@ export class AuthStore {
       this.clearStorage()
       return null
     }
-    const raw = localStorage.getItem(USER_KEY) ?? sessionStorage.getItem(USER_KEY)
-    if (!raw || raw === 'undefined' || raw === 'null') return null
+    const raw = sessionStorage.getItem(USER_KEY) ?? (this.tokens.isRemembered ? localStorage.getItem(USER_KEY) : null)
+    if (!raw || raw === 'undefined' || raw === 'null') {
+      this.clearStorage()
+      return null
+    }
     try {
       return JSON.parse(raw) as AuthUser
     } catch {

@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { Observable, of } from 'rxjs'
-import { catchError } from 'rxjs/operators'
+import { catchError, shareReplay, tap } from 'rxjs/operators'
 import { env } from '../config/env'
 import type {
   AuditLogResponse,
@@ -79,13 +79,82 @@ export interface MaintenancePayload {
   recurrenceEndDate: string | null
 }
 
+// Cache TTL constants
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const CACHE_KEY_LABS = 'sbs_cache_labs'
+const CACHE_KEY_EQUIPMENTS = 'sbs_cache_equipments'
+
+interface CacheEntry<T> {
+  data: T
+  expiry: number
+}
+
+function readLocalCache<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const entry: CacheEntry<T> = JSON.parse(raw)
+    if (Date.now() > entry.expiry) { localStorage.removeItem(key); return null }
+    return entry.data
+  } catch {
+    return null
+  }
+}
+
+function writeLocalCache<T>(key: string, data: T): void {
+  try {
+    const entry: CacheEntry<T> = { data, expiry: Date.now() + CACHE_TTL_MS }
+    localStorage.setItem(key, JSON.stringify(entry))
+  } catch {
+    // localStorage quota exceeded or unavailable — silently ignore
+  }
+}
+
+function clearLocalCache(key: string): void {
+  try { localStorage.removeItem(key) } catch { /* ignore */ }
+}
+
 @Injectable({ providedIn: 'root' })
 export class SystemService {
   private readonly http = inject(HttpClient)
   private readonly base = env.apiBaseUrl
 
-  labs(): Observable<LabRoomResponse[]> {
-    return this.http.get<LabRoomResponse[]>(`${this.base}/LabRooms`)
+  private labsCache$?: Observable<LabRoomResponse[]>
+  private equipmentsCache$?: Observable<EquipmentResponse[]>
+
+  invalidateLabsCache(): void {
+    this.labsCache$ = undefined
+    clearLocalCache(CACHE_KEY_LABS)
+  }
+
+  invalidateEquipmentsCache(): void {
+    this.equipmentsCache$ = undefined
+    clearLocalCache(CACHE_KEY_EQUIPMENTS)
+  }
+
+  labs(forceRefresh = false): Observable<LabRoomResponse[]> {
+    // Layer 1: in-memory shareReplay (fastest, same session)
+    if (this.labsCache$ && !forceRefresh) return this.labsCache$
+
+    // Layer 2: localStorage (survives F5, TTL 5 min)
+    if (!forceRefresh) {
+      const cached = readLocalCache<LabRoomResponse[]>(CACHE_KEY_LABS)
+      if (cached) {
+        this.labsCache$ = of(cached).pipe(shareReplay({ bufferSize: 1, refCount: false }))
+        return this.labsCache$
+      }
+    }
+
+    // Layer 3: HTTP fetch
+    this.labsCache$ = this.http.get<LabRoomResponse[]>(`${this.base}/LabRooms`).pipe(
+      tap((data) => writeLocalCache(CACHE_KEY_LABS, data)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((err) => {
+        this.labsCache$ = undefined
+        throw err
+      }),
+    )
+    return this.labsCache$
   }
 
   searchLabs(query: LabSearch): Observable<PagedResponse<LabRoomResponse>> {
@@ -97,23 +166,52 @@ export class SystemService {
   }
 
   createLab(payload: { labName: string; roomCode: string; location: string; capacity: number; description: string | null; imageUrl: string | null; usageGuideline: string | null; managerId: number }): Observable<LabRoomDetailResponse> {
-    return this.http.post<LabRoomDetailResponse>(`${this.base}/LabRooms`, payload)
+    return this.http.post<LabRoomDetailResponse>(`${this.base}/LabRooms`, payload).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
   }
 
   updateLab(id: number, payload: { labName: string; location: string; capacity: number; description: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<void> {
-    return this.http.put<void>(`${this.base}/LabRooms/${id}`, payload)
+    return this.http.put<void>(`${this.base}/LabRooms/${id}`, payload).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
   }
 
   changeLabManager(id: number, managerId: number): Observable<void> {
-    return this.http.put<void>(`${this.base}/LabRooms/${id}/manager`, { managerId })
+    return this.http.put<void>(`${this.base}/LabRooms/${id}/manager`, { managerId }).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
   }
 
   deleteLab(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.base}/LabRooms/${id}`)
+    return this.http.delete<void>(`${this.base}/LabRooms/${id}`).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
   }
 
-  equipments(): Observable<EquipmentResponse[]> {
-    return this.http.get<EquipmentResponse[]>(`${this.base}/Equipments`)
+  equipments(forceRefresh = false): Observable<EquipmentResponse[]> {
+    // Layer 1: in-memory shareReplay (fastest, same session)
+    if (this.equipmentsCache$ && !forceRefresh) return this.equipmentsCache$
+
+    // Layer 2: localStorage (survives F5, TTL 5 min)
+    if (!forceRefresh) {
+      const cached = readLocalCache<EquipmentResponse[]>(CACHE_KEY_EQUIPMENTS)
+      if (cached) {
+        this.equipmentsCache$ = of(cached).pipe(shareReplay({ bufferSize: 1, refCount: false }))
+        return this.equipmentsCache$
+      }
+    }
+
+    // Layer 3: HTTP fetch
+    this.equipmentsCache$ = this.http.get<EquipmentResponse[]>(`${this.base}/Equipments`).pipe(
+      tap((data) => writeLocalCache(CACHE_KEY_EQUIPMENTS, data)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((err) => {
+        this.equipmentsCache$ = undefined
+        throw err
+      }),
+    )
+    return this.equipmentsCache$
   }
 
   searchEquipments(query: EquipmentSearch): Observable<PagedResponse<EquipmentResponse>> {
@@ -129,15 +227,21 @@ export class SystemService {
   }
 
   createEquipment(payload: { labId: number; equipmentName: string; modelSpecs: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<EquipmentDetailResponse> {
-    return this.http.post<EquipmentDetailResponse>(`${this.base}/Equipments`, payload)
+    return this.http.post<EquipmentDetailResponse>(`${this.base}/Equipments`, payload).pipe(
+      tap(() => this.invalidateEquipmentsCache()),
+    )
   }
 
   updateEquipment(id: number, payload: { labId: number; equipmentName: string; modelSpecs: string | null; imageUrl: string | null; usageGuideline: string | null }): Observable<void> {
-    return this.http.put<void>(`${this.base}/Equipments/${id}`, payload)
+    return this.http.put<void>(`${this.base}/Equipments/${id}`, payload).pipe(
+      tap(() => this.invalidateEquipmentsCache()),
+    )
   }
 
   deleteEquipment(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.base}/Equipments/${id}`)
+    return this.http.delete<void>(`${this.base}/Equipments/${id}`).pipe(
+      tap(() => this.invalidateEquipmentsCache()),
+    )
   }
 
   calendar(from: string, to: string, labId?: number, equipmentId?: number): Observable<CalendarEventResponse[]> {

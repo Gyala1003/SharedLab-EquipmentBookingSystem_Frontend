@@ -1,7 +1,7 @@
 import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http'
 import { inject } from '@angular/core'
 import { Router } from '@angular/router'
-import { catchError, switchMap, throwError } from 'rxjs'
+import { catchError, retry, switchMap, throwError, timer } from 'rxjs'
 import { TokenStorage } from '../auth/token-storage'
 import type { AuthTokens } from '../auth/auth.types'
 import { env } from '../config/env'
@@ -17,6 +17,16 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const http = new HttpClient(inject(HttpBackend))
 
   return next(req).pipe(
+    retry({
+      count: 2,
+      delay: (error: any, retryCount: number) => {
+        const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password)$/i.test(req.url)
+        if (!isAuthEndpoint && (error?.status >= 500 || error?.status === 0) && retryCount <= 2) {
+          return timer(retryCount * 350)
+        }
+        return throwError(() => error)
+      },
+    }),
     catchError((error: HttpErrorResponse) => {
       const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password)$/i.test(req.url)
       const refreshToken = tokens.refresh
@@ -66,7 +76,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           timestamp: new Date(),
           details: normalizedErr.fieldErrors,
         })
-        void router.navigate(['/error'])
       }
 
       return throwError(() => normalizedErr)

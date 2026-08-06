@@ -30,6 +30,7 @@
       "title": "Book shared labs and equipment without the scheduling conflicts",
       "description": "Manage lab room and equipment bookings across your entire organization. Reduce scheduling conflicts, track equipment status in real time, and keep every operation transparent.",
       "ctaPrimary": "Log in now",
+      "ctaWorkspace": "Go to Workspace",
       "ctaSecondary": "Learn more",
       "mockup": {
         "title": "Today's schedule",
@@ -192,6 +193,8 @@
   },
   "common": {
     "error": "Something went wrong",
-    "retry": "Retry"
+    "retry": "Retry",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all"
   }
 }

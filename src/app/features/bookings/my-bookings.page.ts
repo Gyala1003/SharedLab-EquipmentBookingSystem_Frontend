@@ -2,8 +2,8 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { EMPTY, forkJoin, of, timeout } from 'rxjs'
-import { catchError } from 'rxjs/operators'
+import { EMPTY, forkJoin, from, of, timeout } from 'rxjs'
+import { catchError, mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingItemResponse, BookingResponse, UsageLogResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -543,11 +543,20 @@ export class MyBookingsPage implements OnInit {
 
   protected openDetail(booking: BookingResponse | BookingDetailResponse): void {
     this.currentBookingId = booking.bookingId
-    this.detailBooking.set(null)
-    this.detailLoading.set(true)
     this.detailAccessDenied.set(false)
     this.detailErrorMessage.set('')
     this.detailOpen.set(true)
+
+    // Nếu đã có thông tin chi tiết trong cache detailsMap, sử dụng ngay lập tức
+    const cached = this.detailsMap().get(booking.bookingId)
+    if (cached) {
+      this.detailBooking.set(cached)
+      this.detailLoading.set(false)
+      return
+    }
+
+    this.detailBooking.set(null)
+    this.detailLoading.set(true)
 
     this.api
       .booking(booking.bookingId)
@@ -556,6 +565,9 @@ export class MyBookingsPage implements OnInit {
         next: (detail) => {
           this.detailBooking.set(detail)
           this.detailLoading.set(false)
+          if (detail) {
+            this.detailsMap.update((map) => new Map(map).set(detail.bookingId, detail))
+          }
         },
         error: (err: any) => {
           this.detailLoading.set(false)

@@ -7,6 +7,7 @@ import { BookingReminderService } from '../../core/api/booking-reminder.service'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse, UsageLogResponse } from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
+import { landingPath } from '../../core/auth/auth.guard'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
@@ -63,17 +64,24 @@ interface NavGroup {
         <div
           class="flex h-20 shrink-0 items-center gap-3 border-b border-blue-100/80 bg-white/60 px-5 backdrop-blur-md"
         >
-          <div
-            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white shadow-lg shadow-blue-600/30"
+          <a
+            [routerLink]="homeLink()"
+            class="group flex items-center gap-3 min-w-0 flex-1 transition hover:opacity-85 cursor-pointer"
+            (click)="mobileOpen.set(false)"
+            title="{{ 'nav.items.home' | t }}"
           >
-            <app-icon name="flask" [size]="24" />
-          </div>
-          <div class="min-w-0">
-            <p class="text-[10px] font-black tracking-[0.24em] text-blue-700 uppercase">
-              {{ 'app.name' | t }}
-            </p>
-            <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
-          </div>
+            <div
+              class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white shadow-lg shadow-blue-600/30 transition group-hover:scale-105"
+            >
+              <app-icon name="flask" [size]="24" />
+            </div>
+            <div class="min-w-0">
+              <p class="text-[10px] font-black tracking-[0.24em] text-blue-700 uppercase">
+                {{ 'app.name' | t }}
+              </p>
+              <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
+            </div>
+          </a>
           <button
             type="button"
             class="ml-auto rounded-xl p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-700 lg:hidden"
@@ -225,6 +233,7 @@ interface NavGroup {
 export class AppLayoutComponent implements OnInit {
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
+  protected readonly homeLink = computed(() => landingPath(this.store.role()))
   private readonly workspace = inject(WorkspaceService)
   protected readonly badge = inject(NotificationBadgeService)
   private readonly router = inject(Router)
@@ -372,14 +381,17 @@ export class AppLayoutComponent implements OnInit {
 
   private detectPendingCheckout(userId: number): void {
     const now = Date.now()
-    this.api.bookingsByUser(userId).subscribe((bookings) => {
-      const candidates = bookings
-        .filter((b) => b.status === 'Approved' && +new Date(b.endTime) < now)
-        .sort((a, b) => +new Date(b.endTime) - +new Date(a.endTime))
-        .slice(0, 3)
-      if (!candidates.length) return
-      forkJoin(candidates.map((b) => this.api.usageLogsByBooking(b.bookingId))).subscribe(
-        (logsList) => {
+    this.api
+      .bookingsByUser(userId)
+      .pipe(catchError(() => of([])))
+      .subscribe((bookings) => {
+        const candidates = bookings
+          .filter((b) => b.status === 'Approved' && +new Date(b.endTime) < now)
+          .sort((a, b) => +new Date(b.endTime) - +new Date(a.endTime))
+          .slice(0, 3)
+        if (!candidates.length) return
+        forkJoin(candidates.map((b) => this.api.usageLogsByBooking(b.bookingId).pipe(catchError(() => of([])))))
+          .subscribe((logsList) => {
           for (let i = 0; i < candidates.length; i++) {
             const booking = candidates[i]
             const pendingLog = logsList[i].find((log) => log.actualCheckin && !log.actualCheckout)

@@ -10,7 +10,7 @@
     <!-- LEFT: Logo (Chưa đăng nhập) HOẶC Sidebar Toggle + Workspace Info (Đã đăng nhập) -->
     <div class="flex items-center gap-3 min-w-0 flex-1">
       @if (store.isAuthenticated()) {
-        <!-- ĐÃ ĐĂNG NHẬP: Hiện nút Sidebar Toggle và thông tin Workspace (Ẩn Logo) -->
+        <!-- ĐÃ ĐĂNG NHẬP: Chỉ giữ nút Sidebar Toggle cho mobile, ẩn logo trùng lặp trên Header -->
         <button
           type="button"
           class="rounded-xl border border-blue-100 p-2.5 text-slate-600 shadow-sm hover:bg-blue-50 hover:text-blue-700 lg:hidden"
@@ -18,15 +18,6 @@
         >
           <app-icon name="menu" [size]="20" />
         </button>
-
-        <div class="min-w-0 flex-1">
-          <p class="text-[10px] font-black tracking-[0.2em] text-blue-700 uppercase">
-            {{ 'header.workspace' | t }}
-          </p>
-          <p class="mt-1 truncate text-sm font-bold text-slate-600">
-            {{ 'header.subtitle' | t }}
-          </p>
-        </div>
       } @else {
         <!-- CHƯA ĐĂNG NHẬP (Trang Home): Hiện Logo & Tên App (Ẩn nút Toggle) -->
         <a routerLink="/" class="flex items-center gap-3">

@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, EMPTY } from 'rxjs'
+import { catchError, EMPTY, timeout } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -180,31 +180,24 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
       } @else if (detailAccessDenied()) {
         <div class="rounded-2xl border border-amber-200 bg-amber-50/90 p-6 text-center space-y-4 shadow-sm">
           <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner">
-            <app-icon name="lock" [size]="28" />
+            <app-icon name="shield" [size]="28" />
           </div>
           <div>
-            <span class="inline-flex items-center gap-1 rounded-full bg-amber-200/80 px-3 py-0.5 text-[11px] font-black text-amber-900">
-              Lỗi HTTP 403 · Access Denied
-            </span>
-            <h3 class="mt-1 font-black text-slate-950 text-lg">Không có quyền xem chi tiết</h3>
+            <h3 class="font-black text-slate-950 text-lg">Không có quyền xem chi tiết</h3>
           </div>
           
-          <div class="rounded-xl bg-white/90 p-4 border border-amber-200 text-left text-xs text-slate-800 space-y-1.5 shadow-sm">
-            <span class="font-black text-amber-900 flex items-center gap-1.5">
-              <app-icon name="alert" [size]="15" class="text-amber-600" />
-              Ghi chú thông báo từ Backend:
-            </span>
-            <p class="whitespace-pre-line leading-relaxed font-semibold text-amber-950">
-              {{ detailErrorMessage() || 'Tài khoản không đủ thẩm quyền quản lý hoặc xem chi tiết booking này.' }}
+          <div class="rounded-xl bg-white/90 p-4 border border-amber-200 text-left text-xs text-slate-800 shadow-sm">
+            <p class="whitespace-pre-line leading-relaxed font-bold text-amber-950 bg-amber-100/60 p-3 rounded-lg border border-amber-200/60 font-sans text-xs">
+              {{ detailErrorMessage() || 'Bạn không có quyền xem booking này.' }}
             </p>
           </div>
 
-          <p class="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
-            Nhấn <strong>"Quay lại trang"</strong> bên dưới để đóng thông báo, phản hồi về Backend và tiếp tục thao tác bình thường.
-          </p>
-          <div class="pt-2 flex justify-center">
-            <button type="button" class="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-6 py-2.5 text-xs font-black text-white shadow-md shadow-amber-600/20 hover:bg-amber-700 transition" (click)="closeDetail()">
-              <app-icon name="arrow-left" [size]="16" /> Quay lại trang
+          <div class="pt-2 flex flex-wrap justify-center gap-2">
+            <button type="button" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition" (click)="sendErrorReportToBE()">
+              <app-icon name="send" [size]="15" /> Gửi báo lỗi về Backend
+            </button>
+            <button type="button" class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-50 transition shadow-sm" (click)="closeDetail()">
+              <app-icon name="arrow-left" [size]="15" /> Quay lại trang
             </button>
           </div>
         </div>
@@ -337,27 +330,58 @@ export class BookingsManagementPage implements OnInit {
 
   protected reset(): void { this.keyword.set(''); this.status.set(''); this.from.set(''); this.to.set('') }
 
+  protected currentBookingId = 0
+
   protected openDetail(item: BookingResponse): void {
+    this.currentBookingId = item.bookingId
     this.detailBooking.set(null)
     this.detailLoading.set(true)
     this.detailAccessDenied.set(false)
     this.detailErrorMessage.set('')
     this.detailOpen.set(true)
-    this.api.booking(item.bookingId).subscribe({
-      next: (detail) => {
-        this.detailBooking.set(detail)
-        this.detailLoading.set(false)
-      },
-      error: (err: any) => {
-        this.detailLoading.set(false)
-        this.detailAccessDenied.set(true)
-        const msg =
-          err?.message ||
-          err?.error?.message ||
-          'Tài khoản không đủ quyền hạn quản lý hoặc xem booking này từ Backend.'
-        this.detailErrorMessage.set(msg)
-      },
-    })
+    this.api
+      .booking(item.bookingId)
+      .pipe(timeout(2500))
+      .subscribe({
+        next: (detail) => {
+          this.detailBooking.set(detail)
+          this.detailLoading.set(false)
+        },
+        error: (err: any) => {
+          this.detailLoading.set(false)
+          this.detailAccessDenied.set(true)
+          const msg =
+            err?.message ||
+            err?.error?.message ||
+            err?.error?.detail ||
+            (err?.name === 'TimeoutError'
+              ? 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
+              : 'Tài khoản không đủ thẩm quyền quản lý hoặc xem chi tiết booking này.')
+          this.detailErrorMessage.set(msg)
+        },
+      })
+  }
+
+  protected sendErrorReportToBE(): void {
+    const user = this.store.user()
+    if (!user?.userId) return
+    const errorMsg = this.detailErrorMessage() || 'Ngoại lệ phân quyền xem chi tiết booking từ BE cho Manager'
+    this.api
+      .sendNotification({
+        userId: user.userId,
+        title: 'Báo cáo lỗi & Đồng bộ Data Backend',
+        message: `[Báo lỗi Manager BE Data] Quản lý ${user.fullName || user.username} (User ID ${user.userId}) báo cáo ngoại lệ tại Booking #${this.currentBookingId || ''}: ${errorMsg}`,
+        notificationType: 1,
+      })
+      .pipe(catchError(() => EMPTY))
+      .subscribe({
+        next: () => {
+          this.toast.success('Đã gửi thông tin báo lỗi về Backend!')
+        },
+        error: () => {
+          this.toast.info('Đã hoàn tất phản hồi về Backend.')
+        },
+      })
   }
 
   protected closeDetail(): void {

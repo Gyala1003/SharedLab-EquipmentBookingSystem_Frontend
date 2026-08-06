@@ -58,8 +58,8 @@ import { ToastService } from '../../shared/ui/toast.service'
         <div>
           <label class="field-label">{{ 'labs.viewMode' | t }}</label>
           <div class="flex h-12 rounded-2xl bg-slate-100 p-1">
-            <button type="button" class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'grid' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400'" (click)="view.set('grid')"><app-icon name="grid" [size]="17" /></button>
-            <button type="button" class="flex-1 rounded-xl text-xs font-black" [ngClass]="view() === 'table' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400'" (click)="view.set('table')"><app-icon name="list" [size]="17" /></button>
+            <button type="button" class="flex-1 h-full inline-flex items-center justify-center rounded-xl text-xs font-black transition-all duration-150" [ngClass]="view() === 'grid' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'" (click)="view.set('grid')"><app-icon name="grid" [size]="17" /></button>
+            <button type="button" class="flex-1 h-full inline-flex items-center justify-center rounded-xl text-xs font-black transition-all duration-150" [ngClass]="view() === 'table' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'" (click)="view.set('table')"><app-icon name="list" [size]="17" /></button>
           </div>
         </div>
         <div class="flex items-end">

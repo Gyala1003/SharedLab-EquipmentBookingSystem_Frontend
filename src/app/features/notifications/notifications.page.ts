@@ -59,11 +59,15 @@ type NotificationTab = 'all' | 'unread'
               <div class="flex rounded-2xl bg-slate-100 p-1">
                 <button type="button" class="flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition" [class.bg-white]="tab() === 'all'" [class.text-slate-900]="tab() === 'all'" [class.shadow-sm]="tab() === 'all'" [class.text-slate-500]="tab() !== 'all'" (click)="changeTab('all')">
                   {{ 'common.all' | t }}
-                  <span class="rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold">{{ tab() === 'all' ? notifications().length : '' }}</span>
+                  @if (tab() === 'all' && notifications().length > 0) {
+                    <span class="rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-bold">{{ notifications().length }}</span>
+                  }
                 </button>
                 <button type="button" class="flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition" [class.bg-white]="tab() === 'unread'" [class.text-slate-900]="tab() === 'unread'" [class.shadow-sm]="tab() === 'unread'" [class.text-slate-500]="tab() !== 'unread'" (click)="changeTab('unread')">
                   {{ 'waitlists.waiting' | t }}
-                  <span class="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">{{ unreadCount() }}</span>
+                  @if (unreadCount() > 0) {
+                    <span class="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">{{ unreadCount() > 99 ? '99+' : unreadCount() }}</span>
+                  }
                 </button>
               </div>
 
@@ -145,7 +149,9 @@ type NotificationTab = 'all' | 'unread'
           <article class="rounded-[24px] bg-[#111a3a] p-6 text-white shadow-xl shadow-slate-900/15">
             <div class="flex items-start justify-between gap-4">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-cyan-300"><app-icon name="bell" [size]="23" /></div>
-              <span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-bold">{{ unreadCount() }} {{ 'waitlists.waiting' | t }}</span>
+              @if (unreadCount() > 0) {
+                <span class="rounded-full bg-rose-500 px-3 py-1 text-xs font-bold">{{ unreadCount() }} {{ 'waitlists.waiting' | t }}</span>
+              }
             </div>
             <h2 class="mt-6 text-xl font-bold">{{ 'notifications.overviewTitle' | t }}</h2>
             <p class="mt-2 text-sm leading-6 text-white/55">{{ 'notifications.overviewSub' | t }}</p>

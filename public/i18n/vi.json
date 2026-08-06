@@ -30,6 +30,7 @@
       "title": "Đặt lịch phòng thí nghiệm và thiết bị dùng chung, không còn xung đột",
       "description": "Quản lý lịch sử dụng phòng thí nghiệm và thiết bị dùng chung cho toàn bộ tổ chức. Giảm xung đột đặt lịch, theo dõi tình trạng thiết bị theo thời gian thực và giữ mọi hoạt động vận hành luôn minh bạch.",
       "ctaPrimary": "Đăng nhập ngay",
+      "ctaWorkspace": "Truy cập hệ thống",
       "ctaSecondary": "Tìm hiểu thêm",
       "mockup": {
         "title": "Lịch đặt hôm nay",
@@ -192,6 +193,8 @@
   },
   "common": {
     "error": "Đã có lỗi xảy ra",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "selectAll": "Chọn tất cả",
+    "deselectAll": "Bỏ chọn tất cả"
   }
 }
