@@ -53,7 +53,7 @@ interface ScheduleSlotEvent {
         <div>
           <div class="flex items-center gap-2 text-xs font-bold text-indigo-600">
             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-            • {{ today | date: 'EEEE, dd/MM/yyyy' }}
+            {{ today | date: 'EEEE, dd/MM/yyyy' }}
           </div>
           <h1 class="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
             {{ 'home.greeting' | t: { name: firstName() } }}

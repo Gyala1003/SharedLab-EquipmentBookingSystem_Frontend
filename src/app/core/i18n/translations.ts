@@ -343,7 +343,7 @@ export const translations: Record<string, { vi: string; en: string }> = {
     vi: 'Khám phá phòng lab, sức chứa, vị trí và trạng thái tài nguyên trước khi tạo booking.',
     en: 'Explore lab rooms, capacity, location and resource status before booking.',
   },
-  'labs.addLab': { vi: '+ Thêm phòng lab', en: '+ Add Lab Room' },
+  'labs.addLab': { vi: 'Thêm phòng lab', en: 'Add Lab Room' },
   'labs.searchPlaceholder': {
     vi: 'Tên phòng, mã phòng, vị trí...',
     en: 'Room name, code, location...',
@@ -362,7 +362,7 @@ export const translations: Record<string, { vi: string; en: string }> = {
     vi: 'Tìm kiếm, kiểm tra trạng thái và đặt lịch các thiết bị dùng chung trong hệ thống.',
     en: 'Search, check status and book shared equipment.',
   },
-  'equipments.addEquipment': { vi: '+ Thêm thiết bị', en: '+ Add Equipment' },
+  'equipments.addEquipment': { vi: 'Thêm thiết bị', en: 'Add Equipment' },
   'equipments.searchPlaceholder': { vi: 'Tên thiết bị, model...', en: 'Equipment name, model...' },
   'equipments.ready': { vi: 'Sẵn sàng', en: 'Available' },
   'equipments.inUse': { vi: 'Đang sử dụng', en: 'In Use' },
