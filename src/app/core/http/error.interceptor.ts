@@ -1,20 +1,17 @@
-import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http'
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http'
 import { inject } from '@angular/core'
 import { Router } from '@angular/router'
 import { catchError, retry, switchMap, throwError, timer } from 'rxjs'
-import { TokenStorage } from '../auth/token-storage'
-import type { AuthTokens } from '../auth/auth.types'
-import { env } from '../config/env'
+import { AuthService } from '../auth/auth.service'
+import { AuthStore } from '../auth/auth.store'
 import { ApiError } from './api-error'
 import { ErrorStateService } from './error-state.service'
 
-const USER_KEY = 'auth.user'
-
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router)
-  const tokens = inject(TokenStorage)
+  const authService = inject(AuthService)
+  const authStore = inject(AuthStore)
   const errorState = inject(ErrorStateService)
-  const http = new HttpClient(inject(HttpBackend))
 
   return next(req).pipe(
     retry({
@@ -29,30 +26,28 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     }),
     catchError((error: HttpErrorResponse) => {
       const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password)$/i.test(req.url)
-      const refreshToken = tokens.refresh
-
-      if (error.status === 401 && refreshToken && !isAuthEndpoint) {
-        return http
-          .post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, { refreshToken })
-          .pipe(
-            switchMap((fresh) => {
-              tokens.set(fresh.accessToken, fresh.refreshToken)
-              return next(
-                req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
-              )
-            }),
-            catchError((refreshError: HttpErrorResponse) => {
-              clearSession(tokens)
-              void router.navigate(['/login'])
-              return throwError(() => normalize(refreshError))
-            }),
-          )
-      }
 
       if (error.status === 401 && !isAuthEndpoint) {
-        clearSession(tokens)
-        void router.navigate(['/login'])
+        return authService.refresh().pipe(
+          switchMap((fresh) => {
+            return next(
+              req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
+            )
+          }),
+          catchError((refreshError: HttpErrorResponse) => {
+            // Không logout nếu lỗi do mất mạng (0) hoặc Server BE đứt kết nối (5xx)
+            if (refreshError.status === 0 || refreshError.status >= 500) {
+              return throwError(() => normalize(refreshError))
+            }
+
+            // BE từ chối Refresh Token -> Gọi hàm clear chung của AuthStore & về Login
+            authStore.clear()
+            void router.navigate(['/login'])
+            return throwError(() => normalize(refreshError))
+          }),
+        )
       }
+
       const normalizedErr = normalize(error)
 
       if (error.status === 403) {
@@ -66,7 +61,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         })
       }
 
-      // Catch Backend Internal Server Error (5xx) or Connection Failure (0)
       if (error.status >= 500 || error.status === 0) {
         errorState.setError({
           status: error.status || 500,
@@ -81,12 +75,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       return throwError(() => normalizedErr)
     }),
   )
-}
-
-function clearSession(tokens: TokenStorage): void {
-  tokens.clear()
-  localStorage.removeItem(USER_KEY)
-  sessionStorage.removeItem(USER_KEY)
 }
 
 function normalize(error: HttpErrorResponse): ApiError {

@@ -39,7 +39,6 @@ export class AuthStore {
   })
   readonly logoutStatus = this._logoutStatus.asReadonly()
 
-  /** Trả về AuthUser để trang Login điều hướng theo role ngay sau khi đăng nhập. */
   async login(payload: LoginPayload, remember = false): Promise<AuthUser> {
     this._status.set('loading')
     this._error.set(null)
@@ -47,7 +46,7 @@ export class AuthStore {
       const res = await firstValueFrom(this.auth.login(payload))
       this.tokens.set(res.accessToken, res.refreshToken, remember)
       this.setUser(res.user, remember)
-      this._error.set(null) // Reset lỗi về null khi thành công
+      this._error.set(null)
       this._status.set('idle')
       return res.user
     } catch (e) {

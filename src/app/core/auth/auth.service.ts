@@ -1,11 +1,12 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { Observable, map } from 'rxjs'
+import { BehaviorSubject, Observable, filter, map, of, switchMap, take, tap, throwError } from 'rxjs'
 import { env } from '../config/env'
+import { TokenStorage } from './token-storage'
 import type {
   AuthTokens,
   AuthUser,
-  ForgotPasswordPayload,
+
   LoginPayload,
   ResetPasswordPayload,
   UserStatus,
@@ -14,7 +15,11 @@ import type {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient)
+  private readonly tokens = inject(TokenStorage)
   private readonly baseUrl = `${env.apiBaseUrl}/Auth`
+
+  private isRefreshing = false
+  private refreshTokenSubject = new BehaviorSubject<string | null>(null)
 
   login(payload: LoginPayload): Observable<AuthTokens> {
     return this.http.post<AuthTokens>(`${this.baseUrl}/login`, payload)
@@ -26,9 +31,37 @@ export class AuthService {
     )
   }
 
-  refresh(refreshToken: string): Observable<AuthTokens> {
-    return this.http.post<AuthTokens>(`${this.baseUrl}/refresh`, { refreshToken })
+refresh(): Observable<AuthTokens> {
+  if (this.isRefreshing) {
+    return this.refreshTokenSubject.pipe(
+      filter((token): token is string => token !== null),
+      take(1),
+      switchMap((accessToken) =>
+        of<AuthTokens>({
+          accessToken,
+          refreshToken: this.tokens.refresh ?? '',
+        } as AuthTokens),
+      ),
+    )
   }
+
+  this.isRefreshing = true
+  this.refreshTokenSubject.next(null)
+
+  const refreshToken = this.tokens.refresh
+  if (!refreshToken) {
+    this.isRefreshing = false
+    return throwError(() => new Error('Không tìm thấy refresh token'))
+  }
+
+  return this.http.post<AuthTokens>(`${this.baseUrl}/refresh`, { refreshToken }).pipe(
+    tap((res) => {
+      this.isRefreshing = false
+      this.tokens.set(res.accessToken, res.refreshToken)
+      this.refreshTokenSubject.next(res.accessToken)
+    }),
+  )
+}
 
   logout(refreshToken: string): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${env.apiBaseUrl}/auth/logout`, { refreshToken })
