@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common'
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
+import { catchError, forkJoin, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -122,10 +123,52 @@ export class PendingBookingsPage implements OnInit {
 
   private load(): void {
     this.loading.set(true)
-    this.api.pendingBookings().subscribe({
-      next: (items) => {
-        this.items.set([...items].sort((a, b) => (a.priorityLevel ?? 999) - (b.priorityLevel ?? 999) || +new Date(a.createdAt) - +new Date(b.createdAt)))
+    forkJoin({
+      pending: this.api.pendingBookings(),
+      usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>())))
+    }).subscribe({
+      next: ({ pending, usersMap }) => {
+        usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
+
+        const enriched = pending.map((b) => ({
+          ...b,
+          userName: usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null
+        }))
+        this.items.set([...enriched].sort((a, b) => (a.priorityLevel ?? 999) - (b.priorityLevel ?? 999) || +new Date(a.createdAt) - +new Date(b.createdAt)))
         this.loading.set(false)
+
+        const sampleBookingsToResolve: BookingResponse[] = []
+        const seenUserIds = new Set<number>()
+        for (const b of enriched) {
+          if (!b.userName && !seenUserIds.has(b.userId)) {
+            seenUserIds.add(b.userId)
+            sampleBookingsToResolve.push(b)
+          }
+        }
+
+        if (sampleBookingsToResolve.length > 0) {
+          const detailReqs = sampleBookingsToResolve.map((b) =>
+            this.api.booking(b.bookingId).pipe(catchError(() => of(null)))
+          )
+          forkJoin(detailReqs).subscribe((details) => {
+            let updated = false
+            const current = [...this.items()]
+            for (const d of details) {
+              if (d && d.userId && d.userName) {
+                this.api.setCachedUserName(d.userId, d.userName)
+                for (const item of current) {
+                  if (item.userId === d.userId && !item.userName) {
+                    item.userName = d.userName
+                    updated = true
+                  }
+                }
+              }
+            }
+            if (updated) {
+              this.items.set([...current])
+            }
+          })
+        }
       },
       error: () => {
         this.loading.set(false)

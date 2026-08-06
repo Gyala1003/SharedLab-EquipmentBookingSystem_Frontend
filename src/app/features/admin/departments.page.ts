@@ -15,28 +15,44 @@ import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-departments-page',
-  imports: [NgClass, FormsModule, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [NgClass, FormsModule, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'departments.title' | t" [subtitle]="'departments.subtitle' | t">
-        <button class="btn-primary" type="button" (click)="openCreate()"><app-icon name="plus" [size]="17" /> {{ 'departments.addDepartment' | t }}</button>
-      </app-page-header>
+      <!-- Unified Header + Compact Stat Chips Bar (Strictly 1 Single Row, Zero Gap) -->
+      <article class="card-surface p-5 space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-2xl font-black tracking-tight text-slate-950">{{ 'departments.title' | t }}</h1>
+            <p class="mt-1 text-xs font-medium text-slate-500">{{ 'departments.subtitle' | t }}</p>
+          </div>
+          <div>
+            <button class="btn-primary flex items-center gap-2" type="button" (click)="openCreate()"><app-icon name="plus" [size]="17" /> {{ 'departments.addDepartment' | t }}</button>
+          </div>
+        </div>
 
-      <!-- KPI Summary Cards -->
-      <div class="grid gap-4 sm:grid-cols-3">
-        <article class="kpi-card">
-          <p class="text-xs font-bold text-slate-400">{{ 'departments.totalUnits' | t }}</p>
-          <p class="mt-3 text-3xl font-black text-slate-950">{{ departments().length }}</p>
-        </article>
-        <article class="kpi-card">
-          <p class="text-xs font-bold text-slate-400">{{ 'departments.active' | t }}</p>
-          <p class="mt-3 text-3xl font-black text-emerald-600">{{ activeCount() }}</p>
-        </article>
-        <article class="kpi-card">
-          <p class="text-xs font-bold text-slate-400">{{ 'departments.inactive' | t }}</p>
-          <p class="mt-3 text-3xl font-black text-slate-500">{{ departments().length - activeCount() }}</p>
-        </article>
-      </div>
+        <div class="border-t border-slate-100 pt-3">
+          <!-- Strictly 1 Single Horizontal Row (overflow-x-auto, whitespace-nowrap, no line break) -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+            <div class="flex shrink-0 items-center gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/70 px-3.5 py-2 whitespace-nowrap">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 text-[11px]"><app-icon name="building" [size]="12" /></span>
+              <span class="text-xs font-bold text-slate-600">{{ 'departments.totalUnits' | t }}:</span>
+              <span class="text-xs font-black text-slate-950">{{ departments().length }}</span>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/70 px-3.5 py-2 whitespace-nowrap">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-[11px]"><app-icon name="check" [size]="12" /></span>
+              <span class="text-xs font-bold text-slate-600">{{ 'departments.active' | t }}:</span>
+              <span class="text-xs font-black text-emerald-600">{{ activeCount() }}</span>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/70 px-3.5 py-2 whitespace-nowrap">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-slate-700 text-[11px]"><app-icon name="slash" [size]="12" /></span>
+              <span class="text-xs font-bold text-slate-600">{{ 'departments.inactive' | t }}:</span>
+              <span class="text-xs font-black text-slate-500">{{ departments().length - activeCount() }}</span>
+            </div>
+          </div>
+        </div>
+      </article>
 
       <!-- Filter Bar -->
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_auto]">

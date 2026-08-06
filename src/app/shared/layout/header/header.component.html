@@ -138,14 +138,16 @@
                     <span>{{ 'header.profile' | t }}</span>
                   </a>
 
-                  <a
-                    routerLink="/app/bookings/my"
-                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
-                    (click)="userMenuOpen.set(false)"
-                  >
-                    <app-icon name="calendar" [size]="17" class="text-slate-400" />
-                    <span>{{ 'nav.items.myBookings' | t }}</span>
-                  </a>
+                  @if (!store.isAdmin() && !store.isManager()) {
+                    <a
+                      routerLink="/app/bookings/my"
+                      class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-indigo-600"
+                      (click)="userMenuOpen.set(false)"
+                    >
+                      <app-icon name="calendar" [size]="17" class="text-slate-400" />
+                      <span>{{ 'nav.items.myBookings' | t }}</span>
+                    </a>
+                  }
 
                   <a
                     routerLink="/app/notifications"

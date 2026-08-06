@@ -24,7 +24,6 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
     NgClass,
     FormsModule,
     RouterLink,
-    PageHeaderComponent,
     IconComponent,
     ModalComponent,
     StatusBadgeComponent,
@@ -33,77 +32,48 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
   ],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'nav.items.myBookings' | t" [subtitle]="'bookings.mySubtitle' | t">
-        <a routerLink="/app/bookings/new" class="btn-primary"><app-icon name="plus" [size]="17" /> {{ 'sidebar.quickBooking' | t }}</a>
-        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
-      </app-page-header>
+      <!-- Unified Header + Compact Stat Chips Bar (Strictly 1 Single Row, Zero Gap) -->
+      <article class="card-surface p-5 space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-2xl font-black tracking-tight text-slate-950">{{ 'nav.items.myBookings' | t }}</h1>
+            <p class="mt-1 text-xs font-medium text-slate-500">{{ 'bookings.mySubtitle' | t }}</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <a routerLink="/app/bookings/new" class="btn-primary flex items-center gap-2"><app-icon name="plus" [size]="17" /> {{ 'sidebar.quickBooking' | t }}</a>
+            <a routerLink="/app/calendar" class="btn-secondary flex items-center gap-2"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
+          </div>
+        </div>
 
-      <!-- KPI cards (Tương tác click để lọc nhanh) -->
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <button
-          type="button"
-          class="kpi-card text-left transition hover:-translate-y-1"
-          [class.ring-2]="activeStatus() === ''"
-          [class.ring-violet-400]="activeStatus() === ''"
-          (click)="setStatus('')"
-        >
-          <p class="text-xs font-bold text-slate-400">{{ 'dashboard.totalBookings' | t }}</p>
-          <p class="mt-2 text-3xl font-black text-slate-950">{{ bookings().length }}</p>
-        </button>
-
-        <button
-          type="button"
-          class="kpi-card text-left transition hover:-translate-y-1"
-          [class.ring-2]="activeStatus() === 'Pending'"
-          [class.ring-amber-400]="activeStatus() === 'Pending'"
-          (click)="setStatus('Pending')"
-        >
-          <p class="text-xs font-bold text-slate-400">{{ 'common.pending' | t }}</p>
-          <p class="mt-2 text-3xl font-black text-amber-600">{{ count('Pending') }}</p>
-        </button>
-
-        <button
-          type="button"
-          class="kpi-card text-left transition hover:-translate-y-1"
-          [class.ring-2]="activeStatus() === 'Approved'"
-          [class.ring-emerald-400]="activeStatus() === 'Approved'"
-          (click)="setStatus('Approved')"
-        >
-          <p class="text-xs font-bold text-slate-400">{{ 'common.approved' | t }}</p>
-          <p class="mt-2 text-3xl font-black text-emerald-600">{{ count('Approved') }}</p>
-        </button>
-
-        <button
-          type="button"
-          class="kpi-card text-left transition hover:-translate-y-1"
-          [class.ring-2]="activeStatus() === 'Completed'"
-          [class.ring-indigo-400]="activeStatus() === 'Completed'"
-          (click)="setStatus('Completed')"
-        >
-          <p class="text-xs font-bold text-slate-400">{{ 'common.completed' | t }}</p>
-          <p class="mt-2 text-3xl font-black text-indigo-600">{{ count('Completed') }}</p>
-        </button>
-      </div>
-
-      <!-- Surface chứa filter tabs và bảng -->
-      <div class="card-surface overflow-hidden">
-        <!-- Filter bar -->
-        <div class="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex gap-2 overflow-x-auto">
+        <div class="border-t border-slate-100 pt-3">
+          <!-- Strictly 1 Single Horizontal Row (overflow-x-auto, whitespace-nowrap, no line break) -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
             @for (tab of tabs(); track tab.value) {
               <button
                 type="button"
-                class="shrink-0 rounded-xl px-3.5 py-2 text-xs font-black transition"
-                [ngClass]="activeStatus() === tab.value ? 'bg-cyan-600 text-white shadow-sm' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'"
+                class="flex shrink-0 items-center gap-2.5 rounded-xl border px-3.5 py-2 text-left transition duration-150 whitespace-nowrap"
+                [ngClass]="{
+                  'border-violet-500 bg-violet-50/90 text-violet-900 ring-2 ring-violet-500/20 shadow-2xs font-bold': activeStatus() === tab.value,
+                  'border-slate-200/90 bg-slate-50/70 hover:border-violet-300 hover:bg-white text-slate-700': activeStatus() !== tab.value
+                }"
                 (click)="setStatus(tab.value)"
               >
-                {{ tab.label }}
-                <span class="ml-1 opacity-70">{{ tab.value === '' ? bookings().length : count(tab.value) }}</span>
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg text-[11px]" [ngClass]="tab.bgTint">
+                  <app-icon [name]="tab.iconName" [size]="12" />
+                </span>
+                <span class="text-xs font-bold text-slate-600">{{ tab.label }}:</span>
+                <span class="text-xs font-black" [class]="tab.className">{{ tab.value === '' ? bookings().length : count(tab.value) }}</span>
               </button>
             }
           </div>
+        </div>
+      </article>
 
-          <div class="relative sm:w-80">
+      <!-- Surface chứa bảng -->
+      <div class="card-surface overflow-hidden">
+        <!-- Search bar -->
+        <div class="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-end">
+          <div class="relative w-full sm:w-80">
             <span class="absolute left-3.5 top-3 text-slate-400"><app-icon name="search" [size]="17" /></span>
             <input
               class="input-shell h-11 pl-10"
@@ -127,7 +97,7 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
             <table class="table-shell">
               <thead>
                 <tr>
-                  <th>{{ 'bookings.bookingCode' | t }}</th>
+                  <th>{{ 'bookings.requester' | t }}</th>
                   <th>{{ 'bookings.resource' | t }}</th>
                   <th>{{ 'bookings.purpose' | t }}</th>
                   <th>{{ 'bookings.usageTime' | t }}</th>
@@ -140,16 +110,18 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
               <tbody>
                 @for (booking of filtered(); track booking.bookingId) {
                   <tr>
-                    <!-- Mã Booking -->
+                    <!-- Người đăng ký (Full Name) & Mã Booking -->
                     <td>
                       <button
                         type="button"
-                        class="font-black text-cyan-700 hover:text-cyan-900 hover:underline"
+                        class="font-black text-slate-900 hover:text-cyan-700 hover:underline text-left block"
                         (click)="openDetail(booking)"
                       >
-                        #BK-{{ booking.bookingId.toString().padStart(5, '0') }}
+                        {{ requesterName(booking) }}
                       </button>
-                      <p class="mt-0.5 text-[11px] text-slate-400">{{ booking.createdAt | date: 'dd/MM/yyyy' }}</p>
+                      <p class="mt-0.5 text-[11px] font-semibold text-slate-400">
+                        #BK-{{ booking.bookingId.toString().padStart(5, '0') }} · {{ booking.createdAt | date: 'dd/MM/yyyy' }}
+                      </p>
                     </td>
 
                     <!-- Tài nguyên đặt (Phòng lab / Thiết bị) -->
@@ -432,13 +404,13 @@ export class MyBookingsPage implements OnInit {
   protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
 
   protected readonly tabs = computed(() => [
-    { value: '', label: this.languageStore.t('common.all') },
-    { value: 'Pending', label: labelOf('booking', 'Pending', this.languageStore.lang()) },
-    { value: 'Approved', label: labelOf('booking', 'Approved', this.languageStore.lang()) },
-    { value: 'Rejected', label: labelOf('booking', 'Rejected', this.languageStore.lang()) },
-    { value: 'Cancelled', label: labelOf('booking', 'Cancelled', this.languageStore.lang()) },
-    { value: 'Completed', label: labelOf('booking', 'Completed', this.languageStore.lang()) },
-    { value: 'NoShow', label: labelOf('booking', 'NoShow', this.languageStore.lang()) },
+    { value: '', label: this.languageStore.t('common.all'), className: 'text-slate-950', iconName: 'calendar', bgTint: 'bg-slate-100 text-slate-700' },
+    { value: 'Pending', label: labelOf('booking', 'Pending', this.languageStore.lang()), className: 'text-amber-600', iconName: 'clock', bgTint: 'bg-amber-100 text-amber-700' },
+    { value: 'Approved', label: labelOf('booking', 'Approved', this.languageStore.lang()), className: 'text-emerald-600', iconName: 'check', bgTint: 'bg-emerald-100 text-emerald-700' },
+    { value: 'Rejected', label: labelOf('booking', 'Rejected', this.languageStore.lang()), className: 'text-rose-600', iconName: 'close', bgTint: 'bg-rose-100 text-rose-700' },
+    { value: 'Cancelled', label: labelOf('booking', 'Cancelled', this.languageStore.lang()), className: 'text-slate-500', iconName: 'slash', bgTint: 'bg-slate-100 text-slate-600' },
+    { value: 'Completed', label: labelOf('booking', 'Completed', this.languageStore.lang()), className: 'text-indigo-600', iconName: 'check', bgTint: 'bg-indigo-100 text-indigo-700' },
+    { value: 'NoShow', label: labelOf('booking', 'NoShow', this.languageStore.lang()), className: 'text-rose-500', iconName: 'alert', bgTint: 'bg-rose-100 text-rose-600' },
   ])
 
   protected readonly filtered = computed(() => {
@@ -528,6 +500,10 @@ export class MyBookingsPage implements OnInit {
 
   protected isUpcoming(booking: BookingResponse | BookingDetailResponse): boolean {
     return getCheckInWindowInfo(booking.startTime, booking.endTime).isTooEarly
+  }
+
+  protected requesterName(booking: BookingResponse): string {
+    return booking.userName || this.store.user()?.fullName || `User #${booking.userId}`
   }
 
   protected checkUserRestricted(): boolean {

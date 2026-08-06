@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { Observable, of } from 'rxjs'
-import { catchError, shareReplay, tap } from 'rxjs/operators'
+import { catchError, map, shareReplay, tap } from 'rxjs/operators'
 import { env } from '../config/env'
 import type {
   AuditLogResponse,
@@ -467,6 +467,39 @@ export class SystemService {
 
   activateDepartment(id: number): Observable<DepartmentResponse> {
     return this.http.post<DepartmentResponse>(`${this.base}/Departments/${id}/activate`, {})
+  }
+
+  private readonly userNameCache = new Map<number, string>()
+
+  setCachedUserName(userId: number, name: string): void {
+    if (userId && name && !name.startsWith('User #')) {
+      this.userNameCache.set(userId, name)
+    }
+  }
+
+  getCachedUserName(userId: number): string | null {
+    return this.userNameCache.get(userId) ?? null
+  }
+
+  private usersMapCache$?: Observable<Map<number, string>>
+
+  usersMap(forceRefresh = false): Observable<Map<number, string>> {
+    if (this.usersMapCache$ && !forceRefresh) return this.usersMapCache$
+
+    this.usersMapCache$ = this.users({ pageSize: 1000 }).pipe(
+      map((res) => {
+        const userMap = new Map<number, string>()
+        if (res && res.items) {
+          for (const u of res.items) {
+            userMap.set(u.userId, u.fullName || u.username || `User #${u.userId}`)
+          }
+        }
+        return userMap
+      }),
+      catchError(() => of(new Map<number, string>())),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    )
+    return this.usersMapCache$
   }
 
   users(query: { keyword?: string; roleName?: string | number; departmentId?: number; status?: number; pageNumber?: number; pageSize?: number }): Observable<PagedResponse<UserManagementResponse>> {

@@ -15,29 +15,11 @@ export class TokenStorage {
   }
 
   get access(): string | null {
-    if (sessionStorage.getItem(this.ACCESS)) {
-      return sessionStorage.getItem(this.ACCESS)
-    }
-    if (this.isRemembered && localStorage.getItem(this.ACCESS)) {
-      return localStorage.getItem(this.ACCESS)
-    }
-    if (localStorage.getItem(this.ACCESS)) {
-      this.clear()
-    }
-    return null
+    return sessionStorage.getItem(this.ACCESS) ?? localStorage.getItem(this.ACCESS)
   }
 
   get refresh(): string | null {
-    if (sessionStorage.getItem(this.REFRESH)) {
-      return sessionStorage.getItem(this.REFRESH)
-    }
-    if (this.isRemembered && localStorage.getItem(this.REFRESH)) {
-      return localStorage.getItem(this.REFRESH)
-    }
-    if (localStorage.getItem(this.REFRESH)) {
-      this.clear()
-    }
-    return null
+    return sessionStorage.getItem(this.REFRESH) ?? localStorage.getItem(this.REFRESH)
   }
 
   get isPersistent(): boolean {

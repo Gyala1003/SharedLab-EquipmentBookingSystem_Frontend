@@ -20,7 +20,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { formatMoney, toDateInput } from '../../shared/utils/presentation'
+import { formatMoney, getFirstDayOfMonth, getLastDayOfMonth, toDateInput } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-report-bars',
@@ -166,10 +166,14 @@ export class ReportsPage implements OnInit {
   protected readonly tabs = [{ key: 'overview', label: 'Tổng quan' }, { key: 'resources', label: 'Mức sử dụng' }, { key: 'department', label: 'Khoa/phòng ban' }, { key: 'top', label: 'Top tài nguyên' }, { key: 'maintenance', label: 'Chi phí bảo trì' }, { key: 'history', label: 'Lịch sử bảo trì' }, { key: 'violations', label: 'Vi phạm' }, { key: 'trend', label: 'Xu hướng' }]
   protected readonly totalUsage = computed(() => this.usageTrend().reduce((sum, item) => sum + item.usageCount, 0))
 
-  ngOnInit(): void { const to = new Date(); const from = new Date(); from.setDate(from.getDate() - 30); this.from = toDateInput(from); this.to = toDateInput(to); this.load() }
+  ngOnInit(): void { this.from = getFirstDayOfMonth(); this.to = getLastDayOfMonth(); this.load() }
 
   protected load(): void {
     if (!this.from || !this.to) return
+    if (this.from > this.to) {
+      this.toast.error('Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).')
+      return
+    }
     this.loading.set(true)
     const from = new Date(`${this.from}T00:00:00`).toISOString()
     const to = new Date(`${this.to}T23:59:59`).toISOString()

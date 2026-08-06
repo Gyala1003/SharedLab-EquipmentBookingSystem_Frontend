@@ -2,9 +2,9 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { forkJoin } from 'rxjs'
+import { catchError, forkJoin, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
-import type { BookingItemRequest, BookingResponse, CalendarEventResponse, EquipmentResponse, LabRoomResponse, PriorityRuleResponse } from '../../core/api/system.models'
+import type { BookingItemRequest, BookingResponse, CalendarEventResponse, EquipmentResponse, LabRoomResponse, PriorityRuleResponse, SuggestedSlotResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
@@ -366,6 +366,30 @@ export interface SlotWithStatus extends TimeSlot {
                       }
                     </div>
                   </div>
+
+                  @if (suggestedSlots().length > 0) {
+                    <div class="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50/90 to-indigo-50/70 p-4 shadow-sm space-y-2.5">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-violet-950 font-black text-xs">
+                          <app-icon name="sparkles" [size]="16" class="text-violet-600" />
+                          <span>Gợi ý khung giờ rảnh từ hệ thống:</span>
+                        </div>
+                        <button type="button" class="text-[11px] font-bold text-violet-600 hover:text-violet-800" (click)="suggestedSlots.set([])">Đóng ✕</button>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                        @for (slot of suggestedSlots(); track slot.startTime) {
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1.5 rounded-xl border border-violet-300 bg-white px-3 py-1.5 text-xs font-black text-violet-800 shadow-sm hover:bg-violet-600 hover:text-white hover:border-violet-600 transition"
+                            (click)="applySuggestedSlot(slot)"
+                          >
+                            <app-icon name="clock" [size]="13" />
+                            {{ slot.startTime | date:'HH:mm' }} - {{ slot.endTime | date:'HH:mm' }} ({{ slot.startTime | date:'dd/MM' }})
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
 
                 <!-- RIGHT COLUMN: 4 Fixed Time Slots Selection -->
@@ -1070,10 +1094,49 @@ export class BookingFormPage implements OnInit {
         error: (err: any) => {
           this.submitting.set(false)
           const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.'
+          const suggestions: SuggestedSlotResponse[] = err?.details?.suggestedSlots || err?.error?.suggestedSlots || []
+          if (suggestions.length) {
+            this.suggestedSlots.set(suggestions)
+          } else {
+            this.loadSuggestedSlots()
+          }
           this.toast.error('Không thể tạo booking', msg)
         },
       })
     })
+  }
+
+  protected readonly suggestedSlots = signal<SuggestedSlotResponse[]>([])
+
+  protected loadSuggestedSlots(): void {
+    const items = this.itemPayload()
+    if (!items.length || !this.bookingDate) return
+
+    const fromStr = `${this.bookingDate}T07:50:00`
+    const toStr = `${this.bookingDate}T17:40:00`
+
+    this.api
+      .suggestSlots({
+        startTime: toIso(fromStr),
+        endTime: toIso(toStr),
+        items,
+        maxSuggestions: 5,
+        searchDays: 7,
+        stepMinutes: 30,
+      })
+      .pipe(catchError(() => of([])))
+      .subscribe((slots: SuggestedSlotResponse[]) => this.suggestedSlots.set(slots || []))
+  }
+
+  protected applySuggestedSlot(slot: SuggestedSlotResponse): void {
+    const startDate = new Date(slot.startTime)
+    const endDate = new Date(slot.endTime)
+    this.bookingDate = toDateInput(startDate)
+    this.loadDayData()
+    this.toast.success(
+      'Đã áp dụng khung giờ gợi ý',
+      `Khung giờ: ${startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ngày ${startDate.toLocaleDateString('vi-VN')}`,
+    )
   }
 
   private itemPayload(): BookingItemRequest[] { return this.selected().map((item) => ({ resourceType: item.resourceType, labId: item.labId, equipmentId: item.equipmentId, note: item.note || null })) }

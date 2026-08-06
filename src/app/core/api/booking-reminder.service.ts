@@ -4,9 +4,7 @@ import { catchError, of } from 'rxjs'
 import { AuthStore } from '../auth/auth.store'
 import { SystemService } from './system.service'
 import { ToastService } from '../../shared/ui/toast.service'
-import { NotificationBadgeService } from './notification-badge.service'
-import { getCheckInWindowInfo } from '../../shared/utils/presentation'
-import type { BookingResponse, UsageLogResponse } from './system.models'
+import type { BookingResponse } from './system.models'
 
 export interface SimulatedEmail {
   id: string
@@ -27,7 +25,6 @@ export class BookingReminderService {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
   private readonly router = inject(Router)
-  private readonly badge = inject(NotificationBadgeService)
 
   private timer: any = null
   private consecutiveErrors = 0
@@ -81,7 +78,9 @@ export class BookingReminderService {
 
   /**
    * Check-in Reminder (15 mins before start time):
-   * Send notification & Email to user with a direct app link for 1-click check-in.
+   * Show a toast UI notification for users who are currently online.
+   * NOTE: The actual DB notification + email is handled by BE BookingReminderBackgroundService (every 1 min).
+   * FE only adds a non-persistent toast for immediate in-app feedback.
    */
   private processUserCheckinReminders(bookings: BookingResponse[], user: any): void {
     const now = Date.now()
@@ -90,32 +89,23 @@ export class BookingReminderService {
     for (const booking of approved) {
       const startTimeMs = new Date(booking.startTime).getTime()
       const isApproachingCheckin = now >= startTimeMs - 15 * 60_000 && now <= startTimeMs + 30 * 60_000
-      const key = `checkin_${booking.bookingId}_${user.userId}`
+      const key = `checkin_toast_${booking.bookingId}_${user.userId}`
 
-      if (isApproachingCheckin && !this.sentReminders.has(key) && !localStorage.getItem(key)) {
+      if (isApproachingCheckin && !this.sentReminders.has(key) && !sessionStorage.getItem(key)) {
         this.api.usageLogsByBooking(booking.bookingId).subscribe((logs) => {
           const hasCheckedIn = logs.some((l) => l.actualCheckin !== null)
           if (hasCheckedIn) return
 
           this.sentReminders.add(key)
-          localStorage.setItem(key, 'true')
+          // Use sessionStorage so toast only shows once per browser session (not per page load)
+          sessionStorage.setItem(key, 'true')
 
           const appLink = `/app/bookings/${booking.bookingId}`
-          const subject = `[SharedLab Mail] Nhắc nhở Check-in cho Booking #${booking.bookingId}`
-          const body = `Xin chào ${user.fullName},\n\nLịch đặt phòng/thiết bị #${booking.bookingId} của bạn sắp bắt đầu lúc ${new Date(booking.startTime).toLocaleTimeString('vi-VN')} ngày ${new Date(booking.startTime).toLocaleDateString('vi-VN')}.\nKhung giờ điểm danh check-in mở từ 15 phút trước giờ bắt đầu.\nVui lòng nhấp vào đường dẫn bên dưới để tiện truy cập ứng dụng và thực hiện Check-in đúng giờ:\n${window.location.origin}${appLink}`
 
-          this.api.sendNotification({
-            userId: user.userId,
-            title: `Nhắc nhở điểm danh (Check-in) #${booking.bookingId}`,
-            message: `Lịch đặt #${booking.bookingId} sắp bắt đầu. Nhấp để truy cập và điểm danh ngay.`,
-            notificationType: 1,
-          }).subscribe()
-
-          this.badge.set(this.badge.count() + 1)
-
+          // Show in-app toast only (BE handles actual notification + email)
           this.toast.info(
-            `[EMAIL GỬI NGƯỜI DÙNG] Nhắc nhở Check-in #${booking.bookingId}`,
-            `Khung giờ Check-in đã mở. Link ứng dụng: ${appLink}`,
+            `Nhắc nhở Check-in #${booking.bookingId}`,
+            `Khung giờ Check-in đã mở. Nhấp để truy cập.`,
           )
 
           this.saveSimulatedEmail({
@@ -123,8 +113,8 @@ export class BookingReminderService {
             recipientEmail: user.email || 'requester@sharedlab.edu.vn',
             recipientName: user.fullName || 'Người dùng',
             recipientRole: user.role || 'Requester',
-            subject,
-            body,
+            subject: `[SharedLab Mail] Nhắc nhở Check-in cho Booking #${booking.bookingId}`,
+            body: `Xin chào ${user.fullName},\n\nLịch đặt phòng/thiết bị #${booking.bookingId} của bạn sắp bắt đầu lúc ${new Date(booking.startTime).toLocaleTimeString('vi-VN')} ngày ${new Date(booking.startTime).toLocaleDateString('vi-VN')}.\nKhung giờ điểm danh check-in mở từ 15 phút trước giờ bắt đầu.\nVui lòng nhấp vào đường dẫn bên dưới để tiện truy cập ứng dụng và thực hiện Check-in đúng giờ:\n${window.location.origin}${appLink}`,
             appLink,
             sentAt: new Date().toISOString(),
             type: 'checkin_reminder',
@@ -137,7 +127,8 @@ export class BookingReminderService {
 
   /**
    * Check-out Reminder for Users (when approaching or past endTime):
-   * Send notification & Email to user with policy warning (late checkout >15m = violation).
+   * Show a toast UI notification for users who are currently online.
+   * NOTE: The actual DB notification + email is handled by BE BookingReminderBackgroundService.
    */
   private processUserCheckoutReminders(bookings: BookingResponse[], user: any): void {
     const now = Date.now()
@@ -146,31 +137,21 @@ export class BookingReminderService {
     for (const booking of approved) {
       const endTimeMs = new Date(booking.endTime).getTime()
       const isApproachingCheckout = now >= endTimeMs - 10 * 60_000 && now <= endTimeMs + 20 * 60_000
-      const key = `checkout_user_${booking.bookingId}_${user.userId}`
+      const key = `checkout_toast_user_${booking.bookingId}_${user.userId}`
 
-      if (isApproachingCheckout && !this.sentReminders.has(key) && !localStorage.getItem(key)) {
+      if (isApproachingCheckout && !this.sentReminders.has(key) && !sessionStorage.getItem(key)) {
         this.api.usageLogsByBooking(booking.bookingId).subscribe((logs) => {
           const activeLog = logs.find((l) => l.actualCheckin && !l.actualCheckout)
           if (!activeLog) return
 
           this.sentReminders.add(key)
-          localStorage.setItem(key, 'true')
+          sessionStorage.setItem(key, 'true')
 
           const appLink = `/app/bookings/${booking.bookingId}`
-          const subject = `[SharedLab Mail] Nhắc nhở Check-out cho Booking #${booking.bookingId}`
-          const body = `Xin chào ${user.fullName},\n\nPhiên sử dụng phòng/thiết bị #${booking.bookingId} của bạn sắp/đã kết thúc lúc ${new Date(booking.endTime).toLocaleTimeString('vi-VN')}.\nVui lòng thực hiện Check-out đúng giờ để giải phóng tài nguyên. NẾU QUÁ 15 PHÚT SO VỚI GIỜ KẾT THÚC KHÔNG CHECK-OUT, HỆ THỐNG SẼ TỰ ĐỘNG GHI NHẬN SỰ CỐ VÀ ÁP DỤNG VI PHẠM TRẢ MUỘN (+5 ĐIỂM PHẠT).\n\nTruy cập đường dẫn bên dưới để Check-out ngay:\n${window.location.origin}${appLink}`
 
-          this.api.sendNotification({
-            userId: user.userId,
-            title: `Nhắc nhở trả phòng (Check-out) #${booking.bookingId}`,
-            message: `Phiên sử dụng đã đến giờ kết thúc. Vui lòng check-out ngay để tránh vi phạm quá hạn 15 phút.`,
-            notificationType: 1,
-          }).subscribe()
-
-          this.badge.set(this.badge.count() + 1)
-
+          // Show in-app toast only (BE handles actual notification + email)
           this.toast.info(
-            `[EMAIL GỬI NGƯỜI DÙNG] Nhắc nhở Check-out #${booking.bookingId}`,
+            `Nhắc nhở Check-out #${booking.bookingId}`,
             `Nội quy: Quá 15m sẽ bị tính vi phạm LateCheckout. Link: ${appLink}`,
           )
 
@@ -179,8 +160,8 @@ export class BookingReminderService {
             recipientEmail: user.email || 'requester@sharedlab.edu.vn',
             recipientName: user.fullName || 'Người dùng',
             recipientRole: user.role || 'Requester',
-            subject,
-            body,
+            subject: `[SharedLab Mail] Nhắc nhở Check-out cho Booking #${booking.bookingId}`,
+            body: `Xin chào ${user.fullName},\n\nPhiên sử dụng phòng/thiết bị #${booking.bookingId} của bạn sắp/đã kết thúc lúc ${new Date(booking.endTime).toLocaleTimeString('vi-VN')}.\nVui lòng thực hiện Check-out đúng giờ để giải phóng tài nguyên. NẾU QUÁ 15 PHÚT SO VỚI GIỜ KẾT THÚC KHÔNG CHECK-OUT, HỆ THỐNG SẼ TỰ ĐỘNG GHI NHẬN SỰ CỐ VÀ ÁP DỤNG VI PHẠM TRẢ MUỘN (+5 ĐIỂM PHẠT).\n\nTruy cập đường dẫn bên dưới để Check-out ngay:\n${window.location.origin}${appLink}`,
             appLink,
             sentAt: new Date().toISOString(),
             type: 'checkout_reminder_user',
@@ -193,7 +174,8 @@ export class BookingReminderService {
 
   /**
    * Check-out Reminder for Manager (when a user is approaching or past endTime):
-   * Send notification to Manager so Manager can check out on behalf of the user if user forgets!
+   * Show a toast UI notification for managers who are currently online.
+   * NOTE: The actual DB notification + email is handled by BE BookingReminderBackgroundService.
    */
   private processManagerCheckoutReminders(allBookings: BookingResponse[], managerUser: any): void {
     const now = Date.now()
@@ -202,31 +184,21 @@ export class BookingReminderService {
     for (const booking of approved) {
       const endTimeMs = new Date(booking.endTime).getTime()
       const isManagerNoticeWindow = now >= endTimeMs - 5 * 60_000 && now <= endTimeMs + 30 * 60_000
-      const key = `checkout_mgr_${booking.bookingId}_${managerUser.userId}`
+      const key = `checkout_toast_mgr_${booking.bookingId}_${managerUser.userId}`
 
-      if (isManagerNoticeWindow && !this.sentReminders.has(key) && !localStorage.getItem(key)) {
+      if (isManagerNoticeWindow && !this.sentReminders.has(key) && !sessionStorage.getItem(key)) {
         this.api.usageLogsByBooking(booking.bookingId).subscribe((logs) => {
           const activeLog = logs.find((l) => l.actualCheckin && !l.actualCheckout)
           if (!activeLog) return
 
           this.sentReminders.add(key)
-          localStorage.setItem(key, 'true')
+          sessionStorage.setItem(key, 'true')
 
           const appLink = `/app/bookings/${booking.bookingId}`
-          const subject = `[THÔNG BÁO QUẢN LÝ] Nhắc nhở Check-out hỗ trợ người dùng - Booking #${booking.bookingId}`
-          const body = `Kính gửi Quản lý ${managerUser.fullName},\n\nBooking #${booking.bookingId} của người dùng ID #${booking.userId} đã đến giờ kết thúc (${new Date(booking.endTime).toLocaleTimeString('vi-VN')}).\nNhiệm vụ Quản lý: Nếu người dùng quên check-out quá 15 phút, Quản lý có trách nhiệm bấm vào đường dẫn để thực hiện Check-out hỗ trợ người dùng trên hệ thống.\n\nLink quản lý:\n${window.location.origin}${appLink}`
 
-          this.api.sendNotification({
-            userId: managerUser.userId,
-            title: `[Nhiệm vụ Quản lý] Hỗ trợ Check-out Booking #${booking.bookingId}`,
-            message: `Booking #${booking.bookingId} của người dùng #${booking.userId} đến giờ kết thúc. Kiểm tra và check-out hộ nếu quên.`,
-            notificationType: 1,
-          }).subscribe()
-
-          this.badge.set(this.badge.count() + 1)
-
+          // Show in-app toast only (BE handles actual notification + email)
           this.toast.info(
-            `[THÔNG BÁO QUẢN LÝ] Booking #${booking.bookingId} đến giờ Check-out`,
+            `[Nhiệm vụ Quản lý] Booking #${booking.bookingId} đến giờ Check-out`,
             `Nhiệm vụ Quản lý: Check-out hộ nếu người dùng quên. Link: ${appLink}`,
           )
 
@@ -235,8 +207,8 @@ export class BookingReminderService {
             recipientEmail: managerUser.email || 'manager@sharedlab.edu.vn',
             recipientName: managerUser.fullName || 'Quản lý phòng Lab',
             recipientRole: managerUser.role || 'LabManager',
-            subject,
-            body,
+            subject: `[THÔNG BÁO QUẢN LÝ] Nhắc nhở Check-out hỗ trợ người dùng - Booking #${booking.bookingId}`,
+            body: `Kính gửi Quản lý ${managerUser.fullName},\n\nBooking #${booking.bookingId} của người dùng ID #${booking.userId} đã đến giờ kết thúc (${new Date(booking.endTime).toLocaleTimeString('vi-VN')}).\nNhiệm vụ Quản lý: Nếu người dùng quên check-out quá 15 phút, Quản lý có trách nhiệm bấm vào đường dẫn để thực hiện Check-out hỗ trợ người dùng trên hệ thống.\n\nLink quản lý:\n${window.location.origin}${appLink}`,
             appLink,
             sentAt: new Date().toISOString(),
             type: 'checkout_reminder_manager',

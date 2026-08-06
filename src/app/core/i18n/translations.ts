@@ -858,6 +858,14 @@ export const translations: Record<string, { vi: string; en: string }> = {
     vi: 'Không thể đăng ký mượn thiết bị này cho đến khi kết thúc bảo trì.',
     en: 'Cannot book this equipment until maintenance is completed.',
   },
+  'profile.securityDesc': {
+    vi: 'Đổi mật khẩu định kỳ để tăng cường bảo mật cho tài khoản cá nhân.',
+    en: 'Change your password regularly to enhance account security.',
+  },
+  'bookings.requester': {
+    vi: 'Người đăng ký',
+    en: 'Requester',
+  },
 }
 
 export function getDictionary(lang: 'vi' | 'en'): Record<string, any> {

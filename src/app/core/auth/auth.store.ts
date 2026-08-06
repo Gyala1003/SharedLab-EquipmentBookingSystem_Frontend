@@ -46,10 +46,12 @@ export class AuthStore {
     try {
       const res = await firstValueFrom(this.auth.login(payload))
       this.tokens.set(res.accessToken, res.refreshToken, remember)
-      this.setUser(res.user, remember)
+      // BE AuthResponseDTO returns { accessToken, refreshToken }. Call me() to fetch user profile.
+      const user = res.user ?? (await firstValueFrom(this.auth.me()))
+      this.setUser(user, remember)
       this._error.set(null) // Reset lỗi về null khi thành công
       this._status.set('idle')
-      return res.user
+      return user
     } catch (e) {
       this._status.set('error')
       this._error.set(this.resolveMessage(e))

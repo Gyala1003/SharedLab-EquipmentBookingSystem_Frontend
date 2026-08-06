@@ -1,8 +1,8 @@
-import { DatePipe } from '@angular/common'
+import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, EMPTY, timeout } from 'rxjs'
+import { catchError, EMPTY, forkJoin, of, timeout } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -14,69 +14,103 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toDateInput } from '../../shared/utils/presentation'
+import { getFirstDayOfMonth, getLastDayOfMonth, labelOf, toDateInput } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-bookings-management-page',
-  imports: [DatePipe, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [DatePipe, NgClass, FormsModule, RouterLink, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'manageBookings.title' | t" [subtitle]="'manageBookings.subtitle' | t">
-        <a routerLink="/app/management/bookings/pending" class="btn-primary"><app-icon name="clock" [size]="17" /> {{ 'nav.pendingBookings' | t }}</a>
-        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
-      </app-page-header>
-
-      <!-- KPI Cards -->
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        @for (card of cards(); track card.status) {
-          <button type="button" class="kpi-card text-left transition hover:-translate-y-1" [class.ring-2]="status() === card.status" [class.ring-violet-400]="status() === card.status" (click)="status.set(card.status)">
-            <p class="text-[10px] font-black uppercase tracking-[.14em] text-slate-400">{{ card.label }}</p>
-            <p class="mt-2 text-3xl font-black" [class]="card.className">{{ card.count }}</p>
-          </button>
-        }
-      </div>
-
-      <!-- Filters -->
-      <div class="card-surface p-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto_auto]">
-        <div>
-          <label class="field-label">{{ 'common.search' | t }}</label>
-          <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><app-icon name="search" [size]="16" /></span>
-            <input class="input-shell pl-9" [ngModel]="keyword()" (ngModelChange)="keyword.set($event)" placeholder="{{ 'bookings.searchPlaceholder' | t }}" />
+      <!-- Unified Header + Compact Stat Chips Bar (Strictly 1 Single Row, Zero Gap) -->
+      <article class="card-surface p-5 space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-2xl font-black tracking-tight text-slate-950">{{ 'manageBookings.title' | t }}</h1>
+            <p class="mt-1 text-xs font-medium text-slate-500">{{ 'manageBookings.subtitle' | t }}</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <a routerLink="/app/management/bookings/pending" class="btn-primary flex items-center gap-2"><app-icon name="clock" [size]="17" /> {{ 'nav.pendingBookings' | t }}</a>
+            <a routerLink="/app/calendar" class="btn-secondary flex items-center gap-2"><app-icon name="calendar" [size]="17" /> {{ 'header.viewCalendar' | t }}</a>
           </div>
         </div>
-        <div>
-          <label class="field-label">{{ 'common.status' | t }}</label>
-          <select class="input-shell" [ngModel]="status()" (ngModelChange)="status.set($event)">
-            <option value="">{{ 'common.allStatuses' | t }}</option>
-            @for (tab of statuses(); track tab.value) { <option [value]="tab.value">{{ tab.label }}</option> }
-          </select>
+
+        <div class="border-t border-slate-100 pt-3">
+          <!-- Strictly 1 Single Horizontal Row (overflow-x-auto, whitespace-nowrap, no line break) -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+            @for (card of cards(); track card.status) {
+              <button
+                type="button"
+                class="flex shrink-0 items-center gap-2.5 rounded-xl border px-3.5 py-2 text-left transition duration-150 whitespace-nowrap"
+                [ngClass]="{
+                  'border-violet-500 bg-violet-50/90 text-violet-900 ring-2 ring-violet-500/20 shadow-2xs font-bold': status() === card.status,
+                  'border-slate-200/90 bg-slate-50/70 hover:border-violet-300 hover:bg-white text-slate-700': status() !== card.status
+                }"
+                (click)="status.set(card.status)"
+              >
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg text-[11px]" [ngClass]="card.bgTint">
+                  <app-icon [name]="card.iconName" [size]="12" />
+                </span>
+                <span class="text-xs font-bold text-slate-600">{{ card.label }}:</span>
+                <span class="text-xs font-black" [class]="card.className">{{ card.count }}</span>
+              </button>
+            }
+          </div>
         </div>
-        <div>
-          <label class="field-label">{{ 'common.from' | t }}</label>
-          <input class="input-shell" type="date" [ngModel]="from()" (ngModelChange)="from.set($event)" />
-        </div>
-        <div>
-          <label class="field-label">{{ 'common.to' | t }}</label>
-          <input class="input-shell" type="date" [ngModel]="to()" (ngModelChange)="to.set($event)" />
-        </div>
-        <div class="flex items-end">
-          <button class="btn-secondary w-full" (click)="reset()">
-            <app-icon name="refresh" [size]="17" /> {{ 'common.reset' | t }}
-          </button>
-        </div>
-        <div class="flex items-end">
-          <button class="btn-primary w-full" (click)="load()">
-            <app-icon name="refresh" [size]="17" /> {{ 'common.reload' | t }}
-          </button>
+      </article>
+
+      <!-- Filters Surface -->
+      <div class="card-surface p-5 space-y-4">
+        <div class="grid gap-3.5 md:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label class="field-label">{{ 'common.search' | t }}</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><app-icon name="search" [size]="16" /></span>
+              <input class="input-shell pl-10" [ngModel]="keyword()" (ngModelChange)="keyword.set($event)" placeholder="{{ 'bookings.searchPlaceholder' | t }}" />
+            </div>
+          </div>
+          <div>
+            <label class="field-label">{{ 'common.status' | t }}</label>
+            <select class="input-shell" [ngModel]="status()" (ngModelChange)="status.set($event)">
+              <option value="">{{ 'common.allStatuses' | t }}</option>
+              @for (tab of statuses(); track tab.value) { <option [value]="tab.value">{{ tab.label }}</option> }
+            </select>
+          </div>
+          <div>
+            <label class="field-label">{{ 'common.from' | t }}</label>
+            <input class="input-shell" type="date" [ngModel]="from()" (ngModelChange)="setFrom($event)" [class.border-rose-500]="dateInvalid()" />
+          </div>
+          <div>
+            <label class="field-label">{{ 'common.to' | t }}</label>
+            <input class="input-shell" type="date" [ngModel]="to()" (ngModelChange)="setTo($event)" [class.border-rose-500]="dateInvalid()" />
+          </div>
+          @if (dateInvalid()) {
+            <div class="col-span-full rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2 flex items-center gap-2 text-xs font-bold text-rose-700">
+              <app-icon name="alert" [size]="16" />
+              <span>Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).</span>
+            </div>
+          }
         </div>
       </div>
 
-      <!-- Table -->
+      <!-- Table Section -->
       <article class="card-surface overflow-hidden">
-        <header class="flex items-center justify-between border-b border-slate-100 px-5 py-5">
-          <div><h2 class="font-black text-slate-950">{{ 'manageBookings.title' | t }}</h2><p class="mt-1 text-xs text-slate-400">{{ filtered().length }} {{ 'common.records' | t }}</p></div>
+        <header class="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
+          <div class="flex items-center gap-3">
+            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700 font-black text-xs">
+              <app-icon name="calendar" [size]="17" />
+            </span>
+            <div>
+              <h2 class="font-black text-slate-950 text-base">{{ 'manageBookings.title' | t }}</h2>
+              <p class="text-xs text-slate-400 font-medium">{{ filtered().length }} {{ 'common.records' | t }}</p>
+            </div>
+          </div>
+          @if (status()) {
+            <button type="button" class="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-black text-violet-700 hover:bg-violet-100 transition" (click)="status.set('')">
+              Lọc theo: {{ status() }} ✕
+            </button>
+          }
         </header>
+
         @if (loading()) {
           <div class="p-6"><div class="skeleton h-80 rounded-2xl"></div></div>
         } @else if (filtered().length === 0) {
@@ -86,46 +120,72 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
             <table class="table-shell">
               <thead>
                 <tr>
-                  <th>{{ 'bookings.bookingCode' | t }}</th>
-                  <th>{{ 'bookings.user' | t }}</th>
-                  <th>{{ 'bookings.resource' | t }} / {{ 'bookings.purpose' | t }}</th>
-                  <th>{{ 'bookings.usageTime' | t }}</th>
-                  <th>{{ 'bookings.priority' | t }}</th>
-                  <th>{{ 'common.status' | t }}</th>
-                  <th class="text-right">{{ 'common.actions' | t }}</th>
+                  <th class="w-[140px]">{{ 'bookings.bookingCode' | t }}</th>
+                  <th class="w-[160px]">{{ 'bookings.user' | t }}</th>
+                  <th>{{ 'bookings.purpose' | t }}</th>
+                  <th class="w-[200px]">{{ 'bookings.usageTime' | t }}</th>
+                  <th class="w-[90px] text-center">{{ 'bookings.priority' | t }}</th>
+                  <th class="w-[130px]">{{ 'common.status' | t }}</th>
+                  <th class="text-right w-[160px]">{{ 'common.actions' | t }}</th>
                 </tr>
               </thead>
               <tbody>
                 @for (item of filtered(); track item.bookingId) {
-                  <tr>
+                  <tr class="hover:bg-slate-50/80 transition duration-150">
                     <!-- Mã Booking -->
                     <td>
-                      <button class="font-black text-cyan-700 hover:text-cyan-900 hover:underline" (click)="openDetail(item)">
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 font-mono font-black text-xs text-violet-700 bg-violet-50 px-2.5 py-1 rounded-xl border border-violet-200/80 hover:bg-violet-600 hover:text-white hover:border-violet-600 transition shadow-2xs"
+                        (click)="openDetail(item)"
+                      >
                         #BK-{{ item.bookingId.toString().padStart(5, '0') }}
                       </button>
-                      <p class="mt-0.5 text-[11px] text-slate-400">{{ item.createdAt | date:'dd/MM/yyyy' }}</p>
+                      <p class="mt-1 text-[10px] font-semibold text-slate-400">Tạo: {{ item.createdAt | date:'dd/MM/yyyy' }}</p>
                     </td>
 
                     <!-- Người đặt -->
                     <td>
-                      <p class="font-bold text-slate-800">{{ item.userName || ('User #' + item.userId) }}</p>
-                      <p class="mt-0.5 text-[11px] text-slate-400">ID: {{ item.userId }}</p>
+                      <p class="font-black text-slate-900 text-xs">{{ item.userName || ('User #' + item.userId) }}</p>
+                      <p class="mt-0.5 text-[10px] font-bold text-slate-400">ID: #{{ item.userId }}</p>
                     </td>
 
-                    <!-- Tài nguyên / Mục đích -->
+                    <!-- Mục đích sử dụng -->
                     <td>
-                      <p class="font-bold text-slate-700">{{ labelOf('purpose', item.purposeType, languageStore.lang()) }}</p>
+                      <div class="space-y-1">
+                        <span class="inline-block font-black text-xs text-slate-900">
+                          {{ labelOf('purpose', item.purposeType, languageStore.lang()) }}
+                        </span>
+                      </div>
                     </td>
 
-                    <!-- Thời gian -->
+                    <!-- Thời gian sử dụng -->
                     <td>
-                      <p class="font-bold text-slate-700">{{ item.startTime | date:'HH:mm dd/MM/yyyy' }}</p>
-                      <p class="mt-0.5 text-[11px] text-slate-400">{{ 'common.to' | t }} {{ item.endTime | date:'HH:mm dd/MM/yyyy' }}</p>
+                      <div class="space-y-0.5">
+                        <p class="font-black text-slate-900 text-xs flex items-center gap-1.5">
+                          <app-icon name="clock" [size]="13" class="text-violet-500 shrink-0" />
+                          {{ item.startTime | date:'HH:mm' }} - {{ item.endTime | date:'HH:mm' }}
+                        </p>
+                        <p class="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                          <app-icon name="calendar" [size]="12" class="shrink-0" />
+                          {{ item.startTime | date:'dd/MM/yyyy' }}
+                        </p>
+                      </div>
                     </td>
 
                     <!-- Ưu tiên -->
-                    <td>
-                      <span class="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-700">P{{ item.priorityLevel ?? '—' }}</span>
+                    <td class="text-center">
+                      <span
+                        class="inline-block rounded-xl px-2.5 py-1 text-[11px] font-black border"
+                        [ngClass]="{
+                          'bg-indigo-50 text-indigo-700 border-indigo-200': item.priorityLevel === 1,
+                          'bg-cyan-50 text-cyan-700 border-cyan-200': item.priorityLevel === 2,
+                          'bg-emerald-50 text-emerald-700 border-emerald-200': item.priorityLevel === 3,
+                          'bg-slate-100 text-slate-600 border-slate-200': !item.priorityLevel || item.priorityLevel >= 4
+                        }"
+                      >
+                        P{{ item.priorityLevel ?? '—' }}
+                      </span>
                     </td>
 
                     <!-- Trạng thái -->
@@ -136,17 +196,58 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
                     <!-- Thao tác -->
                     <td class="text-right">
                       <div class="flex items-center justify-end gap-1.5">
-                        <button class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 hover:bg-slate-50" (click)="openDetail(item)">
-                          <app-icon name="eye" [size]="15" /> {{ 'common.detail' | t }}
+                        <button
+                          type="button"
+                          class="inline-flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition shadow-2xs"
+                          (click)="openDetail(item)"
+                        >
+                          <app-icon name="eye" [size]="14" /> {{ 'common.detail' | t }}
                         </button>
+
                         @if (item.status === 'Pending') {
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" [title]="'common.approved' | t" (click)="quickAction(item,'approve')"><app-icon name="check" [size]="16" /></button>
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" [title]="'incidents.reject' | t" (click)="openReject(item)"><app-icon name="x" [size]="16" /></button>
+                          <button
+                            type="button"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition shadow-2xs"
+                            [title]="'common.approved' | t"
+                            (click)="quickAction(item,'approve')"
+                          >
+                            <app-icon name="check" [size]="15" />
+                          </button>
+                          <button
+                            type="button"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition shadow-2xs"
+                            [title]="'incidents.reject' | t"
+                            (click)="openReject(item)"
+                          >
+                            <app-icon name="x" [size]="15" />
+                          </button>
                         }
+
                         @if (item.status === 'Approved') {
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" [title]="'common.completed' | t" (click)="quickAction(item,'complete')"><app-icon name="check" [size]="16" /></button>
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" title="NoShow" (click)="quickAction(item,'no-show')"><app-icon name="alert" [size]="16" /></button>
-                          <button class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" [title]="'common.cancel' | t" (click)="quickAction(item,'cancel')"><app-icon name="x" [size]="16" /></button>
+                          <button
+                            type="button"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition shadow-2xs"
+                            [title]="'common.completed' | t"
+                            (click)="quickAction(item,'complete')"
+                          >
+                            <app-icon name="check" [size]="15" />
+                          </button>
+                          <button
+                            type="button"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white transition shadow-2xs"
+                            title="NoShow"
+                            (click)="quickAction(item,'no-show')"
+                          >
+                            <app-icon name="alert" [size]="15" />
+                          </button>
+                          <button
+                            type="button"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white transition shadow-2xs"
+                            [title]="'common.cancel' | t"
+                            (click)="quickAction(item,'cancel')"
+                          >
+                            <app-icon name="x" [size]="15" />
+                          </button>
                         }
                       </div>
                     </td>
@@ -269,8 +370,24 @@ export class BookingsManagementPage implements OnInit {
   protected rejectReason = ''
   protected readonly keyword = signal('')
   protected readonly status = signal('')
-  protected readonly from = signal('')
-  protected readonly to = signal('')
+  protected readonly from = signal(getFirstDayOfMonth())
+  protected readonly to = signal(getLastDayOfMonth())
+  protected readonly dateInvalid = computed(() => !!(this.from() && this.to() && this.from() > this.to()))
+
+  protected setFrom(val: string): void {
+    this.from.set(val)
+    if (val && this.to() && val > this.to()) {
+      this.toast.error('Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).')
+    }
+  }
+
+  protected setTo(val: string): void {
+    this.to.set(val)
+    if (this.from() && val && this.from() > val) {
+      this.toast.error('Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).')
+    }
+  }
+
   protected readonly labelOf = labelOf
   protected readonly statuses = computed(() => [
     { value: 'Pending', label: labelOf('booking', 'Pending', this.languageStore.lang()) },
@@ -281,6 +398,7 @@ export class BookingsManagementPage implements OnInit {
     { value: 'NoShow', label: labelOf('booking', 'NoShow', this.languageStore.lang()) }
   ])
   protected readonly filtered = computed(() => {
+    if (this.dateInvalid()) return []
     const needle = this.keyword().trim().toLowerCase()
     const status = this.status()
     const from = this.from()
@@ -309,26 +427,71 @@ export class BookingsManagementPage implements OnInit {
     }).sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
   })
   protected readonly cards = computed(() => [
-    { status: '', label: this.languageStore.t('dashboard.totalBookings'), count: this.items().length, className: 'text-slate-950' },
-    ...this.statuses().map((item, index) => ({
-      status: item.value,
-      label: item.label,
-      count: this.items().filter((booking) => booking.status === item.value).length,
-      className: ['text-amber-600', 'text-emerald-600', 'text-rose-600', 'text-slate-500', 'text-cyan-600', 'text-rose-600'][index]
-    }))
+    { status: '', label: this.languageStore.t('dashboard.totalBookings'), count: this.items().length, className: 'text-slate-950', iconName: 'calendar', bgTint: 'bg-slate-100 text-slate-700' },
+    { status: 'Pending', label: labelOf('booking', 'Pending', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Pending').length, className: 'text-amber-600', iconName: 'clock', bgTint: 'bg-amber-100 text-amber-700' },
+    { status: 'Approved', label: labelOf('booking', 'Approved', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Approved').length, className: 'text-emerald-600', iconName: 'check', bgTint: 'bg-emerald-100 text-emerald-700' },
+    { status: 'Rejected', label: labelOf('booking', 'Rejected', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Rejected').length, className: 'text-rose-600', iconName: 'x', bgTint: 'bg-rose-100 text-rose-700' },
+    { status: 'Cancelled', label: labelOf('booking', 'Cancelled', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Cancelled').length, className: 'text-slate-500', iconName: 'slash', bgTint: 'bg-slate-100 text-slate-600' },
+    { status: 'Completed', label: labelOf('booking', 'Completed', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Completed').length, className: 'text-cyan-600', iconName: 'check-circle', bgTint: 'bg-cyan-100 text-cyan-700' },
+    { status: 'NoShow', label: labelOf('booking', 'NoShow', this.languageStore.lang()), count: this.items().filter(b => b.status === 'NoShow').length, className: 'text-rose-600', iconName: 'alert', bgTint: 'bg-rose-100 text-rose-700' },
   ])
 
   ngOnInit(): void { this.load() }
 
   protected load(): void {
     this.loading.set(true)
-    this.api.bookings().subscribe({
-      next: (items) => { this.items.set(items); this.loading.set(false) },
+    forkJoin({
+      bookings: this.api.bookings(),
+      usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>())))
+    }).subscribe({
+      next: ({ bookings, usersMap }) => {
+        usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
+
+        const enriched = bookings.map((b) => {
+          const name = usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null
+          return { ...b, userName: name }
+        })
+        this.items.set(enriched)
+        this.loading.set(false)
+
+        const sampleBookingsToResolve: BookingResponse[] = []
+        const seenUserIds = new Set<number>()
+        for (const b of enriched) {
+          if (!b.userName && !seenUserIds.has(b.userId)) {
+            seenUserIds.add(b.userId)
+            sampleBookingsToResolve.push(b)
+          }
+        }
+
+        if (sampleBookingsToResolve.length > 0) {
+          const detailReqs = sampleBookingsToResolve.map((b) =>
+            this.api.booking(b.bookingId).pipe(catchError(() => of(null)))
+          )
+          forkJoin(detailReqs).subscribe((details) => {
+            let updated = false
+            const current = [...this.items()]
+            for (const d of details) {
+              if (d && d.userId && d.userName) {
+                this.api.setCachedUserName(d.userId, d.userName)
+                for (const item of current) {
+                  if (item.userId === d.userId && !item.userName) {
+                    item.userName = d.userName
+                    updated = true
+                  }
+                }
+              }
+            }
+            if (updated) {
+              this.items.set([...current])
+            }
+          })
+        }
+      },
       error: () => { this.loading.set(false); this.toast.error('Không tải được danh sách booking') }
     })
   }
 
-  protected reset(): void { this.keyword.set(''); this.status.set(''); this.from.set(''); this.to.set('') }
+  protected reset(): void { this.keyword.set(''); this.status.set(''); this.from.set(getFirstDayOfMonth()); this.to.set(getLastDayOfMonth()) }
 
   protected currentBookingId = 0
 
@@ -339,27 +502,33 @@ export class BookingsManagementPage implements OnInit {
     this.detailAccessDenied.set(false)
     this.detailErrorMessage.set('')
     this.detailOpen.set(true)
-    this.api
-      .booking(item.bookingId)
-      .pipe(timeout(2500))
-      .subscribe({
-        next: (detail) => {
-          this.detailBooking.set(detail)
-          this.detailLoading.set(false)
-        },
-        error: (err: any) => {
-          this.detailLoading.set(false)
-          this.detailAccessDenied.set(true)
-          const msg =
-            err?.message ||
-            err?.error?.message ||
-            err?.error?.detail ||
-            (err?.name === 'TimeoutError'
-              ? 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
-              : 'Tài khoản không đủ thẩm quyền quản lý hoặc xem chi tiết booking này.')
-          this.detailErrorMessage.set(msg)
-        },
-      })
+    forkJoin({
+      detail: this.api.booking(item.bookingId).pipe(timeout(2500)),
+      usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>())))
+    }).subscribe({
+      next: ({ detail, usersMap }) => {
+        if (detail) {
+          detail.userName = usersMap.get(detail.userId) || this.api.getCachedUserName(detail.userId) || detail.userName || null
+          if (detail.userName && detail.userId) {
+            this.api.setCachedUserName(detail.userId, detail.userName)
+          }
+        }
+        this.detailBooking.set(detail)
+        this.detailLoading.set(false)
+      },
+      error: (err: any) => {
+        this.detailLoading.set(false)
+        this.detailAccessDenied.set(true)
+        const msg =
+          err?.message ||
+          err?.error?.message ||
+          err?.error?.detail ||
+          (err?.name === 'TimeoutError'
+            ? 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
+            : 'Tài khoản không đủ thẩm quyền quản lý hoặc xem chi tiết booking này.')
+        this.detailErrorMessage.set(msg)
+      },
+    })
   }
 
   protected sendErrorReportToBE(): void {

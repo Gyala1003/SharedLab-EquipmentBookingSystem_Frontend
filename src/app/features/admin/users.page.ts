@@ -14,35 +14,50 @@ import { ToastService } from '../../shared/ui/toast.service'
 
 @Component({
   selector: 'app-users-page',
-  imports: [DatePipe, FormsModule, RouterLink, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [DatePipe, FormsModule, RouterLink, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'users.title' | t" [subtitle]="'users.subtitle' | t">
-        <a routerLink="/app/admin/users/new" class="btn-primary"><app-icon name="user-plus" [size]="17" /> {{ 'users.createUser' | t }}</a>
-      </app-page-header>
+      <!-- Unified Header + Compact Stat Chips Bar (Strictly 1 Single Row, Zero Gap) -->
+      <article class="card-surface p-5 space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-2xl font-black tracking-tight text-slate-950">{{ 'users.title' | t }}</h1>
+            <p class="mt-1 text-xs font-medium text-slate-500">{{ 'users.subtitle' | t }}</p>
+          </div>
+          <div>
+            <a routerLink="/app/admin/users/new" class="btn-primary flex items-center gap-2"><app-icon name="user-plus" [size]="17" /> {{ 'users.createUser' | t }}</a>
+          </div>
+        </div>
 
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article class="kpi-card">
-          <div class="flex items-center justify-between"><p class="text-xs font-bold text-slate-400">{{ 'users.totalAccounts' | t }}</p><span class="rounded-xl bg-indigo-50 p-2 text-indigo-600"><app-icon name="users" [size]="18" /></span></div>
-          <p class="mt-3 text-3xl font-black text-slate-950">{{ totalCount() }}</p>
-          <p class="mt-2 text-xs text-slate-400">{{ 'common.apply' | t }}</p>
-        </article>
-        <article class="kpi-card">
-          <div class="flex items-center justify-between"><p class="text-xs font-bold text-slate-400">{{ 'users.displaying' | t }}</p><span class="rounded-xl bg-cyan-50 p-2 text-cyan-600"><app-icon name="list" [size]="18" /></span></div>
-          <p class="mt-3 text-3xl font-black text-slate-950">{{ users().length }}</p>
-          <p class="mt-2 text-xs text-slate-400">Page {{ page() }} / {{ totalPages() || 1 }}</p>
-        </article>
-        <article class="kpi-card">
-          <div class="flex items-center justify-between"><p class="text-xs font-bold text-slate-400">{{ 'users.totalPenalties' | t }}</p><span class="rounded-xl bg-rose-50 p-2 text-rose-600"><app-icon name="alert" [size]="18" /></span></div>
-          <p class="mt-3 text-3xl font-black text-rose-600">{{ pagePenaltyPoints() }}</p>
-          <p class="mt-2 text-xs text-slate-400">{{ 'users.displaying' | t }}</p>
-        </article>
-        <article class="kpi-card">
-          <div class="flex items-center justify-between"><p class="text-xs font-bold text-slate-400">{{ 'departments.title' | t }}</p><span class="rounded-xl bg-emerald-50 p-2 text-emerald-600"><app-icon name="building" [size]="18" /></span></div>
-          <p class="mt-3 text-3xl font-black text-slate-950">{{ departments().length }}</p>
-          <p class="mt-2 text-xs text-slate-400">{{ 'departments.totalUnits' | t }}</p>
-        </article>
-      </div>
+        <div class="border-t border-slate-100 pt-3">
+          <!-- Strictly 1 Single Horizontal Row (overflow-x-auto, whitespace-nowrap, no line break) -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+            <div class="flex shrink-0 items-center gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/70 px-3.5 py-2 whitespace-nowrap">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 text-[11px]"><app-icon name="users" [size]="12" /></span>
+              <span class="text-xs font-bold text-slate-600">{{ 'users.totalAccounts' | t }}:</span>
+              <span class="text-xs font-black text-slate-950">{{ totalCount() }}</span>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/70 px-3.5 py-2 whitespace-nowrap">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700 text-[11px]"><app-icon name="list" [size]="12" /></span>
+              <span class="text-xs font-bold text-slate-600">{{ 'users.displaying' | t }}:</span>
+              <span class="text-xs font-black text-cyan-600">{{ users().length }}</span>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/70 px-3.5 py-2 whitespace-nowrap">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-700 text-[11px]"><app-icon name="alert" [size]="12" /></span>
+              <span class="text-xs font-bold text-slate-600">{{ 'users.totalPenalties' | t }}:</span>
+              <span class="text-xs font-black text-rose-600">{{ pagePenaltyPoints() }}</span>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-2.5 rounded-xl border border-slate-200/90 bg-slate-50/70 px-3.5 py-2 whitespace-nowrap">
+              <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 text-[11px]"><app-icon name="building" [size]="12" /></span>
+              <span class="text-xs font-bold text-slate-600">{{ 'departments.title' | t }}:</span>
+              <span class="text-xs font-black text-emerald-600">{{ departments().length }}</span>
+            </div>
+          </div>
+        </div>
+      </article>
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1.2fr_1fr_auto]">
         <div>

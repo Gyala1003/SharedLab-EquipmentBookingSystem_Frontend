@@ -31,18 +31,18 @@ export class AuthService {
   }
 
   logout(refreshToken: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${env.apiBaseUrl}/auth/logout`, { refreshToken })
+    return this.http.post<{ message: string }>(`${this.baseUrl}/logout`, { refreshToken })
   }
 
   forgotPassword(email: string, resetLink?: string): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(
-      `${env.apiBaseUrl}/auth/forgot-password`,
+      `${this.baseUrl}/forgot-password`,
       { email },
     )
   }
 
   resetPassword(payload: ResetPasswordPayload): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${env.apiBaseUrl}/auth/reset-password`, payload)
+    return this.http.post<{ message: string }>(`${this.baseUrl}/reset-password`, payload)
   }
 }
 

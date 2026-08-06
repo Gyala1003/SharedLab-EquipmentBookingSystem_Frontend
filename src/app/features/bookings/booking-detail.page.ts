@@ -177,12 +177,12 @@ export class BookingDetailPage implements OnInit {
   protected checkInTime = ''
   protected checkOutLog: UsageLogResponse | null = null
   private noShowChecked = false
-  protected readonly durationHours = computed(() => { const item = this.booking(); return item ? Math.round((+new Date(item.endTime)-+new Date(item.startTime))/360000)/10 : 0 })
+  protected readonly durationHours = computed(() => { const item = this.booking(); return item ? Math.round((+new Date(item.endTime) - +new Date(item.startTime)) / 360000) / 10 : 0 })
 
   ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('bookingId')); this.load() }
   protected canApprove(): boolean { return Boolean(this.store.isManager() && this.booking()?.status === 'Pending') }
   protected isOwnBooking(): boolean { return this.booking()?.userId === this.store.user()?.userId }
-  protected canCancel(): boolean { const item = this.booking(); return Boolean(item && ['Pending','Approved'].includes(item.status) && (item.userId === this.store.user()?.userId || this.store.isManager())) }
+  protected canCancel(): boolean { const item = this.booking(); return Boolean(item && ['Pending', 'Approved'].includes(item.status) && (item.userId === this.store.user()?.userId || this.store.isManager())) }
   protected canCheckIn(): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; return getCheckInWindowInfo(item.startTime, item.endTime).canCheckIn }
   protected canCheckInNow(): boolean {
     const item = this.booking()
@@ -205,10 +205,10 @@ export class BookingDetailPage implements OnInit {
   }
   protected canManageConcluded(): boolean { return Boolean(this.store.isManager() && this.booking()?.status === 'Approved') }
   protected isMissedNoShow(itemId: number): boolean { const item = this.booking(); if (!item || item.status !== 'Approved') return false; return Date.now() > +new Date(item.endTime) && !this.logFor(itemId) }
-  protected checkoutLateMinutes(): number { const item = this.booking(); if (!item) return 0; const deadline = +new Date(item.endTime); return Math.max(0, Math.round((Date.now()-deadline)/60_000)) }
+  protected checkoutLateMinutes(): number { const item = this.booking(); if (!item) return 0; const deadline = +new Date(item.endTime); return Math.max(0, Math.round((Date.now() - deadline) / 60_000)) }
   protected logFor(itemId: number): UsageLogResponse | undefined { return this.logs().find((log) => log.bookingItemId === itemId) }
   protected initials(name: string): string { return name.trim().split(/\s+/).slice(-2).map((x) => x[0]?.toUpperCase() ?? '').join('') }
-  protected action(action: 'approve'|'cancel'|'complete'|'no-show'): void { if (!confirm(`Xác nhận thao tác ${action} booking #${this.id}?`)) return; const request = action === 'approve' ? this.api.approveBooking(this.id) : action === 'cancel' ? this.api.cancelBooking(this.id) : action === 'complete' ? this.api.completeBooking(this.id) : this.api.noShowBooking(this.id); request.subscribe({ next: () => { this.toast.success('Đã cập nhật booking'); this.load() }, error: () => this.toast.error('Không thể cập nhật booking') }) }
+  protected action(action: 'approve' | 'cancel' | 'complete' | 'no-show'): void { if (!confirm(`Xác nhận thao tác ${action} booking #${this.id}?`)) return; const request = action === 'approve' ? this.api.approveBooking(this.id) : action === 'cancel' ? this.api.cancelBooking(this.id) : action === 'complete' ? this.api.completeBooking(this.id) : this.api.noShowBooking(this.id); request.subscribe({ next: () => { this.toast.success('Đã cập nhật booking'); this.load() }, error: () => this.toast.error('Không thể cập nhật booking') }) }
   protected reject(): void { this.api.rejectBooking(this.id, this.rejectionReason.trim()).subscribe({ next: () => { this.rejectOpen.set(false); this.toast.success('Đã từ chối booking'); this.load() }, error: () => this.toast.error('Không thể từ chối booking') }) }
   protected checkIn(itemId: number): void {
     if (this.checkUserRestricted()) return

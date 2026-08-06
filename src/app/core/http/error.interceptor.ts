@@ -1,18 +1,21 @@
 import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http'
 import { inject } from '@angular/core'
 import { Router } from '@angular/router'
-import { catchError, retry, switchMap, throwError, timer } from 'rxjs'
+import { BehaviorSubject, catchError, filter, finalize, retry, switchMap, take, tap, throwError, timer } from 'rxjs'
 import { TokenStorage } from '../auth/token-storage'
+import { AuthStore } from '../auth/auth.store'
 import type { AuthTokens } from '../auth/auth.types'
 import { env } from '../config/env'
 import { ApiError } from './api-error'
 import { ErrorStateService } from './error-state.service'
 
-const USER_KEY = 'auth.user'
+let isRefreshing = false
+const refreshTokenSubject = new BehaviorSubject<string | null>(null)
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router)
   const tokens = inject(TokenStorage)
+  const authStore = inject(AuthStore)
   const errorState = inject(ErrorStateService)
   const http = new HttpClient(inject(HttpBackend))
 
@@ -20,7 +23,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     retry({
       count: 2,
       delay: (error: any, retryCount: number) => {
-        const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password)$/i.test(req.url)
+        const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(req.url)
         if (!isAuthEndpoint && (error?.status >= 500 || error?.status === 0) && retryCount <= 2) {
           return timer(retryCount * 350)
         }
@@ -28,31 +31,71 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       },
     }),
     catchError((error: HttpErrorResponse) => {
-      const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password)$/i.test(req.url)
+      const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(req.url)
+      const currentToken = tokens.access
       const refreshToken = tokens.refresh
 
-      if (error.status === 401 && refreshToken && !isAuthEndpoint) {
-        return http
-          .post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, { refreshToken })
-          .pipe(
-            switchMap((fresh) => {
-              tokens.set(fresh.accessToken, fresh.refreshToken)
+      if (error.status === 401 && !isAuthEndpoint) {
+        // 1. Check if another concurrent request ALREADY refreshed the token while this request was waiting/failing
+        const reqAuthHeader = req.headers.get('Authorization')
+        const reqToken = reqAuthHeader?.replace(/^Bearer\s+/i, '')
+
+        if (currentToken && reqToken && reqToken !== currentToken) {
+          // Token in storage has ALREADY been updated! Simply retry with the updated access token without calling refresh API.
+          return next(
+            req.clone({ setHeaders: { Authorization: `Bearer ${currentToken}` } }),
+          )
+        }
+
+        // 2. If no refresh token is available, clear session and go to login
+        if (!refreshToken) {
+          authStore.clear()
+          void router.navigate(['/login'])
+          return throwError(() => normalize(error))
+        }
+
+        // 3. Handle token refresh with locking mechanism
+        if (!isRefreshing) {
+          isRefreshing = true
+          refreshTokenSubject.next(null)
+
+          return http
+            .post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, { refreshToken })
+            .pipe(
+              tap((fresh) => {
+                tokens.set(fresh.accessToken, fresh.refreshToken, tokens.isRemembered)
+                refreshTokenSubject.next(fresh.accessToken)
+              }),
+              switchMap((fresh) => {
+                return next(
+                  req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
+                )
+              }),
+              catchError((refreshError: HttpErrorResponse) => {
+                isRefreshing = false
+                refreshTokenSubject.next(null)
+                authStore.clear()
+                void router.navigate(['/login'])
+                return throwError(() => normalize(refreshError))
+              }),
+              finalize(() => {
+                isRefreshing = false
+              }),
+            )
+        } else {
+          // Wait until refreshTokenSubject emits non-null fresh token
+          return refreshTokenSubject.pipe(
+            filter((token): token is string => token !== null),
+            take(1),
+            switchMap((token) => {
               return next(
-                req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
+                req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }),
               )
             }),
-            catchError((refreshError: HttpErrorResponse) => {
-              clearSession(tokens)
-              void router.navigate(['/login'])
-              return throwError(() => normalize(refreshError))
-            }),
           )
+        }
       }
 
-      if (error.status === 401 && !isAuthEndpoint) {
-        clearSession(tokens)
-        void router.navigate(['/login'])
-      }
       const normalizedErr = normalize(error)
 
       if (error.status === 403) {
@@ -81,12 +124,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       return throwError(() => normalizedErr)
     }),
   )
-}
-
-function clearSession(tokens: TokenStorage): void {
-  tokens.clear()
-  localStorage.removeItem(USER_KEY)
-  sessionStorage.removeItem(USER_KEY)
 }
 
 function normalize(error: HttpErrorResponse): ApiError {

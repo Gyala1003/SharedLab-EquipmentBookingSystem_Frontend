@@ -141,16 +141,6 @@ import { labelOf } from '../../shared/utils/presentation'
                 }
               </div>
             </article>
-
-            <article class="rounded-3xl border border-indigo-100 bg-indigo-50/60 p-6">
-              <div class="flex items-start gap-4">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white"><app-icon name="lightbulb" [size]="20" /></div>
-                <div>
-                  <p class="font-bold text-indigo-950">{{ 'profile.needUpdateTitle' | t }}</p>
-                  <p class="mt-1 text-sm leading-6 text-indigo-700/70">{{ 'profile.needUpdateSub' | t }}</p>
-                </div>
-              </div>
-            </article>
           </div>
         </div>
       }

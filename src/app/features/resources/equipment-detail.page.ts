@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { forkJoin } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
-import type { CalendarEventResponse, EquipmentDetailResponse, LabRoomDetailResponse, LabRoomResponse, MaintenanceResponse } from '../../core/api/system.models'
+import type { CalendarEventResponse, EquipmentDetailResponse, EquipmentResponse, LabRoomDetailResponse, LabRoomResponse, MaintenanceResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
@@ -13,6 +13,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { getEquipmentImageUrl } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-equipment-detail-page',
@@ -39,7 +40,7 @@ import { ToastService } from '../../shared/ui/toast.service'
         }
 
         <div class="grid gap-6 xl:grid-cols-[.8fr_1.2fr]">
-          <article class="card-surface overflow-hidden"><div class="relative flex h-80 items-center justify-center bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900">@if (item()!.imageUrl) { <img [src]="item()!.imageUrl" [alt]="item()!.equipmentName" class="h-full w-full object-cover" /> } @else { <div class="absolute inset-0 opacity-35" style="background-image:radial-gradient(circle at 25% 20%,#8b5cf6,transparent 30%),radial-gradient(circle at 75% 80%,#06b6d4,transparent 28%)"></div><div class="relative flex h-32 w-32 items-center justify-center rounded-[38px] border border-white/15 bg-white/10 text-white backdrop-blur"><app-icon name="microscope" [size]="62" /></div> }<div class="absolute left-5 top-5"><app-status-badge [value]="item()!.status" domain="equipment" /></div></div></article>
+          <article class="card-surface overflow-hidden"><div class="relative flex h-80 items-center justify-center bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900"><img [src]="getEquipmentImage(item())" [alt]="item()!.equipmentName" class="h-full w-full object-cover" /><div class="absolute left-5 top-5"><app-status-badge [value]="item()!.status" domain="equipment" /></div></div></article>
           <article class="card-surface p-6 sm:p-7"><p class="text-xs font-black uppercase tracking-[.18em] text-violet-500">{{ 'equipment.techInfo' | t }}</p><h2 class="mt-2 text-2xl font-black text-slate-950">{{ item()!.equipmentName | t }}</h2><div class="mt-6 grid gap-4 sm:grid-cols-2"><div class="rounded-2xl bg-slate-50 p-4"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'equipment.locatedLab' | t }}</p><a [routerLink]="['/app/labs', item()!.labId]" class="mt-2 block font-black text-violet-700 hover:text-violet-900">{{ (((lab()?.labName ?? '') | t)) || ('nav.items.labs' | t) + ' #' + item()!.labId }}</a></div><div class="rounded-2xl bg-slate-50 p-4"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'equipment.code' | t }}</p><p class="mt-2 font-black text-slate-800">EQ-{{ item()!.equipmentId.toString().padStart(4, '0') }}</p></div></div><div class="mt-5"><p class="text-xs font-black text-slate-700">{{ 'equipment.specs' | t }}</p><p class="mt-2 whitespace-pre-line text-sm leading-7 text-slate-500">{{ (item()!.modelSpecs ?? '') | t }}</p></div><div class="mt-5 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4"><p class="flex items-center gap-2 text-xs font-black text-cyan-800"><app-icon name="book-open" [size]="17" /> {{ 'equipment.usageGuideline' | t }}</p><p class="mt-2 whitespace-pre-line text-sm leading-6 text-cyan-900/65">{{ (item()!.usageGuideline ?? '') | t }}</p></div></article>
         </div>
 
@@ -70,6 +71,7 @@ export class EquipmentDetailPage implements OnInit {
   private id = 0
 
   ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('equipmentId')); this.api.equipment(this.id).subscribe({ next: (item) => { this.item.set(item); const from = new Date(); const to = new Date(); to.setDate(to.getDate() + 30); forkJoin({ lab: this.api.lab(item.labId), maintenances: this.api.maintenancesByEquipment(this.id), events: this.api.calendar(from.toISOString(), to.toISOString(), undefined, this.id) }).subscribe({ next: ({ lab, maintenances, events }) => { this.lab.set(lab); this.maintenances.set(maintenances); this.events.set(events); this.loading.set(false) }, error: () => this.loading.set(false) }) }, error: () => { this.loading.set(false); this.item.set(null) } }) }
+  protected getEquipmentImage(item?: EquipmentDetailResponse | EquipmentResponse | null): string { return getEquipmentImageUrl(item) }
   protected isFullRoomBooking(event: CalendarEventResponse): boolean { return event.resources.some((r) => r.resourceType === 'LabRoom' || !r.equipmentId) }
   protected isThisEquipmentBooking(event: CalendarEventResponse): boolean { return event.resources.some((r) => r.equipmentId === this.id) }
   protected openEdit(): void { const item = this.item(); if (!item) return; this.form = { labId: item.labId, equipmentName: item.equipmentName, modelSpecs: item.modelSpecs ?? '', imageUrl: item.imageUrl ?? '', usageGuideline: item.usageGuideline ?? '' }; this.editOpen.set(true); if (!this.labs().length) this.api.labs().subscribe((items) => this.labs.set(items)) }

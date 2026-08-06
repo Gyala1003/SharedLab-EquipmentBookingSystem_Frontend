@@ -14,18 +14,41 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-waitlists-management-page',
-  imports: [DatePipe, NgClass, FormsModule, PageHeaderComponent, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
+  imports: [DatePipe, NgClass, FormsModule, IconComponent, StatusBadgeComponent, DataStateComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'manageWaitlists.title' | t" [subtitle]="'manageWaitlists.subtitle' | t" />
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        @for (tab of tabs(); track tab.value) {
-          <button class="kpi-card text-left transition hover:-translate-y-1" (click)="status = tab.value">
-            <p class="text-xs font-bold text-slate-400">{{ tab.label }}</p>
-            <p class="mt-2 text-3xl font-black" [ngClass]="tab.className">{{ count(tab.value) }}</p>
-          </button>
-        }
-      </div>
+      <!-- Unified Header + Compact Stat Chips Bar (Strictly 1 Single Row, Zero Gap) -->
+      <article class="card-surface p-5 space-y-4">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-2xl font-black tracking-tight text-slate-950">{{ 'manageWaitlists.title' | t }}</h1>
+            <p class="mt-1 text-xs font-medium text-slate-500">{{ 'manageWaitlists.subtitle' | t }}</p>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-3">
+          <!-- Strictly 1 Single Horizontal Row (overflow-x-auto, whitespace-nowrap, no line break) -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none">
+            @for (tab of tabs(); track tab.value) {
+              <button
+                type="button"
+                class="flex shrink-0 items-center gap-2.5 rounded-xl border px-3.5 py-2 text-left transition duration-150 whitespace-nowrap"
+                [ngClass]="{
+                  'border-violet-500 bg-violet-50/90 text-violet-900 ring-2 ring-violet-500/20 shadow-2xs font-bold': status === tab.value,
+                  'border-slate-200/90 bg-slate-50/70 hover:border-violet-300 hover:bg-white text-slate-700': status !== tab.value
+                }"
+                (click)="status = tab.value"
+              >
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg text-[11px]" [ngClass]="tab.bgTint">
+                  <app-icon [name]="tab.iconName" [size]="12" />
+                </span>
+                <span class="text-xs font-bold text-slate-600">{{ tab.label }}:</span>
+                <span class="text-xs font-black" [class]="tab.className">{{ count(tab.value) }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      </article>
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
         <div>
           <label class="field-label">{{ 'nav.labs' | t }}</label>
@@ -123,11 +146,11 @@ export class WaitlistsManagementPage implements OnInit {
   protected requestedEnd = toLocalDateTimeInput(new Date(Date.now() + 26 * 60 * 60_000))
 
   protected readonly tabs = computed(() => [
-    { value: '', label: this.languageStore.t('common.all'), className: 'text-slate-950' },
-    { value: 'Waiting', label: this.languageStore.lang() === 'en' ? 'Waiting' : 'Đang chờ', className: 'text-amber-600' },
-    { value: 'Notified', label: this.languageStore.lang() === 'en' ? 'Notified' : 'Đã thông báo', className: 'text-emerald-600' },
-    { value: 'Booked', label: this.languageStore.lang() === 'en' ? 'Booked' : 'Đã booking', className: 'text-indigo-600' },
-    { value: 'Expired', label: this.languageStore.lang() === 'en' ? 'Expired' : 'Hết hạn', className: 'text-rose-600' },
+    { value: '', label: this.languageStore.t('common.all'), className: 'text-slate-950', iconName: 'clock', bgTint: 'bg-slate-100 text-slate-700' },
+    { value: 'Waiting', label: this.languageStore.lang() === 'en' ? 'Waiting' : 'Đang chờ', className: 'text-amber-600', iconName: 'clock', bgTint: 'bg-amber-100 text-amber-700' },
+    { value: 'Notified', label: this.languageStore.lang() === 'en' ? 'Notified' : 'Đã thông báo', className: 'text-emerald-600', iconName: 'send', bgTint: 'bg-emerald-100 text-emerald-700' },
+    { value: 'Booked', label: this.languageStore.lang() === 'en' ? 'Booked' : 'Đã booking', className: 'text-indigo-600', iconName: 'check', bgTint: 'bg-indigo-100 text-indigo-700' },
+    { value: 'Expired', label: this.languageStore.lang() === 'en' ? 'Expired' : 'Hết hạn', className: 'text-rose-600', iconName: 'alert', bgTint: 'bg-rose-100 text-rose-700' },
   ])
 
   protected readonly equipmentOptions = computed(() => (this.labId ? this.equipments().filter((x) => x.labId === this.labId) : this.equipments()))

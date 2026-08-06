@@ -14,10 +14,11 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { SearchableSelectComponent, type SelectOption } from '../../shared/ui/searchable-select'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { getEquipmentImageUrl } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-equipments-page',
-  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, SearchableSelectComponent, TranslatePipe],
+  imports: [FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, StatusBadgeComponent, DataStateComponent, SearchableSelectComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <app-page-header [title]="'equipments.title' | t" [subtitle]="'equipments.subtitle' | t">
@@ -38,12 +39,12 @@ import { ToastService } from '../../shared/ui/toast.service'
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           @for (item of items(); track item.equipmentId; let index = $index) {
             <article class="group card-surface overflow-hidden transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,.1)]">
-              <div class="relative flex h-40 items-center justify-center overflow-hidden" [ngClass]="index % 4 === 0 ? 'bg-indigo-950' : index % 4 === 1 ? 'bg-cyan-950' : index % 4 === 2 ? 'bg-violet-950' : 'bg-slate-900'">
-                <div class="absolute inset-0 opacity-35" style="background-image: radial-gradient(circle at 20% 20%, #a78bfa, transparent 26%), radial-gradient(circle at 80% 80%, #22d3ee, transparent 28%)"></div>
-                <div class="relative flex h-20 w-20 items-center justify-center rounded-[28px] border border-white/15 bg-white/10 text-white backdrop-blur"><app-icon name="microscope" [size]="38" /></div>
-                <div class="absolute right-4 top-4"><app-status-badge [value]="item.status" domain="equipment" /></div>
+              <div class="relative flex h-40 items-center justify-center overflow-hidden bg-slate-900">
+                <img [src]="getEquipmentImage(item)" [alt]="item.equipmentName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent"></div>
+                <div class="absolute right-4 top-4 z-10"><app-status-badge [value]="item.status" domain="equipment" /></div>
                 @if (store.isAdmin()) {
-                  <div class="absolute left-3 top-3 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div class="absolute left-3 top-3 z-10 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                     <button type="button" class="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur hover:bg-white/25" title="Chỉnh sửa" (click)="openEdit(item); $event.stopPropagation()"><app-icon name="edit" [size]="14" /></button>
                     <button type="button" class="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/80 text-white backdrop-blur hover:bg-rose-600/90" title="Ngừng sử dụng" (click)="removeItem(item); $event.stopPropagation()"><app-icon name="trash" [size]="14" /></button>
                   </div>
@@ -135,18 +136,42 @@ export class EquipmentsPage implements OnInit {
         this.items.set(result.items)
         this.totalPages.set(result.totalPages || 1)
         this.loading.set(false)
+        this.enrichWithDetails(result.items)
       },
       error: () => { this.loading.set(false); this.toast.error('Không tải được dữ liệu') },
     })
   }
 
+  protected getEquipmentImage(item?: EquipmentResponse | null): string { return getEquipmentImageUrl(item) }
+
   protected load(): void {
     this.loading.set(true)
     this.api.searchEquipments({ keyword: this.keyword || undefined, labId: this.labId ?? undefined, status: this.status || undefined, pageNumber: this.page(), pageSize: 16 }).subscribe({
-      next: (result) => { this.items.set(result.items); this.totalPages.set(result.totalPages || 1); this.loading.set(false) },
+      next: (result) => {
+        this.items.set(result.items)
+        this.totalPages.set(result.totalPages || 1)
+        this.loading.set(false)
+        this.enrichWithDetails(result.items)
+      },
       error: () => { this.loading.set(false); this.toast.error('Không tải được thiết bị') }
     })
   }
+
+  private enrichWithDetails(items: EquipmentResponse[]): void {
+    if (!items.length) return
+    forkJoin(items.map(item => this.api.equipment(item.equipmentId).pipe(catchError(() => of(null)))))
+      .subscribe(details => {
+        const enriched = items.map((item, i) => {
+          const detailUrl = details[i]?.imageUrl
+          return detailUrl ? { ...item, imageUrl: detailUrl } : item
+        })
+        // Only update signal if at least one imageUrl was enriched to avoid unnecessary re-render
+        if (enriched.some((item, i) => item !== items[i])) {
+          this.items.set(enriched)
+        }
+      })
+  }
+
 
   protected labName(id: number): string { return this.labMap().get(id) ?? `Phòng #${id}` }
 

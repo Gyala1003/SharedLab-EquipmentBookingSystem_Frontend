@@ -161,8 +161,8 @@ interface ScheduleSlotEvent {
                     <th
                       class="border-r border-blue-500/30 px-2 py-2.5 text-center font-bold whitespace-nowrap"
                     >
-                      <div>{{ col.dayName }}</div>
-                      <div class="text-[10px] font-normal opacity-80">00-12</div>
+                      <div class="text-xs font-black">{{ col.dayName }}</div>
+                      <div class="text-[11px] font-semibold opacity-90">{{ col.dateStr }}</div>
                     </th>
                   }
                 </tr>
@@ -198,7 +198,7 @@ interface ScheduleSlotEvent {
                             {{ evt.roomName | t }}
                           </p>
                           <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
-                            {{ evt.title }}
+                            {{ formatEventTitle(evt.title) }}
                           </p>
                           <p class="text-[9px] font-semibold opacity-75 leading-tight">
                             {{ evt.timeStr }}
@@ -239,7 +239,7 @@ interface ScheduleSlotEvent {
                             {{ evt.roomName | t }}
                           </p>
                           <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
-                            {{ evt.title }}
+                            {{ formatEventTitle(evt.title) }}
                           </p>
                           <p class="text-[9px] font-semibold opacity-75 leading-tight">
                             {{ evt.timeStr }}
@@ -600,19 +600,21 @@ export class RequesterHomePage implements OnInit {
     return Array.from({ length: colCount }, (_, i) => {
       const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i)
       const dayOfWeek = d.getDay()
-      const dateNum = d.getDate()
+      const dateNum = d.getDate().toString().padStart(2, '0')
+      const monthNum = (d.getMonth() + 1).toString().padStart(2, '0')
 
       let dayName = ''
       if (lang === 'en') {
         const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-        dayName = `${names[dayOfWeek]} ${dateNum}`
+        dayName = names[dayOfWeek]
       } else {
-        const names = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
-        dayName = `${names[dayOfWeek]} ${dateNum}`
+        const names = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
+        dayName = names[dayOfWeek]
       }
 
+      const dateStr = `${dateNum}/${monthNum}`
       const dateKey = toDateInput(d)
-      return { key: `col-${i}-${dateKey}`, dayName, dateKey, date: d }
+      return { key: `col-${i}-${dateKey}`, dayName, dateStr, dateKey, date: d }
     })
   })
 
@@ -938,6 +940,19 @@ export class RequesterHomePage implements OnInit {
     }
 
     return events
+  }
+
+  protected formatEventTitle(title: string): string {
+    if (!title) return ''
+    const isEn = this.languageStore.lang() === 'en'
+    return title
+      .replace(/ResearchProject/gi, isEn ? 'Research Project' : 'Dự án nghiên cứu')
+      .replace(/CoursePractice/gi, isEn ? 'Course Practice' : 'Thực hành môn học')
+      .replace(/SelfStudy/gi, isEn ? 'Self-study' : 'Tự học')
+      .replace(/Other/gi, isEn ? 'Other' : 'Khác')
+      .replace(/Internal/gi, isEn ? 'Internal' : 'Nội bộ')
+      .replace(/External/gi, isEn ? 'External' : 'Đối tác')
+      .replace(/Workflow/gi, isEn ? 'Workflow' : 'Quy trình')
   }
 
   protected purposeLabel(value: string): string {

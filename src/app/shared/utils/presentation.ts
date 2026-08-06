@@ -88,6 +88,9 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
     CoursePractice: { vi: 'Thực hành môn học', en: 'Course Practice' },
     SelfStudy: { vi: 'Tự học', en: 'Self-study' },
     Other: { vi: 'Khác', en: 'Other' },
+    Internal: { vi: 'Nội bộ', en: 'Internal' },
+    External: { vi: 'Đối tác', en: 'External' },
+    Workflow: { vi: 'Quy trình', en: 'Workflow' },
   },
   resource: {
     '1': { vi: 'Phòng lab', en: 'Lab Room' },
@@ -189,6 +192,21 @@ export function toDateInput(value: Date): string {
   return `${y}-${m}-${d}`
 }
 
+export function getFirstDayOfMonth(date = new Date()): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}-01`
+}
+
+export function getLastDayOfMonth(date = new Date()): string {
+  const y = date.getFullYear()
+  const m = date.getMonth()
+  const lastDate = new Date(y, m + 1, 0)
+  const lastD = String(lastDate.getDate()).padStart(2, '0')
+  const monthStr = String(m + 1).padStart(2, '0')
+  return `${y}-${monthStr}-${lastD}`
+}
+
 export function toLocalDateTimeInput(value: string | Date): string {
   const date = typeof value === 'string' ? new Date(value) : value
   const offset = date.getTimezoneOffset() * 60_000
@@ -229,4 +247,25 @@ export function getCheckInWindowInfo(startTimeIso: string, endTimeIso: string): 
   }
 
   return { canCheckIn, isTooEarly, isTooLate, earliestTime, latestTime, reason }
+}
+
+export function getLabImageUrl(lab?: { roomCode?: string; imageUrl?: string | null } | null): string {
+  if (lab?.imageUrl && lab.imageUrl.trim().length > 0) return lab.imageUrl
+  const code = (lab?.roomCode || '').toUpperCase()
+  if (code.includes('AI')) return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('CYBER') || code.includes('NET')) return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('MECH') || code.includes('ROBOT')) return 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('IOT') || code.includes('ELEC')) return 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('CHEM') || code.includes('BIO')) return 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('PHYS')) return 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=800&auto=format&fit=crop'
+  return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=800&auto=format&fit=crop'
+}
+
+export function getEquipmentImageUrl(item?: { equipmentName?: string; imageUrl?: string | null } | null): string {
+  if (item?.imageUrl && item.imageUrl.trim().length > 0) return item.imageUrl
+  const name = (item?.equipmentName || '').toLowerCase()
+  if (name.includes('quang phổ') || name.includes('ftir')) return 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=800&auto=format&fit=crop'
+  if (name.includes('3d') || name.includes('máy in')) return 'https://images.unsplash.com/photo-1631556097152-c39479bbf9f2?q=80&w=800&auto=format&fit=crop'
+  if (name.includes('kính hiển vi') || name.includes('microscope')) return 'https://images.unsplash.com/photo-1516549655169-df83a0774514?q=80&w=800&auto=format&fit=crop'
+  return 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=800&auto=format&fit=crop'
 }

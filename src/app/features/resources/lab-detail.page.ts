@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { forkJoin } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
-import type { CalendarEventResponse, EquipmentResponse, LabRoomDetailResponse, MaintenanceResponse, UserManagementResponse } from '../../core/api/system.models'
+import type { CalendarEventResponse, EquipmentResponse, LabRoomDetailResponse, LabRoomResponse, MaintenanceResponse, UserManagementResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
@@ -13,6 +13,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { getLabImageUrl } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-lab-detail-page',
@@ -43,8 +44,8 @@ import { ToastService } from '../../shared/ui/toast.service'
         <div class="grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
           <article class="card-surface overflow-hidden">
             <div class="relative h-64 bg-gradient-to-br from-[#111a3a] via-indigo-950 to-violet-800 sm:h-80">
-              @if (lab()!.imageUrl) { <img [src]="lab()!.imageUrl" [alt]="lab()!.labName" class="h-full w-full object-cover" /> <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"></div> }
-              @else { <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 20% 25%, #a78bfa, transparent 32%), radial-gradient(circle at 80% 80%, #22d3ee, transparent 28%)"></div><div class="absolute inset-0 flex items-center justify-center text-white/25"><app-icon name="building" [size]="110" /></div> }
+              <img [src]="getLabImage(lab())" [alt]="lab()!.labName" class="h-full w-full object-cover" />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"></div>
               <div class="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-4 p-6"><div><p class="text-xs font-black uppercase tracking-[.2em] text-cyan-300">{{ lab()!.roomCode }}</p><p class="mt-2 text-2xl font-black text-white">{{ lab()!.labName | t }}</p></div><app-status-badge [value]="lab()!.status" domain="lab" /></div>
             </div>
             <div class="grid gap-px bg-slate-100 sm:grid-cols-3"><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'lab.location' | t }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.location | t }}</p></div><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'lab.capacity' | t }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.capacity }} {{ 'common.people' | t }}</p></div><div class="bg-white p-5"><p class="text-[10px] font-black uppercase tracking-[.15em] text-slate-400">{{ 'lab.manager' | t }}</p><p class="mt-2 font-bold text-slate-800">{{ lab()!.managerName || ('lab.unassigned' | t) }}</p></div></div>
@@ -98,6 +99,7 @@ export class LabDetailPage implements OnInit {
   private id = 0
 
   ngOnInit(): void { this.id = Number(this.route.snapshot.paramMap.get('labId')); this.load() }
+  protected getLabImage(lab?: LabRoomDetailResponse | LabRoomResponse | null): string { return getLabImageUrl(lab) }
   protected openEdit(): void { const lab = this.lab(); if (!lab) return; this.editForm = { labName: lab.labName, location: lab.location, capacity: lab.capacity, description: lab.description ?? '', imageUrl: lab.imageUrl ?? '', usageGuideline: lab.usageGuideline ?? '' }; this.managerId = null; this.editOpen.set(true); if (!this.managers().length) this.api.users({ roleName: 'LabManager', pageSize: 100 }).subscribe((result) => this.managers.set(result.items)) }
   protected save(): void { this.saving.set(true); this.api.updateLab(this.id, { labName: this.editForm.labName, location: this.editForm.location, capacity: this.editForm.capacity, description: this.editForm.description || null, imageUrl: this.editForm.imageUrl || null, usageGuideline: this.editForm.usageGuideline || null }).subscribe({ next: () => { if (this.managerId) { this.api.changeLabManager(this.id, this.managerId).subscribe({ next: () => this.finishSave(), error: () => { this.saving.set(false); this.toast.error('Đã lưu thông tin nhưng chưa đổi được quản lý') } }) } else this.finishSave() }, error: () => { this.saving.set(false); this.toast.error('Không thể cập nhật phòng lab') } }) }
   protected remove(): void { if (!confirm('Ngừng sử dụng phòng lab này?')) return; this.api.deleteLab(this.id).subscribe({ next: () => { this.toast.success('Đã ngừng sử dụng phòng lab'); void this.router.navigate(['/app/labs']) }, error: () => this.toast.error('Không thể ngừng sử dụng phòng') }) }

@@ -77,7 +77,7 @@ export const routes: Routes = [
       },
       {
         path: 'dashboard',
-        canActivate: [roleGuard(['Admin'])],
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Dashboard · Shared Lab',
         loadComponent: () =>
           import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage),
@@ -188,14 +188,14 @@ export const routes: Routes = [
       },
       {
         path: 'management/maintenances/new',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Tạo lịch bảo trì',
         loadComponent: () =>
           import('./features/management/maintenance-form.page').then((m) => m.MaintenanceFormPage),
       },
       {
         path: 'management/maintenances/:id/edit',
-        canActivate: [roleGuard(['Admin', 'LabManager'])],
+        canActivate: [roleGuard(['LabManager'])],
         title: 'Sửa lịch bảo trì',
         loadComponent: () =>
           import('./features/management/maintenance-form.page').then((m) => m.MaintenanceFormPage),

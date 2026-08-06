@@ -8,7 +8,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { ToastService } from '../../shared/ui/toast.service'
-import { toDateInput } from '../../shared/utils/presentation'
+import { getFirstDayOfMonth, getLastDayOfMonth, toDateInput } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-audit-logs-page',
@@ -67,11 +67,11 @@ export class AuditLogsPage implements OnInit {
   protected pageSize = 20
   protected readonly actions = [{ value: 1, label: 'Tạo mới' }, { value: 2, label: 'Cập nhật' }, { value: 3, label: 'Xóa' }, { value: 4, label: 'Đăng nhập' }, { value: 5, label: 'Đăng xuất' }, { value: 6, label: 'Duyệt booking' }, { value: 7, label: 'Từ chối booking' }, { value: 8, label: 'Check-in' }, { value: 9, label: 'Check-out' }]
 
-  ngOnInit(): void { const today = new Date(); const start = new Date(); start.setDate(start.getDate() - 30); this.from = toDateInput(start); this.to = toDateInput(today); this.api.users({ pageNumber: 1, pageSize: 100 }).subscribe({ next: (response) => this.users.set(response.items) }); this.load() }
+  ngOnInit(): void { this.from = getFirstDayOfMonth(); this.to = getLastDayOfMonth(); this.api.users({ pageNumber: 1, pageSize: 100 }).subscribe({ next: (response) => this.users.set(response.items) }); this.load() }
   protected changeCount(): number { return this.logs().filter((log) => ['Create', 'Update', 'Delete'].includes(log.actionType)).length }
   protected uniqueUsers(): number { return new Set(this.logs().map((log) => log.userId)).size }
   protected applyFilters(): void { this.page.set(1); this.load() }
-  protected resetFilters(): void { this.userId = null; this.actionType = null; this.entityName = ''; this.entityId = null; const today = new Date(); const start = new Date(); start.setDate(start.getDate() - 30); this.from = toDateInput(start); this.to = toDateInput(today); this.page.set(1); this.load() }
+  protected resetFilters(): void { this.userId = null; this.actionType = null; this.entityName = ''; this.entityId = null; this.from = getFirstDayOfMonth(); this.to = getLastDayOfMonth(); this.page.set(1); this.load() }
   protected goPage(page: number): void { if (page < 1 || page > this.totalPages()) return; this.page.set(page); this.load() }
   protected openDetail(log: AuditLogResponse): void { this.api.auditLog(log.auditLogId).subscribe({ next: (item) => this.selected.set(item), error: () => this.toast.error('Không tải được chi tiết audit log') }) }
   protected selectedSubtitle(): string { const log = this.selected(); return log ? `${log.userName || `User #${log.userId}`} · ${new Date(log.createdAt).toLocaleString('vi-VN')}` : '' }
@@ -81,6 +81,10 @@ export class AuditLogsPage implements OnInit {
   protected actionClass(action: string): string { if (['Create', 'ApproveBooking', 'CheckIn'].includes(action)) return 'border-emerald-200 bg-emerald-50 text-emerald-700'; if (['Delete', 'RejectBooking'].includes(action)) return 'border-rose-200 bg-rose-50 text-rose-700'; if (action === 'Update') return 'border-amber-200 bg-amber-50 text-amber-700'; return 'border-indigo-200 bg-indigo-50 text-indigo-700' }
 
   private load(): void {
+    if (this.from && this.to && this.from > this.to) {
+      this.toast.error('Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).')
+      return
+    }
     this.loading.set(true)
     this.api.auditLogs({ userId: this.userId ?? undefined, actionType: this.actionType ?? undefined, entityName: this.entityName.trim() || undefined, entityId: this.entityId ?? undefined, from: this.from ? new Date(`${this.from}T00:00:00`).toISOString() : undefined, to: this.to ? new Date(`${this.to}T23:59:59`).toISOString() : undefined, pageNumber: this.page(), pageSize: this.pageSize }).subscribe({ next: (response) => { this.logs.set(response.items); this.totalPages.set(response.totalPages); this.totalCount.set(response.totalCount); this.loading.set(false) }, error: () => { this.loading.set(false); this.toast.error('Không tải được audit log') } })
   }

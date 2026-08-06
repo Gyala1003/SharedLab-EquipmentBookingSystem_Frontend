@@ -2,6 +2,7 @@ import { NgClass } from '@angular/common'
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
+import { catchError, forkJoin, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { LabRoomResponse, UserManagementResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -12,6 +13,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { getLabImageUrl } from '../../shared/utils/presentation'
 
 interface LabForm {
   labName: string
@@ -50,15 +52,16 @@ interface LabForm {
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           @for (lab of labs(); track lab.labId; let index = $index) {
             <article class="group card-surface overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,.1)]">
-              <div class="relative h-44 overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-900">
-                <div class="absolute inset-0 opacity-25" [style.background-image]="'radial-gradient(circle at '+ ((index % 3 + 1) * 24) +'% 28%, #a78bfa 0, transparent 28%), radial-gradient(circle at 82% 80%, #22d3ee 0, transparent 24%)'"></div>
+              <div class="relative h-44 overflow-hidden bg-slate-900">
+                <img [src]="getLabImage(lab)" [alt]="lab.labName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
                 @if (store.isAdmin()) {
-                  <div class="absolute right-3 top-3 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div class="absolute right-3 top-3 z-10 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
                     <button type="button" class="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 text-white backdrop-blur hover:bg-white/25" title="Chỉnh sửa" (click)="openEdit(lab); $event.stopPropagation()"><app-icon name="edit" [size]="15" /></button>
                     <button type="button" class="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/80 text-white backdrop-blur hover:bg-rose-600/90" title="Ngừng sử dụng" (click)="removeLab(lab); $event.stopPropagation()"><app-icon name="trash" [size]="15" /></button>
                   </div>
                 }
-                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/85 to-transparent p-5 pt-14"><div class="flex items-end justify-between gap-3"><div><p class="text-xs font-bold uppercase tracking-[.18em] text-cyan-300">{{ lab.roomCode }}</p><h2 class="mt-1 text-xl font-black text-white">{{ lab.labName | t }}</h2></div><span class="rounded-2xl bg-white/12 px-3 py-2 text-xs font-black text-white backdrop-blur"><app-icon name="users" [size]="15" /> {{ lab.capacity }}</span></div></div>
+                <div class="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-slate-950/85 to-transparent p-5 pt-14"><div class="flex items-end justify-between gap-3"><div><p class="text-xs font-bold uppercase tracking-[.18em] text-cyan-300">{{ lab.roomCode }}</p><h2 class="mt-1 text-xl font-black text-white">{{ lab.labName | t }}</h2></div><span class="rounded-2xl bg-white/12 px-3 py-2 text-xs font-black text-white backdrop-blur"><app-icon name="users" [size]="15" /> {{ lab.capacity }}</span></div></div>
               </div>
               <div class="p-5">
                 <div class="flex items-center justify-between gap-3"><p class="flex min-w-0 items-center gap-2 truncate text-sm text-slate-500"><app-icon name="map-pin" [size]="17" /> {{ lab.location | t }}</p><app-status-badge [value]="lab.status" domain="lab" /></div>
@@ -80,7 +83,15 @@ interface LabForm {
             <tbody>
               @for (lab of labs(); track lab.labId) {
                 <tr>
-                  <td><p class="font-black text-slate-900">{{ lab.labName | t }}</p><p class="mt-1 text-xs text-slate-400">{{ lab.roomCode }}</p></td>
+                  <td>
+                    <div class="flex items-center gap-3">
+                      <img [src]="getLabImage(lab)" [alt]="lab.labName" class="h-10 w-10 shrink-0 rounded-xl object-cover" />
+                      <div>
+                        <p class="font-black text-slate-900">{{ lab.labName | t }}</p>
+                        <p class="mt-0.5 text-xs text-slate-400">{{ lab.roomCode }}</p>
+                      </div>
+                    </div>
+                  </td>
                   <td>{{ lab.location | t }}</td>
                   <td>{{ lab.capacity }} {{ 'common.people' | t }}</td>
                   <td><app-status-badge [value]="lab.status" domain="lab" /></td>
@@ -159,13 +170,35 @@ export class LabsPage implements OnInit {
 
   ngOnInit(): void { this.load(); if (this.store.isAdmin()) this.loadManagers() }
 
+  protected getLabImage(lab?: LabRoomResponse | null): string { return getLabImageUrl(lab) }
+
   protected load(): void {
     this.loading.set(true)
     this.api.searchLabs({ keyword: this.keyword || undefined, status: this.status || undefined, minimumCapacity: this.minimumCapacity ?? undefined, pageNumber: this.page(), pageSize: 12 }).subscribe({
-      next: (result) => { this.labs.set(result.items); this.totalPages.set(result.totalPages || 1); this.loading.set(false) },
+      next: (result) => {
+        this.labs.set(result.items)
+        this.totalPages.set(result.totalPages || 1)
+        this.loading.set(false)
+        // Enrich imageUrl silently — update only items that have a real imageUrl from detail API
+        // to avoid full list re-render (no flicker). Falls back to getLabImageUrl() placeholder immediately.
+        if (result.items.length) {
+          forkJoin(result.items.map(lab => this.api.lab(lab.labId).pipe(catchError(() => of(null)))))
+            .subscribe(details => {
+              const enriched = result.items.map((lab, i) => {
+                const detailUrl = details[i]?.imageUrl
+                return detailUrl ? { ...lab, imageUrl: detailUrl } : lab
+              })
+              // Only update signal if at least one imageUrl was enriched
+              if (enriched.some((lab, i) => lab !== result.items[i])) {
+                this.labs.set(enriched)
+              }
+            })
+        }
+      },
       error: () => { this.loading.set(false); this.toast.error('Không tải được danh sách phòng lab') }
     })
   }
+
 
   protected changePage(page: number): void { this.page.set(page); this.load(); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
