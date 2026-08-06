@@ -2,7 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { catchError, forkJoin, of, timeout } from 'rxjs'
+import { catchError, of, timeout } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { CalendarEventResponse, EquipmentResponse, LabRoomResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -139,20 +139,12 @@ export class CalendarPage implements OnInit {
     if (qEquipment > 0) this.equipmentId = qEquipment
     if (qFrom && !Number.isNaN(new Date(qFrom).getTime())) this.focus.set(new Date(qFrom))
 
-    forkJoin({
-      labs: this.api.labs().pipe(catchError(() => of([]))),
-      equipments: this.api.equipments().pipe(catchError(() => of([]))),
-    }).subscribe({
-      next: ({ labs, equipments }) => {
-        this.labs.set(labs)
-        this.equipments.set(equipments)
-        this.load()
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được tài nguyên')
-      },
-    })
+    // Load calendar data immediately — don't wait for labs/equipments dropdowns
+    this.load()
+
+    // Load filter dropdown data in parallel (non-blocking)
+    this.api.labs().pipe(catchError(() => of([]))).subscribe((labs) => this.labs.set(labs))
+    this.api.equipments().pipe(catchError(() => of([]))).subscribe((equipments) => this.equipments.set(equipments))
   }
 
   protected load(): void {

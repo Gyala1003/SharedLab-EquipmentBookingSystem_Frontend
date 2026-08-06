@@ -79,6 +79,41 @@ export interface MaintenancePayload {
   recurrenceEndDate: string | null
 }
 
+// Cache TTL constants
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const CACHE_KEY_LABS = 'sbs_cache_labs'
+const CACHE_KEY_EQUIPMENTS = 'sbs_cache_equipments'
+
+interface CacheEntry<T> {
+  data: T
+  expiry: number
+}
+
+function readLocalCache<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const entry: CacheEntry<T> = JSON.parse(raw)
+    if (Date.now() > entry.expiry) { localStorage.removeItem(key); return null }
+    return entry.data
+  } catch {
+    return null
+  }
+}
+
+function writeLocalCache<T>(key: string, data: T): void {
+  try {
+    const entry: CacheEntry<T> = { data, expiry: Date.now() + CACHE_TTL_MS }
+    localStorage.setItem(key, JSON.stringify(entry))
+  } catch {
+    // localStorage quota exceeded or unavailable — silently ignore
+  }
+}
+
+function clearLocalCache(key: string): void {
+  try { localStorage.removeItem(key) } catch { /* ignore */ }
+}
+
 @Injectable({ providedIn: 'root' })
 export class SystemService {
   private readonly http = inject(HttpClient)
@@ -89,22 +124,36 @@ export class SystemService {
 
   invalidateLabsCache(): void {
     this.labsCache$ = undefined
+    clearLocalCache(CACHE_KEY_LABS)
   }
 
   invalidateEquipmentsCache(): void {
     this.equipmentsCache$ = undefined
+    clearLocalCache(CACHE_KEY_EQUIPMENTS)
   }
 
   labs(forceRefresh = false): Observable<LabRoomResponse[]> {
-    if (!this.labsCache$ || forceRefresh) {
-      this.labsCache$ = this.http.get<LabRoomResponse[]>(`${this.base}/LabRooms`).pipe(
-        shareReplay({ bufferSize: 1, refCount: false }),
-        catchError((err) => {
-          this.labsCache$ = undefined
-          throw err
-        }),
-      )
+    // Layer 1: in-memory shareReplay (fastest, same session)
+    if (this.labsCache$ && !forceRefresh) return this.labsCache$
+
+    // Layer 2: localStorage (survives F5, TTL 5 min)
+    if (!forceRefresh) {
+      const cached = readLocalCache<LabRoomResponse[]>(CACHE_KEY_LABS)
+      if (cached) {
+        this.labsCache$ = of(cached).pipe(shareReplay({ bufferSize: 1, refCount: false }))
+        return this.labsCache$
+      }
     }
+
+    // Layer 3: HTTP fetch
+    this.labsCache$ = this.http.get<LabRoomResponse[]>(`${this.base}/LabRooms`).pipe(
+      tap((data) => writeLocalCache(CACHE_KEY_LABS, data)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((err) => {
+        this.labsCache$ = undefined
+        throw err
+      }),
+    )
     return this.labsCache$
   }
 
@@ -141,15 +190,27 @@ export class SystemService {
   }
 
   equipments(forceRefresh = false): Observable<EquipmentResponse[]> {
-    if (!this.equipmentsCache$ || forceRefresh) {
-      this.equipmentsCache$ = this.http.get<EquipmentResponse[]>(`${this.base}/Equipments`).pipe(
-        shareReplay({ bufferSize: 1, refCount: false }),
-        catchError((err) => {
-          this.equipmentsCache$ = undefined
-          throw err
-        }),
-      )
+    // Layer 1: in-memory shareReplay (fastest, same session)
+    if (this.equipmentsCache$ && !forceRefresh) return this.equipmentsCache$
+
+    // Layer 2: localStorage (survives F5, TTL 5 min)
+    if (!forceRefresh) {
+      const cached = readLocalCache<EquipmentResponse[]>(CACHE_KEY_EQUIPMENTS)
+      if (cached) {
+        this.equipmentsCache$ = of(cached).pipe(shareReplay({ bufferSize: 1, refCount: false }))
+        return this.equipmentsCache$
+      }
     }
+
+    // Layer 3: HTTP fetch
+    this.equipmentsCache$ = this.http.get<EquipmentResponse[]>(`${this.base}/Equipments`).pipe(
+      tap((data) => writeLocalCache(CACHE_KEY_EQUIPMENTS, data)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((err) => {
+        this.equipmentsCache$ = undefined
+        throw err
+      }),
+    )
     return this.equipmentsCache$
   }
 

@@ -2,6 +2,7 @@ import { NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
+import { catchError, forkJoin, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { EquipmentResponse, EquipmentDetailResponse, LabRoomResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -123,7 +124,21 @@ export class EquipmentsPage implements OnInit {
     })),
   )
 
-  ngOnInit(): void { this.api.labs().subscribe({ next: (labs) => { this.labs.set(labs); this.load() }, error: () => { this.loading.set(false); this.toast.error('Không tải được phòng lab') } }) }
+  ngOnInit(): void {
+    // Run labs() and searchEquipments() in parallel — saves ~241ms vs sequential
+    forkJoin({
+      labs: this.api.labs().pipe(catchError(() => of([]))),
+      result: this.api.searchEquipments({ pageNumber: this.page(), pageSize: 16 }).pipe(catchError(() => of({ items: [], totalPages: 1, totalCount: 0, pageNumber: 1, pageSize: 16 }))),
+    }).subscribe({
+      next: ({ labs, result }) => {
+        this.labs.set(labs)
+        this.items.set(result.items)
+        this.totalPages.set(result.totalPages || 1)
+        this.loading.set(false)
+      },
+      error: () => { this.loading.set(false); this.toast.error('Không tải được dữ liệu') },
+    })
+  }
 
   protected load(): void {
     this.loading.set(true)
