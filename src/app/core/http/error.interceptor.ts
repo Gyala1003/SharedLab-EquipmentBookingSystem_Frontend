@@ -24,7 +24,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       count: 2,
       delay: (error: any, retryCount: number) => {
         const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(req.url)
-        if (!isAuthEndpoint && (error?.status >= 500 || error?.status === 0) && retryCount <= 2) {
+        // Chỉ retry các request an toàn (GET/HEAD) — không retry mutation vì POST/PUT/DELETE
+        // không idempotent và có thể tạo trùng dữ liệu nếu BE đã xử lý nhưng response bị mất.
+        const isSafeMethod = req.method === 'GET' || req.method === 'HEAD'
+        if (isSafeMethod && !isAuthEndpoint && (error?.status >= 500 || error?.status === 0) && retryCount <= 2) {
           return timer(retryCount * 350)
         }
         return throwError(() => error)
@@ -117,7 +120,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         })
       }
 
+      // 409 Conflict (PostgreSQL trigger / uniqueness constraint) and
+      // 422 Unprocessable Entity (BE validation) are intentionally NOT set on errorState —
+      // they are business-logic errors that individual feature components handle themselves
+      // by reading ApiError.status and ApiError.details from the thrown error.
       return throwError(() => normalizedErr)
+
     }),
   )
 }
@@ -136,5 +144,7 @@ function normalize(error: HttpErrorResponse): ApiError {
     message,
     typeof body === 'object' ? body?.code : undefined,
     typeof body === 'object' ? body?.errors : undefined,
+    // Preserve the full raw body so consumers can access custom fields (e.g. suggestedSlots)
+    typeof body === 'object' && body !== null ? body : undefined,
   )
 }

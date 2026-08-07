@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { Observable, of } from 'rxjs'
-import { catchError, map, shareReplay, tap } from 'rxjs/operators'
+import { Observable, of, EMPTY } from 'rxjs'
+import { catchError, map, shareReplay, tap, expand, reduce } from 'rxjs/operators'
 import { env } from '../config/env'
 import type {
   AuditLogResponse,
@@ -486,13 +486,13 @@ export class SystemService {
   usersMap(forceRefresh = false): Observable<Map<number, string>> {
     if (this.usersMapCache$ && !forceRefresh) return this.usersMapCache$
 
-    this.usersMapCache$ = this.users({ pageSize: 1000 }).pipe(
-      map((res) => {
+    this.usersMapCache$ = this.users({ pageSize: 100, pageNumber: 1 }).pipe(
+      expand(res => res.pageNumber < res.totalPages ? this.users({ pageSize: 100, pageNumber: res.pageNumber + 1 }) : EMPTY),
+      reduce((acc, res) => acc.concat(res.items), [] as UserManagementResponse[]),
+      map((items) => {
         const userMap = new Map<number, string>()
-        if (res && res.items) {
-          for (const u of res.items) {
-            userMap.set(u.userId, u.fullName || u.username || `User #${u.userId}`)
-          }
+        for (const u of items) {
+          userMap.set(u.userId, u.fullName || u.username || `User #${u.userId}`)
         }
         return userMap
       }),
@@ -559,25 +559,22 @@ export class SystemService {
     return this.http.get<RoleResponse[]>(`${this.base}/Roles`)
   }
 
-  // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
+  // /Policies không tồn tại trong backend hiện tại.
+  // Trả nội dung tĩnh trực tiếp — không gọi API để tránh lỗi 404.
   getPolicy(): Observable<PolicyResponse> {
-    return this.http.get<PolicyResponse>(`${this.base}/Policies`).pipe(
-      catchError(() =>
-        of({
-          generalRules: [
-            'Xác thực qua người duyệt: Mọi lượt Check-in (Nhận) và Check-out (Trả) đúng giờ chỉ được tính là hoàn thành sau khi có sự xác thực/phê duyệt trực tiếp từ Bộ phận Quản lý.',
-            'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo ngay hỏng hóc/sự cố có sẵn cho Bộ phận duyệt trong 5–10 phút đầu.',
-            'Quy định Check-out & Mất tài sản: Trả phòng/thiết bị đúng thời gian đã đăng ký. Check-out muộn quá 02 tuần sẽ tự động ghi nhận là LÀM MẤT TÀI SẢN và bị ĐÓNG BĂNG/KHÓA TÀI KHOẢN HOÀN TOÀN.',
-          ],
-          categories: [],
-        }),
-      ),
-    )
+    return of({
+      generalRules: [
+        'Xác thực qua người duyệt: Mọi lượt Check-in và Check-out chỉ được tính là hoàn thành sau khi có xác thực từ Bộ phận Quản lý.',
+        'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo người duyệt trong 5-10 phút đầu nếu có hỏng hóc.',
+        'Quy định Check-out: Trả phòng/thiết bị đúng thời gian đã đăng ký. Vi phạm trả muộn sẽ bị ghi nhận vi phạm và cộng điểm phạt.',
+      ],
+      categories: [],
+    })
   }
 
-  // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
-  updatePolicy(payload: PolicyResponse): Observable<void> {
-    return this.http.put<void>(`${this.base}/Policies`, payload)
+  // updatePolicy bị vô hiệu hóa — /Policies không tồn tại trong backend.
+  updatePolicy(_payload: PolicyResponse): Observable<void> {
+    return of(undefined)
   }
 
   sendNotification(payload: { userId: number; title: string; message: string; notificationType: number }): Observable<NotificationResponse> {

@@ -284,8 +284,10 @@ export class AppLayoutComponent implements OnInit {
       ],
     },
     {
+      // LabManager và Admin đều có quyền xem các trang này.
+      // Nhưng chỉ LabManager mới có quyền Approve/Reject — Admin xem được nhưng không thực hiện.
       labelKey: 'nav.groups.management',
-      roles: ['LabManager'],
+      roles: ['LabManager', 'Admin'],
       items: [
         {
           labelKey: 'nav.items.pendingBookings',
@@ -434,14 +436,8 @@ export class AppLayoutComponent implements OnInit {
     })
   }
 
-  private checkLateAndReportViolation(booking: BookingResponse, actualCheckoutIso: string): void {
-    const deadline = +new Date(booking.endTime) + 15 * 60_000
-    if (+new Date(actualCheckoutIso) <= deadline) return
-    this.api
-      .createViolation({ userId: booking.userId, bookingId: booking.bookingId, violationType: 2 })
-      .subscribe({
-        next: () => {},
-        error: () => {},
-      })
+  private checkLateAndReportViolation(_booking: BookingResponse, _actualCheckoutIso: string): void {
+    // BE UsageLogService tự động sinh LateCheckout violation sau check-out.
+    // Requester không có quyền gọi createViolation — bỏ để tránh 403 và trùng lặp violation.
   }
 }

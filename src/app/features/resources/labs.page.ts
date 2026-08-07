@@ -1,8 +1,9 @@
 import { NgClass } from '@angular/common'
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { catchError, forkJoin, of } from 'rxjs'
+import { timeout } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { LabRoomResponse, UserManagementResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -38,10 +39,10 @@ interface LabForm {
 
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto]">
         <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="{{ 'labs.searchPlaceholder' | t }}" /></div></div>
-        <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">{{ 'labs.available' | t }}</option><option [value]="2">{{ 'labs.maintenance' | t }}</option><option [value]="3">{{ 'labs.unavailable' | t }}</option><option [value]="4">{{ 'labs.inactive' | t }}</option></select></div>
+        <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">{{ 'labs.available' | t }}</option><option [value]="3">{{ 'labs.maintenance' | t }}</option></select></div>
         <div><label class="field-label">{{ 'labs.minCapacity' | t }}</label><input class="input-shell" type="number" min="1" [(ngModel)]="minimumCapacity" /></div>
         <div><label class="field-label">{{ 'labs.viewMode' | t }}</label><div class="flex h-12 rounded-2xl bg-slate-100 p-1"><button type="button" class="flex-1 h-full inline-flex items-center justify-center rounded-xl text-xs font-black transition-all duration-150" [ngClass]="view() === 'grid' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'" (click)="view.set('grid')"><app-icon name="grid" [size]="17" /></button><button type="button" class="flex-1 h-full inline-flex items-center justify-center rounded-xl text-xs font-black transition-all duration-150" [ngClass]="view() === 'table' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'" (click)="view.set('table')"><app-icon name="list" [size]="17" /></button></div></div>
-        <div class="flex items-end"><button class="btn-primary w-full" type="button" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
+        <div><label class="field-label hidden xl:block opacity-0 pointer-events-none">&nbsp;</label><button class="btn-primary w-full h-12" type="button" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>
 
       @if (loading()) {
@@ -53,11 +54,16 @@ interface LabForm {
           @for (lab of labs(); track lab.labId; let index = $index) {
             <article class="group card-surface overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,.1)]">
               <div class="relative h-44 overflow-hidden bg-slate-900">
-                <img [src]="getLabImage(lab)" [alt]="lab.labName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                @if (!$any(lab)._detailLoaded) {
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-slate-400"></div>
+                  </div>
+                } @else {
+                  <img [src]="getLabImage(lab)" [alt]="lab.labName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                }
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
                 @if (store.isAdmin()) {
                   <div class="absolute right-3 top-3 z-10 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button type="button" class="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 text-white backdrop-blur hover:bg-white/25" title="Chỉnh sửa" (click)="openEdit(lab); $event.stopPropagation()"><app-icon name="edit" [size]="15" /></button>
                     <button type="button" class="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/80 text-white backdrop-blur hover:bg-rose-600/90" title="Ngừng sử dụng" (click)="removeLab(lab); $event.stopPropagation()"><app-icon name="trash" [size]="15" /></button>
                   </div>
                 }
@@ -115,7 +121,7 @@ interface LabForm {
 
       <!-- Modal Tạo phòng -->
       <app-modal [open]="createOpen()" title="Thêm phòng thí nghiệm" subtitle="Thông tin được gửi trực tiếp tới POST /api/LabRooms." (close)="createOpen.set(false)">
-        <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="create()">
+        <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="create()" ngNativeValidate>
           <div><label class="field-label">Tên phòng *</label><input class="input-shell" required [(ngModel)]="form.labName" name="labName" placeholder="Phòng Nghiên cứu AI" /></div>
           <div><label class="field-label">Mã phòng *</label><input class="input-shell" required [(ngModel)]="form.roomCode" name="roomCode" placeholder="LAB-AI-01" /></div>
           <div><label class="field-label">Vị trí *</label><input class="input-shell" required [(ngModel)]="form.location" name="location" placeholder="Tầng 4, nhà A" /></div>
@@ -129,18 +135,18 @@ interface LabForm {
       </app-modal>
 
       <!-- Modal Chỉnh sửa phòng -->
-      <app-modal [open]="editOpen()" [title]="'Chỉnh sửa: ' + editingLab()?.labName" subtitle="Cập nhật thông tin phòng lab." (close)="editOpen.set(false)">
-        <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="save()">
-          <div><label class="field-label">Tên phòng *</label><input class="input-shell" required [(ngModel)]="editForm.labName" name="elabName" /></div>
-          <div><label class="field-label">Vị trí *</label><input class="input-shell" required [(ngModel)]="editForm.location" name="elocation" /></div>
-          <div><label class="field-label">Sức chứa *</label><input class="input-shell" type="number" min="1" required [(ngModel)]="editForm.capacity" name="ecapacity" /></div>
-          <div><label class="field-label">Đổi LabManager</label><select class="input-shell" [(ngModel)]="editManagerId" name="eManagerId"><option [ngValue]="null">Giữ nguyên</option>@for (manager of managers(); track manager.userId) { <option [ngValue]="manager.userId">{{ manager.fullName }}</option> }</select></div>
-          <div class="sm:col-span-2"><label class="field-label">Mô tả</label><textarea class="textarea-shell" [(ngModel)]="editForm.description" name="edescription"></textarea></div>
-          <div class="sm:col-span-2"><label class="field-label">URL ảnh</label><input class="input-shell" [(ngModel)]="editForm.imageUrl" name="eimageUrl" /></div>
-          <div class="sm:col-span-2"><label class="field-label">Hướng dẫn sử dụng</label><textarea class="textarea-shell" [(ngModel)]="editForm.usageGuideline" name="eusageGuideline"></textarea></div>
+      <app-modal [open]="editOpen()" [title]="('common.editTitle' | t) + editingLab()?.labName" [subtitle]="'labs.editSubtitle' | t" (close)="editOpen.set(false)">
+        <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="save()" ngNativeValidate>
+          <div><label class="field-label">{{ 'labs.name' | t }} *</label><input class="input-shell" required [(ngModel)]="editForm.labName" name="elabName" /></div>
+          <div><label class="field-label">{{ 'labs.location' | t }} *</label><input class="input-shell" required [(ngModel)]="editForm.location" name="elocation" /></div>
+          <div><label class="field-label">{{ 'labs.capacity' | t }} *</label><input class="input-shell" type="number" min="1" required [(ngModel)]="editForm.capacity" name="ecapacity" /></div>
+          <div><label class="field-label">{{ 'common.manager' | t }}</label><select class="input-shell" [(ngModel)]="editManagerId" name="eManagerId"><option [ngValue]="null">{{ 'common.none' | t }}</option>@for (manager of managers(); track manager.userId) { <option [ngValue]="manager.userId">{{ manager.fullName }}</option> }</select></div>
+          <div class="sm:col-span-2"><label class="field-label">{{ 'common.description' | t }}</label><textarea class="textarea-shell" [(ngModel)]="editForm.description" name="edescription"></textarea></div>
+          <div class="sm:col-span-2"><label class="field-label">{{ 'common.imageUrl' | t }}</label><input class="input-shell" [(ngModel)]="editForm.imageUrl" name="eimageUrl" /></div>
+          <div class="sm:col-span-2"><label class="field-label">{{ 'common.usageGuideline' | t }}</label><textarea class="textarea-shell" [(ngModel)]="editForm.usageGuideline" name="eusageGuideline"></textarea></div>
           <div class="flex justify-between gap-2 sm:col-span-2">
-            <button type="button" class="btn-secondary btn-danger" (click)="removeLab(editingLab()!)"><app-icon name="trash" [size]="16" /> Ngừng sử dụng</button>
-            <div class="flex gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</button></div>
+            <button type="button" class="btn-secondary btn-danger" (click)="removeLab(editingLab()!)"><app-icon name="trash" [size]="16" /> {{ 'common.disable' | t }}</button>
+            <div class="flex gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">{{ 'common.cancel' | t }}</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? ('common.saving' | t) : ('common.saveChanges' | t) }}</button></div>
           </div>
         </form>
       </app-modal>
@@ -150,6 +156,7 @@ interface LabForm {
 export class LabsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly cdr = inject(ChangeDetectorRef)
   protected readonly store = inject(AuthStore)
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly managers = signal<UserManagementResponse[]>([])
@@ -174,31 +181,69 @@ export class LabsPage implements OnInit {
 
   protected load(): void {
     this.loading.set(true)
-    this.api.searchLabs({ keyword: this.keyword || undefined, status: this.status || undefined, minimumCapacity: this.minimumCapacity ?? undefined, pageNumber: this.page(), pageSize: 12 }).subscribe({
+    // Backend search API has broken filter logic, and /LabRooms doesn't exist.
+    // Fetch all labs using searchLabs with pageSize=100 (backend max limit) and filter on frontend.
+    this.api.searchLabs({ pageNumber: 1, pageSize: 100 }).subscribe({
       next: (result) => {
-        this.labs.set(result.items)
-        this.totalPages.set(result.totalPages || 1)
+        let filtered = result.items || []
+
+        if (this.keyword && this.keyword.trim().length > 0) {
+          const kw = this.keyword.toLowerCase().trim()
+          filtered = filtered.filter(l => 
+            (l.labName && l.labName.toLowerCase().includes(kw)) || 
+            (l.roomCode && l.roomCode.toLowerCase().includes(kw)) ||
+            (l.location && l.location.toLowerCase().includes(kw))
+          )
+        }
+
+        if (this.status) {
+          const statusStr = String(this.status)
+          let targetStatus = ''
+          if (statusStr === '1') targetStatus = 'Available'
+          else if (statusStr === '2') targetStatus = 'Maintenance'
+          else if (statusStr === '3') targetStatus = 'Unavailable'
+          else if (statusStr === '4') targetStatus = 'Inactive'
+          
+          if (targetStatus) {
+            filtered = filtered.filter(l => l.status === targetStatus)
+          }
+        }
+
+        if (this.minimumCapacity) {
+          filtered = filtered.filter(l => l.capacity >= this.minimumCapacity!)
+        }
+
+        const pageSize = 12
+        this.totalPages.set(Math.ceil(filtered.length / pageSize) || 1)
+        
+        if (this.page() > this.totalPages()) this.page.set(this.totalPages())
+        if (this.page() < 1) this.page.set(1)
+        
+        const pagedItems = filtered.slice((this.page() - 1) * pageSize, this.page() * pageSize).map(l => ({ ...l, _detailLoaded: false }))
+        this.labs.set(pagedItems)
         this.loading.set(false)
-        // Enrich imageUrl silently — update only items that have a real imageUrl from detail API
-        // to avoid full list re-render (no flicker). Falls back to getLabImageUrl() placeholder immediately.
-        if (result.items.length) {
-          forkJoin(result.items.map(lab => this.api.lab(lab.labId).pipe(catchError(() => of(null)))))
-            .subscribe(details => {
-              const enriched = result.items.map((lab, i) => {
+
+        if (pagedItems.length) {
+          forkJoin(pagedItems.map(lab =>
+            this.api.lab(lab.labId).pipe(
+              timeout(3000),
+              catchError(() => of(null)),
+            ),
+          )).subscribe(details => {
+              const enriched = pagedItems.map((lab, i) => {
                 const detailUrl = details[i]?.imageUrl
-                return detailUrl ? { ...lab, imageUrl: detailUrl } : lab
+                return { ...lab, imageUrl: detailUrl || lab.imageUrl, _detailLoaded: true }
               })
-              // Only update signal if at least one imageUrl was enriched
-              if (enriched.some((lab, i) => lab !== result.items[i])) {
-                this.labs.set(enriched)
-              }
+              this.labs.set(enriched)
             })
         }
       },
-      error: () => { this.loading.set(false); this.toast.error('Không tải được danh sách phòng lab') }
+      error: () => {
+        this.loading.set(false)
+        this.toast.error('Không tải được danh sách phòng lab')
+      }
     })
   }
-
 
   protected changePage(page: number): void { this.page.set(page); this.load(); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
@@ -219,8 +264,7 @@ export class LabsPage implements OnInit {
     this.editManagerId = null
     this.editOpen.set(true)
     if (!this.managers().length) this.loadManagers()
-    // Load detail to prefill description/imageUrl/usageGuideline
-    this.api.lab(lab.labId).subscribe({ next: (detail) => { this.editForm.description = detail.description ?? ''; this.editForm.imageUrl = detail.imageUrl ?? ''; this.editForm.usageGuideline = detail.usageGuideline ?? '' }, error: () => {} })
+    this.api.lab(lab.labId).subscribe({ next: (detail) => { this.editForm.description = detail.description ?? ''; this.editForm.imageUrl = detail.imageUrl ?? ''; this.editForm.usageGuideline = detail.usageGuideline ?? ''; const current = this.managers().find(m => m.fullName === detail.managerName); this.editManagerId = current ? current.userId : null; this.cdr.detectChanges() }, error: () => {} })
   }
 
   protected save(): void {

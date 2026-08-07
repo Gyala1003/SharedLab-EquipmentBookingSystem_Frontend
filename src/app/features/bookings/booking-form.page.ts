@@ -6,6 +6,7 @@ import { catchError, forkJoin, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingItemRequest, BookingResponse, CalendarEventResponse, EquipmentResponse, LabRoomResponse, PriorityRuleResponse, SuggestedSlotResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
+import { ApiError } from '../../core/http/api-error'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
@@ -1091,17 +1092,37 @@ export class BookingFormPage implements OnInit {
             void this.router.navigate(['/app/bookings'])
           }
         },
-        error: (err: any) => {
+        error: (err: unknown) => {
           this.submitting.set(false)
-          const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.'
-          const suggestions: SuggestedSlotResponse[] = err?.details?.suggestedSlots || err?.error?.suggestedSlots || []
+          // err is already a normalized ApiError from the interceptor
+          const apiErr = err instanceof ApiError ? err : null
+          const isConflict = apiErr?.status === 409
+
+          const msg = isConflict
+            // 409 = PostgreSQL trigger or BE uniqueness constraint fired (time slot conflict)
+            ? (apiErr?.message || 'Khung giờ này đã có booking khác. Vui lòng chọn thời gian khác.')
+            : (apiErr?.message
+                || (err instanceof Error ? err.message : null)
+                || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.')
+
+          // suggestedSlots may live directly on the raw body (apiErr.details) or nested under .details
+          const rawDetails = apiErr?.details as Record<string, unknown> | undefined
+          const suggestions: SuggestedSlotResponse[] =
+            (rawDetails?.['suggestedSlots'] as SuggestedSlotResponse[] | undefined) ??
+            (rawDetails?.['details'] as { suggestedSlots?: SuggestedSlotResponse[] } | undefined)?.suggestedSlots ??
+            []
+
           if (suggestions.length) {
             this.suggestedSlots.set(suggestions)
           } else {
+            // On conflict, always attempt to load alternative slots
             this.loadSuggestedSlots()
           }
-          this.toast.error('Không thể tạo booking', msg)
+
+          const toastTitle = isConflict ? 'Trùng lịch đặt phòng' : 'Không thể tạo booking'
+          this.toast.error(toastTitle, msg)
         },
+
       })
     })
   }

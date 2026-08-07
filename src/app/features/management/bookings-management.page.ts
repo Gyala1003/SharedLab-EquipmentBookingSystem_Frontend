@@ -392,6 +392,7 @@ export class BookingsManagementPage implements OnInit {
   protected readonly statuses = computed(() => [
     { value: 'Pending', label: labelOf('booking', 'Pending', this.languageStore.lang()) },
     { value: 'Approved', label: labelOf('booking', 'Approved', this.languageStore.lang()) },
+    { value: 'LateCheckout', label: 'Quá hạn Check-out' },
     { value: 'Rejected', label: labelOf('booking', 'Rejected', this.languageStore.lang()) },
     { value: 'Cancelled', label: labelOf('booking', 'Cancelled', this.languageStore.lang()) },
     { value: 'Completed', label: labelOf('booking', 'Completed', this.languageStore.lang()) },
@@ -406,7 +407,13 @@ export class BookingsManagementPage implements OnInit {
     return [...this.items()].filter((item) => {
       const date = toDateInput(new Date(item.startTime))
       // Filter by status
-      if (status && item.status !== status) return false
+      if (status) {
+        if (status === 'LateCheckout') {
+          if (item.status !== 'Approved' || Date.now() <= +new Date(item.endTime)) return false
+        } else {
+          if (item.status !== status) return false
+        }
+      }
       // Filter by date range
       if (from && date < from) return false
       if (to && date > to) return false
@@ -430,6 +437,7 @@ export class BookingsManagementPage implements OnInit {
     { status: '', label: this.languageStore.t('dashboard.totalBookings'), count: this.items().length, className: 'text-slate-950', iconName: 'calendar', bgTint: 'bg-slate-100 text-slate-700' },
     { status: 'Pending', label: labelOf('booking', 'Pending', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Pending').length, className: 'text-amber-600', iconName: 'clock', bgTint: 'bg-amber-100 text-amber-700' },
     { status: 'Approved', label: labelOf('booking', 'Approved', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Approved').length, className: 'text-emerald-600', iconName: 'check', bgTint: 'bg-emerald-100 text-emerald-700' },
+    { status: 'LateCheckout', label: 'Quá hạn Check-out', count: this.items().filter(b => b.status === 'Approved' && Date.now() > +new Date(b.endTime)).length, className: 'text-rose-700', iconName: 'alert', bgTint: 'bg-rose-100 text-rose-800 border border-rose-200' },
     { status: 'Rejected', label: labelOf('booking', 'Rejected', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Rejected').length, className: 'text-rose-600', iconName: 'x', bgTint: 'bg-rose-100 text-rose-700' },
     { status: 'Cancelled', label: labelOf('booking', 'Cancelled', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Cancelled').length, className: 'text-slate-500', iconName: 'slash', bgTint: 'bg-slate-100 text-slate-600' },
     { status: 'Completed', label: labelOf('booking', 'Completed', this.languageStore.lang()), count: this.items().filter(b => b.status === 'Completed').length, className: 'text-cyan-600', iconName: 'check-circle', bgTint: 'bg-cyan-100 text-cyan-700' },

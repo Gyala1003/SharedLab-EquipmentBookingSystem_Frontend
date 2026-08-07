@@ -196,9 +196,16 @@ export class BookingDetailPage implements OnInit {
     return getCheckInWindowInfo(item.startTime, item.endTime).isTooEarly
   }
   protected checkUserRestricted(): boolean {
+    // BOOK-004: BE UsageLogService chỉ chặn Inactive/Locked, không chặn Restricted.
+    // Chặn Restricted ở FE có thể làm người dùng không check-out được, gây vi phạm thêm.
+    // Đồng bộ rule với BE: chỉ chặn Inactive và Locked.
     const status = this.store.user()?.status
-    if (status === 'Restricted' || status === 3) {
-      this.toast.error('Tài khoản đang bị hạn chế', 'Tài khoản của bạn đang ở trạng thái Bị hạn chế do có điểm vi phạm. Không thể thực hiện Check-in / Check-out.')
+    if (status === 'Inactive' || status === 2) {
+      this.toast.error('Tài khoản bị vô hiệu hóa', 'Tài khoản của bạn đang bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.')
+      return true
+    }
+    if (status === 'Locked' || status === 4) {
+      this.toast.error('Tài khoản bị khóa', 'Tài khoản của bạn đang bị khóa. Vui lòng liên hệ quản trị viên.')
       return true
     }
     return false

@@ -875,9 +875,10 @@ export class RequesterHomePage implements OnInit {
                   : 'emerald'
 
           const matchedEv = this.calendarEvents().find((ev) => ev.sourceId === b.bookingId)
+          const isEn = this.languageStore.lang() === 'en'
           const roomName = matchedEv?.resources?.length
             ? matchedEv.resources[0].resourceName
-            : `Phòng Lab (Booking #${b.bookingId})`
+            : (isEn ? `Lab Room (Booking #${b.bookingId})` : `Phòng Lab (Booking #${b.bookingId})`)
 
           events.push({
             roomName,
@@ -909,13 +910,14 @@ export class RequesterHomePage implements OnInit {
           const exists = events.some((r) => r.timeStr === timeStr)
 
           if (!exists) {
+            const isEn = this.languageStore.lang() === 'en'
             const roomName = ev.resources?.length
               ? ev.resources[0].resourceName
-              : 'Phòng Lab'
+              : (isEn ? 'Lab Room' : 'Phòng Lab')
 
             events.push({
               roomName,
-              title: isMaintenance ? `Bảo trì: ${ev.title}` : ev.title,
+              title: isMaintenance ? (isEn ? `Maintenance: ${ev.title}` : `Bảo trì: ${ev.title}`) : ev.title,
               timeStr,
               dateKey: targetDateKey,
               rowIndex,

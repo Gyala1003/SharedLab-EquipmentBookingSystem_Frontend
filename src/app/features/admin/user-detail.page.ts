@@ -101,7 +101,7 @@ export class UserDetailPage implements OnInit {
 
   ngOnInit(): void { this.userId = Number(this.route.snapshot.paramMap.get('userId')); this.load() }
   protected initials(name: string): string { return name.trim().split(/\s+/).slice(-2).map((part) => part.charAt(0).toUpperCase()).join('') }
-  protected roleLabel(role: string): string { return role === 'Admin' ? 'Quản trị viên' : role === 'LabManager' ? 'Quản lý phòng lab' : 'Người đặt lịch' }
+  protected roleLabel(role: string): string { return labelOf('userRole', role) }
   protected isCurrentAccount(): boolean { return this.store.user()?.userId === this.userId }
   protected closeModal(): void { this.modal.set(null) }
 

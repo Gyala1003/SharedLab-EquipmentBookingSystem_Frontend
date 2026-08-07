@@ -11,6 +11,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-users-page',
@@ -174,10 +175,7 @@ export class UsersPage implements OnInit {
   protected goPage(page: number): void { if (page < 1 || page > this.totalPages()) return; this.page.set(page); this.load() }
   protected initials(name: string): string { return name.trim().split(/\s+/).slice(-2).map((part) => part.charAt(0).toUpperCase()).join('') }
   protected roleLabel(role: string): string {
-    const isEn = this.languageStore.lang() === 'en'
-    if (role === 'Admin') return isEn ? 'System Admin' : 'Quản trị viên'
-    if (role === 'LabManager') return isEn ? 'Lab Manager' : 'Quản lý phòng lab'
-    return isEn ? 'Requester' : 'Người đặt lịch'
+    return labelOf('userRole', role, this.languageStore.lang())
   }
 
   private load(): void {

@@ -7,6 +7,7 @@ import type { DepartmentResponse, RoleResponse } from '../../core/api/system.mod
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { ToastService } from '../../shared/ui/toast.service'
+import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-create-user-page',
@@ -110,7 +111,7 @@ export class CreateUserPage implements OnInit {
     this.api.roles().subscribe({ next: (items) => this.roles.set(items), error: () => this.toast.error('Không tải được danh sách vai trò') })
   }
 
-  protected roleLabel(role: string): string { return role === 'Admin' ? 'Quản trị viên' : role === 'LabManager' ? 'Quản lý phòng lab' : 'Người đặt lịch' }
+  protected roleLabel(role: string): string { return labelOf('userRole', role) }
   protected scoreClass(): string { const score = this.passwordScore(); return score >= 4 ? 'bg-emerald-500' : score >= 3 ? 'bg-cyan-500' : score >= 2 ? 'bg-amber-400' : 'bg-rose-400' }
   protected isValid(): boolean { return this.checklist().every((item) => item.ok) }
 

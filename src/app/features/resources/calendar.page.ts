@@ -75,65 +75,121 @@ interface CalendarDay {
             }
           </div>
         } @else if (view() === 'week') {
-          <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50">
-            @for (day of currentWeekDays(); track day.date.toISOString()) {
-              <div class="px-2 py-3 text-center" [class.bg-violet-50/80]="isToday(day.date)">
-                <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">{{ weekdays()[(day.date.getDay() + 6) % 7] }}</p>
-                <p class="mt-0.5 text-xs font-black" [ngClass]="isToday(day.date) ? 'text-violet-700' : 'text-slate-700'">{{ day.date.getDate() }}/{{ day.date.getMonth() + 1 }}</p>
-              </div>
-            }
-          </div>
-          <div class="grid grid-cols-7 bg-slate-100 gap-px">
-            @for (day of currentWeekDays(); track day.date.toISOString()) {
-              <div class="min-h-[300px] bg-white p-2 transition hover:bg-violet-50/20" [class.bg-violet-50/30]="isToday(day.date)">
-                <div class="space-y-1.5">
-                  @for (event of day.events; track event.eventType + event.sourceId) {
-                    <button type="button" class="block w-full truncate rounded-lg border px-2 py-1.5 text-left text-[10px] font-bold" [ngClass]="event.eventType === 'Maintenance' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-indigo-200 bg-indigo-50 text-indigo-700'" (click)="openEvent(event)">
-                      {{ event.startTime | date:'HH:mm' }} · {{ formatEventTitle(event.title) | t }}
-                    </button>
-                  }
-                  @if (day.events.length === 0) {
-                    <p class="text-center py-10 text-[10px] font-bold text-slate-300">Tự do</p>
-                  }
+          <!-- Week Time-Grid -->
+          <div class="overflow-hidden">
+            <!-- Day headers -->
+            <div class="grid border-b border-slate-100 bg-slate-50" style="grid-template-columns: 52px repeat(7, minmax(0,1fr))">
+              <div class="border-r border-slate-100 py-3"></div>
+              @for (day of currentWeekDays(); track day.date.toISOString()) {
+                <div class="px-2 py-3 text-center border-r border-slate-100 last:border-r-0" [class.bg-violet-50]="isToday(day.date)">
+                  <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">{{ weekdays()[(day.date.getDay() + 6) % 7] }}</p>
+                  <p class="mt-0.5 text-xs font-black" [ngClass]="isToday(day.date) ? 'text-violet-700' : 'text-slate-700'">{{ day.date.getDate() }}/{{ day.date.getMonth() + 1 }}</p>
+                  @if (day.events.length > 0) { <span class="mt-1 inline-block rounded-full bg-indigo-100 px-1.5 py-0.5 text-[9px] font-black text-indigo-700">{{ day.events.length }}</span> }
                 </div>
-              </div>
-            }
-          </div>
-        } @else if (view() === 'day') {
-          <div class="p-5 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div class="flex items-center gap-3">
-                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-600 text-white font-black text-sm shadow-sm">{{ focus().getDate() }}</span>
-                <div>
-                  <p class="font-black text-slate-900 text-base">{{ viewTitle() }}</p>
-                  <p class="text-xs text-slate-400">{{ dayEventsForFocusDate().length }} sự kiện lịch được tìm thấy</p>
-                </div>
-              </div>
-              <button type="button" class="btn-secondary text-xs" (click)="today()">Về hôm nay</button>
+              }
             </div>
-            @if (dayEventsForFocusDate().length === 0) {
-              <div class="py-12 text-center">
-                <app-data-state [title]="'Tự do / Không có sự kiện nào'" message="Không có lịch booking hoặc bảo trì nào trong ngày được chọn." icon="calendar" />
-              </div>
-            } @else {
-              <div class="divide-y divide-slate-100">
-                @for (event of dayEventsForFocusDate(); track event.eventType + event.sourceId) {
-                  <button type="button" class="flex w-full flex-col gap-3 py-4 text-left transition hover:bg-slate-50 sm:flex-row sm:items-center" (click)="openEvent(event)">
-                    <div class="flex h-10 w-16 shrink-0 items-center justify-center rounded-xl font-black text-xs" [ngClass]="event.eventType === 'Maintenance' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'">
-                      {{ event.startTime | date:'HH:mm' }}
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <p class="font-black text-slate-900 text-sm">{{ formatEventTitle(event.title) | t }}</p>
-                        <app-status-badge [value]="event.status" [domain]="event.eventType === 'Maintenance' ? 'maintenance' : 'booking'" />
+            <!-- Scrollable time-grid body -->
+            <div class="overflow-y-auto" style="max-height:580px">
+              <div class="grid" style="grid-template-columns: 52px repeat(7, minmax(0,1fr))">
+                <!-- Time labels column -->
+                <div class="relative border-r border-slate-100 bg-white/80" [style.height.px]="GRID_TOTAL_PX">
+                  @for (hour of timeSlotHours; track hour) {
+                    <div class="absolute right-2 select-none text-[10px] font-semibold text-slate-300" [style.top.px]="(hour - GRID_START) * HOUR_PX - 8">{{ hour }}:00</div>
+                  }
+                </div>
+                <!-- 7 day columns -->
+                @for (day of currentWeekDays(); track day.date.toISOString()) {
+                  <div class="relative border-r border-slate-100 last:border-r-0"
+                       [class.bg-violet-50/20]="isToday(day.date)"
+                       [style.height.px]="GRID_TOTAL_PX">
+                    <!-- Hour lines -->
+                    @for (hour of timeSlotHours; track hour) {
+                      <div class="absolute inset-x-0 border-t border-slate-100" [style.top.px]="(hour - GRID_START) * HOUR_PX"></div>
+                    }
+                    <!-- Current time indicator -->
+                    @if (isToday(day.date) && currentTimeTopPx() >= 0) {
+                      <div class="pointer-events-none absolute inset-x-0 z-20 flex items-center gap-0" [style.top.px]="currentTimeTopPx()">
+                        <div class="h-2 w-2 shrink-0 rounded-full bg-red-500 -ml-1"></div>
+                        <div class="h-px flex-1 bg-red-400"></div>
                       </div>
-                      <p class="mt-1 text-xs text-slate-500">{{ event.startTime | date:'HH:mm dd/MM/yyyy' }} – {{ event.endTime | date:'HH:mm dd/MM/yyyy' }} · {{ resourceText(event) }}</p>
-                    </div>
-                    <span class="text-slate-300"><app-icon name="arrow-right" [size]="17" /></span>
-                  </button>
+                    }
+                    <!-- Events -->
+                    @for (event of day.events; track event.eventType + event.sourceId) {
+                      <button type="button"
+                        class="absolute inset-x-0.5 z-10 overflow-hidden rounded-lg border px-1.5 py-0.5 text-left transition hover:z-30 hover:opacity-90 hover:shadow-sm"
+                        [ngClass]="event.eventType === 'Maintenance' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-indigo-200 bg-indigo-50 text-indigo-700'"
+                        [style.top.px]="eventTopPx(event)"
+                        [style.height.px]="eventHeightPx(event)"
+                        (click)="openEvent(event)">
+                        <span class="block text-[9px] font-black leading-tight">{{ event.startTime | date:'HH:mm' }}</span>
+                        <span class="block truncate text-[9px] leading-tight">{{ formatEventTitle(event.title) | t }}</span>
+                      </button>
+                    }
+                  </div>
                 }
               </div>
-            }
+            </div>
+          </div>
+        } @else if (view() === 'day') {
+          <!-- Day Time-Grid -->
+          <div class="overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+              <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-2xl shadow-sm font-black text-sm" [ngClass]="isToday(focus()) ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-700'">{{ focus().getDate() }}</span>
+                <div>
+                  <p class="font-black text-slate-900">{{ viewTitle() }}</p>
+                  <p class="text-xs text-slate-400">{{ dayEventsForFocusDate().length }} sự kiện</p>
+                </div>
+              </div>
+              <button type="button" class="btn-secondary text-xs" (click)="today()">Hôm nay</button>
+            </div>
+            <!-- Scrollable time-grid -->
+            <div class="overflow-y-auto" style="max-height:560px">
+              <div class="grid" style="grid-template-columns: 52px 1fr">
+                <!-- Time labels -->
+                <div class="relative border-r border-slate-100 bg-white/80" [style.height.px]="GRID_TOTAL_PX">
+                  @for (hour of timeSlotHours; track hour) {
+                    <div class="absolute right-2 select-none text-[10px] font-semibold text-slate-300" [style.top.px]="(hour - GRID_START) * HOUR_PX - 8">{{ hour }}:00</div>
+                  }
+                </div>
+                <!-- Event column -->
+                <div class="relative" [style.height.px]="GRID_TOTAL_PX">
+                  <!-- Hour lines -->
+                  @for (hour of timeSlotHours; track hour) {
+                    <div class="absolute inset-x-0 border-t border-slate-100" [style.top.px]="(hour - GRID_START) * HOUR_PX"></div>
+                  }
+                  <!-- Current time indicator -->
+                  @if (currentTimeTopPx() >= 0) {
+                    <div class="pointer-events-none absolute inset-x-0 z-20 flex items-center" [style.top.px]="currentTimeTopPx()">
+                      <div class="h-2 w-2 shrink-0 rounded-full bg-red-500 -ml-1"></div>
+                      <div class="h-px flex-1 bg-red-400"></div>
+                    </div>
+                  }
+                  @if (dayEventsForFocusDate().length === 0) {
+                    <div class="absolute inset-0 flex items-center justify-center">
+                      <p class="text-sm font-bold text-slate-300">Không có sự kiện trong ngày này</p>
+                    </div>
+                  }
+                  @for (event of dayEventsForFocusDate(); track event.eventType + event.sourceId) {
+                    <button type="button"
+                      class="absolute inset-x-1 z-10 overflow-hidden rounded-xl border px-3 py-2 text-left transition hover:z-20 hover:opacity-90 hover:shadow-md"
+                      [ngClass]="event.eventType === 'Maintenance' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-indigo-200 bg-indigo-50 text-indigo-800'"
+                      [style.top.px]="eventTopPx(event)"
+                      [style.height.px]="eventHeightPx(event)"
+                      (click)="openEvent(event)">
+                      <p class="text-xs font-black truncate">{{ event.startTime | date:'HH:mm' }} – {{ event.endTime | date:'HH:mm' }}</p>
+                      <p class="text-[10px] truncate opacity-70">{{ formatEventTitle(event.title) | t }}</p>
+                      @if (eventHeightPx(event) >= 52) {
+                        <div class="mt-1">
+                          <app-status-badge [value]="event.status" [domain]="event.eventType === 'Maintenance' ? 'maintenance' : 'booking'" />
+                        </div>
+                      }
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
           </div>
         } @else if (filteredEvents().length === 0) {
           <div class="p-6"><app-data-state [title]="'common.noData' | t" [message]="'common.noData' | t" icon="calendar" /></div>
@@ -343,5 +399,39 @@ export class CalendarPage implements OnInit {
       .replace(/Internal/gi, isEn ? 'Internal' : 'Nội bộ')
       .replace(/External/gi, isEn ? 'External' : 'Đối tác')
       .replace(/Workflow/gi, isEn ? 'Workflow' : 'Quy trình')
+  }
+
+  // ── Time-Grid helpers ──────────────────────────────────────────────────────
+  /** Grid starts at 07:00 */
+  protected readonly GRID_START = 7
+  /** Grid ends at 19:00 (events after this are clamped) */
+  protected readonly GRID_END = 19
+  /** Height in pixels per 1 hour slot */
+  protected readonly HOUR_PX = 64
+  /** Total grid height in px */
+  protected readonly GRID_TOTAL_PX = (19 - 7) * 64 // 768px
+  /** Array of hour numbers to render time labels [7, 8, ..., 18] */
+  protected readonly timeSlotHours = Array.from({ length: 19 - 7 }, (_, i) => 7 + i)
+
+  /** Top offset in px for an event block, clamped to grid bounds. */
+  protected eventTopPx(event: CalendarEventResponse): number {
+    const d = new Date(event.startTime)
+    const minutesSinceStart = (d.getHours() - this.GRID_START) * 60 + d.getMinutes()
+    return Math.max(0, Math.min((minutesSinceStart / 60) * this.HOUR_PX, this.GRID_TOTAL_PX - 24))
+  }
+
+  /** Height in px for an event block. Min 24px so 1-min events are still clickable. */
+  protected eventHeightPx(event: CalendarEventResponse): number {
+    const durationMs = new Date(event.endTime).getTime() - new Date(event.startTime).getTime()
+    const durationHours = Math.max(durationMs / 3_600_000, 24 / this.HOUR_PX)
+    const maxHeight = this.GRID_TOTAL_PX - this.eventTopPx(event)
+    return Math.min(durationHours * this.HOUR_PX, maxHeight)
+  }
+
+  /** Top offset in px for the current-time red line. Returns -1 if outside grid range. */
+  protected currentTimeTopPx(): number {
+    const now = new Date()
+    if (now.getHours() < this.GRID_START || now.getHours() >= this.GRID_END) return -1
+    return ((now.getHours() - this.GRID_START) * 60 + now.getMinutes()) / 60 * this.HOUR_PX
   }
 }

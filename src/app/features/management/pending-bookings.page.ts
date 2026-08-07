@@ -56,8 +56,10 @@ import { labelOf } from '../../shared/utils/presentation'
                 </div>
                 <div class="flex shrink-0 gap-2">
                   <a [routerLink]="['/app/bookings', item.bookingId]" class="btn-secondary">{{ 'common.details' | t }}</a>
-                  <button class="btn-secondary btn-danger" (click)="openReject(item)"><app-icon name="x" [size]="16" /> {{ 'pendingBookings.reject' | t }}</button>
-                  <button class="btn-primary" (click)="approve(item)"><app-icon name="check" [size]="16" /> {{ 'pendingBookings.approve' | t }}</button>
+                  @if (store.isManager()) {
+                    <button class="btn-secondary btn-danger" (click)="openReject(item)"><app-icon name="x" [size]="16" /> {{ 'pendingBookings.reject' | t }}</button>
+                    <button class="btn-primary" (click)="approve(item)"><app-icon name="check" [size]="16" /> {{ 'pendingBookings.approve' | t }}</button>
+                  }
                 </div>
               </div>
             </article>
