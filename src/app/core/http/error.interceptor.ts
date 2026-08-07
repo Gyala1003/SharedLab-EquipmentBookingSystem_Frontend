@@ -24,7 +24,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       count: 2,
       delay: (error: any, retryCount: number) => {
         const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(req.url)
-        if (!isAuthEndpoint && (error?.status >= 500 || error?.status === 0) && retryCount <= 2) {
+        const safeMethod = req.method === 'GET' || req.method === 'HEAD'
+        if (!isAuthEndpoint && safeMethod && (error?.status >= 500 || error?.status === 0) && retryCount <= 2) {
           return timer(retryCount * 350)
         }
         return throwError(() => error)

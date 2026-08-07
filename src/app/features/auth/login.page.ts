@@ -125,6 +125,16 @@ export class LoginPage {
     ) {
       return landingPath(role)
     }
-    return target.startsWith('/') ? target : `/${target}`
+
+    if (
+      target.startsWith('/') &&
+      !target.startsWith('//') &&
+      !target.startsWith('/\\') &&
+      /^[\w\-\/\?=&%:#]+$/.test(target)
+    ) {
+      return target
+    }
+
+    return landingPath(role)
   }
 }

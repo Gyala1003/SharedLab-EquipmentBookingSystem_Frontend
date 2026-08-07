@@ -1067,42 +1067,58 @@ export class BookingFormPage implements OnInit {
       }
 
       this.submitting.set(true)
-      const createRequests$ = ranges.map((r) =>
+      const createRequests$ = ranges.map((range) =>
         this.api.createBooking({
           purposeType: this.purposeType,
           purposeDescription: this.purposeDescription.trim(),
-          startTime: toIso(r.startTime.toISOString()),
-          endTime: toIso(r.endTime.toISOString()),
+          startTime: toIso(range.startTime.toISOString()),
+          endTime: toIso(range.endTime.toISOString()),
           items: this.itemPayload(),
-        })
+        }),
       )
 
-      forkJoin(createRequests$).subscribe({
-        next: (results) => {
-          this.submitting.set(false)
-          if (results.length === 1) {
-            this.toast.success('Đã gửi yêu cầu booking', `Booking #${results[0].bookingId} đang chờ duyệt.`)
-            void this.router.navigate(['/app/bookings', results[0].bookingId])
-          } else {
+      if (createRequests$.length === 1) {
+        createRequests$[0].subscribe({
+          next: (result) => {
+            this.submitting.set(false)
+            this.toast.success('Đã gửi yêu cầu booking', `Booking #${result.bookingId} đang chờ duyệt.`)
+            void this.router.navigate(['/app/bookings', result.bookingId])
+          },
+          error: (err: any) => {
+            this.submitting.set(false)
+            const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.'
+            const suggestions: SuggestedSlotResponse[] = err?.details?.suggestedSlots || err?.error?.suggestedSlots || []
+            if (suggestions.length) {
+              this.suggestedSlots.set(suggestions)
+            } else {
+              this.loadSuggestedSlots()
+            }
+            this.toast.error('Không thể tạo booking', msg)
+          },
+        })
+      } else {
+        forkJoin(createRequests$).subscribe({
+          next: (results) => {
+            this.submitting.set(false)
             this.toast.success(
               'Đã gửi các yêu cầu booking',
               `Đã tạo thành công ${results.length} đơn booking riêng biệt cho từng khung giờ.`,
             )
             void this.router.navigate(['/app/bookings'])
-          }
-        },
-        error: (err: any) => {
-          this.submitting.set(false)
-          const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.'
-          const suggestions: SuggestedSlotResponse[] = err?.details?.suggestedSlots || err?.error?.suggestedSlots || []
-          if (suggestions.length) {
-            this.suggestedSlots.set(suggestions)
-          } else {
-            this.loadSuggestedSlots()
-          }
-          this.toast.error('Không thể tạo booking', msg)
-        },
-      })
+          },
+          error: (err: any) => {
+            this.submitting.set(false)
+            const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.'
+            const suggestions: SuggestedSlotResponse[] = err?.details?.suggestedSlots || err?.error?.suggestedSlots || []
+            if (suggestions.length) {
+              this.suggestedSlots.set(suggestions)
+            } else {
+              this.loadSuggestedSlots()
+            }
+            this.toast.error('Không thể tạo booking', msg)
+          },
+        })
+      }
     })
   }
 

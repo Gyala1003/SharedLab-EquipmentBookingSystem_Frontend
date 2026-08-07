@@ -45,7 +45,7 @@ export class AuthStore {
     try {
       const res = await firstValueFrom(this.auth.login(payload))
       this.tokens.set(res.accessToken, res.refreshToken, remember)
-      // BE AuthResponseDTO returns { accessToken, refreshToken }. Call me() to fetch user profile.
+      // BE AuthResponseDTO returns { accessToken, refreshToken }. Call GET /Auth/me to hydrate current user.
       const user = res.user ?? (await firstValueFrom(this.auth.me()))
       this.setUser(user, remember)
       this._error.set(null)
