@@ -45,7 +45,13 @@ export class SystemMaintenanceStore {
   readonly isMaintenanceActive = computed(() => {
     const cfg = this._config()
     if (!cfg.enabled) return false
-    return true
+
+    const now = new Date().getTime()
+    const start = Date.parse(cfg.startTime)
+    const end = Date.parse(cfg.endTime)
+
+    if (Number.isNaN(start) || Number.isNaN(end)) return false
+    return now >= start && now < end
   })
 
   private loadConfig(): SystemMaintenanceConfig {

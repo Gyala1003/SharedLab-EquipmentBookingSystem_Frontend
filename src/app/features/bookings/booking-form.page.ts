@@ -1070,14 +1070,14 @@ export class BookingFormPage implements OnInit {
       }
 
       this.submitting.set(true)
-      const createRequests$ = ranges.map((r) =>
+      const createRequests$ = ranges.map((range) =>
         this.api.createBooking({
           purposeType: this.purposeType,
           purposeDescription: this.purposeDescription.trim(),
-          startTime: toIso(r.startTime.toISOString()),
-          endTime: toIso(r.endTime.toISOString()),
+          startTime: toIso(range.startTime.toISOString()),
+          endTime: toIso(range.endTime.toISOString()),
           items: this.itemPayload(),
-        })
+        }),
       )
 
       forkJoin(createRequests$).subscribe({

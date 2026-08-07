@@ -273,7 +273,14 @@ export class SystemService {
     return this.http.put<void>(`${this.base}/Bookings/${id}`, payload)
   }
 
-  suggestSlots(payload: { startTime: string; endTime: string; items: BookingItemRequest[]; maxSuggestions: number; searchDays: number; stepMinutes: number }): Observable<SuggestedSlotResponse[]> {
+  suggestSlots(payload: {
+    startTime: string
+    endTime: string
+    items: BookingItemRequest[]
+    maxSuggestions: number
+    searchDays: number
+    stepMinutes: number
+  }): Observable<SuggestedSlotResponse[]> {
     return this.http.post<SuggestedSlotResponse[]>(`${this.base}/Bookings/suggested-slots`, payload)
   }
 
@@ -559,17 +566,20 @@ export class SystemService {
     return this.http.get<RoleResponse[]>(`${this.base}/Roles`)
   }
 
-  // /Policies không tồn tại trong backend hiện tại.
-  // Trả nội dung tĩnh trực tiếp — không gọi API để tránh lỗi 404.
+  // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
   getPolicy(): Observable<PolicyResponse> {
-    return of({
-      generalRules: [
-        'Xác thực qua người duyệt: Mọi lượt Check-in và Check-out chỉ được tính là hoàn thành sau khi có xác thực từ Bộ phận Quản lý.',
-        'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo người duyệt trong 5-10 phút đầu nếu có hỏng hóc.',
-        'Quy định Check-out: Trả phòng/thiết bị đúng thời gian đã đăng ký. Vi phạm trả muộn sẽ bị ghi nhận vi phạm và cộng điểm phạt.',
-      ],
-      categories: [],
-    })
+    return this.http.get<PolicyResponse>(`${this.base}/Policies`).pipe(
+      catchError(() =>
+        of({
+          generalRules: [
+            'Xác thực qua người duyệt: Mọi lượt Check-in (Nhận) và Check-out (Trả) đúng giờ chỉ được tính là hoàn thành sau khi có sự xác thực/phê duyệt trực tiếp từ Bộ phận Quản lý.',
+            'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo ngay hỏng hóc/sự cố có sẵn cho Bộ phận duyệt trong 5–10 phút đầu.',
+            'Quy định Check-out & Mất tài sản: Trả phòng/thiết bị đúng thời gian đã đăng ký. Check-out muộn quá 02 tuần sẽ tự động ghi nhận là LÀM MẤT TÀI SẢN và bị ĐÓNG BĂNG/KHÓA TÀI KHOẢN HOÀN TOÀN.',
+          ],
+          categories: [],
+        }),
+      ),
+    )
   }
 
   // updatePolicy bị vô hiệu hóa — /Policies không tồn tại trong backend.
