@@ -67,7 +67,7 @@ export class AuditLogsPage implements OnInit {
   protected pageSize = 20
   protected readonly actions = [{ value: 1, label: 'Tạo mới' }, { value: 2, label: 'Cập nhật' }, { value: 3, label: 'Xóa' }, { value: 4, label: 'Đăng nhập' }, { value: 5, label: 'Đăng xuất' }, { value: 6, label: 'Duyệt booking' }, { value: 7, label: 'Từ chối booking' }, { value: 8, label: 'Check-in' }, { value: 9, label: 'Check-out' }]
 
-  ngOnInit(): void { this.from = getFirstDayOfMonth(); this.to = getLastDayOfMonth(); this.api.users({ pageNumber: 1, pageSize: 100 }).subscribe({ next: (response) => this.users.set(response.items) }); this.load() }
+  ngOnInit(): void { this.from = getFirstDayOfMonth(); this.to = getLastDayOfMonth(); this.api.users({ pageNumber: 1, pageSize: 15 }).subscribe({ next: (response) => this.users.set(response.items) }); this.load() }
   protected changeCount(): number { return this.logs().filter((log) => ['Create', 'Update', 'Delete'].includes(log.actionType)).length }
   protected uniqueUsers(): number { return new Set(this.logs().map((log) => log.userId)).size }
   protected applyFilters(): void { this.page.set(1); this.load() }

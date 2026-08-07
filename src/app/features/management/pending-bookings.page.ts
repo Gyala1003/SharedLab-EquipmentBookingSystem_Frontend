@@ -2,7 +2,8 @@ import { DatePipe } from '@angular/common'
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, forkJoin, of } from 'rxjs'
+import { catchError, forkJoin, of, from } from 'rxjs'
+import { mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -152,7 +153,7 @@ export class PendingBookingsPage implements OnInit {
           const detailReqs = sampleBookingsToResolve.map((b) =>
             this.api.booking(b.bookingId).pipe(catchError(() => of(null)))
           )
-          forkJoin(detailReqs).subscribe((details) => {
+          from(detailReqs).pipe(mergeMap(req => req, 3), toArray()).subscribe((details) => {
             let updated = false
             const current = [...this.items()]
             for (const d of details) {

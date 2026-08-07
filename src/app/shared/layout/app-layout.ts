@@ -2,6 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { catchError, forkJoin, of } from 'rxjs'
+import { delay } from 'rxjs/operators'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
 import { BookingReminderService } from '../../core/api/booking-reminder.service'
 import { SystemService } from '../../core/api/system.service'
@@ -358,7 +359,10 @@ export class AppLayoutComponent implements OnInit {
     this.reminder.init()
     this.workspace
       .unreadCount(user.userId)
-      .pipe(catchError(() => of({ userId: user.userId, unreadCount: 0 })))
+      .pipe(
+        delay(2000),
+        catchError(() => of({ userId: user.userId, unreadCount: 0 }))
+      )
       .subscribe((response) => this.badge.set(response.unreadCount))
     if (this.store.isRequester()) this.detectPendingCheckout(user.userId)
   }

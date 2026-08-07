@@ -2,8 +2,8 @@ import { NgClass } from '@angular/common'
 import { ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, forkJoin, of } from 'rxjs'
-import { timeout } from 'rxjs/operators'
+import { catchError, forkJoin, of, from } from 'rxjs'
+import { timeout, mergeMap, toArray, map } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { EquipmentResponse, EquipmentDetailResponse, LabRoomResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -46,9 +46,21 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
                     <div class="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-slate-400"></div>
                   </div>
                 } @else {
-                  <img [src]="getEquipmentImage(item)" [alt]="item.equipmentName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <img [src]="getEquipmentImage(item)" [alt]="item.equipmentName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" [class.grayscale]="item.status === 'Inactive' || item.status === 'Maintenance' || item.status === 'Broken'" />
                 }
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent"></div>
+                
+                @if (item.status === 'Maintenance') {
+                  <div class="absolute inset-0 bg-indigo-950/50 backdrop-blur-[1px]"></div>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8 text-indigo-300 opacity-80"><app-icon name="wrench" [size]="32" /><span class="mt-2 text-xs font-black uppercase tracking-widest">{{ 'labs.maintenance' | t }}</span></div>
+                } @else if (item.status === 'Inactive') {
+                  <div class="absolute inset-0 bg-red-950/50 backdrop-blur-[1px]"></div>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8 text-red-300 opacity-80"><app-icon name="ban" [size]="32" /><span class="mt-2 text-xs font-black uppercase tracking-widest">Ngừng hoạt động</span></div>
+                } @else if (item.status === 'Broken') {
+                  <div class="absolute inset-0 bg-orange-950/50 backdrop-blur-[1px]"></div>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8 text-orange-300 opacity-80"><app-icon name="triangle-alert" [size]="32" /><span class="mt-2 text-xs font-black uppercase tracking-widest">Bị hỏng</span></div>
+                }
+
                 <div class="absolute right-4 top-4 z-10"><app-status-badge [value]="item.status" domain="equipment" /></div>
 
               </div>
@@ -172,7 +184,7 @@ export class EquipmentsPage implements OnInit {
           else if (statusStr === '3') targetStatus = 'Under Maintenance'
           else if (statusStr === '4') targetStatus = 'Broken'
           else if (statusStr === '5') targetStatus = 'Retired'
-          
+
           if (targetStatus) {
             filtered = filtered.filter(e => e.status === targetStatus)
           }
@@ -180,10 +192,10 @@ export class EquipmentsPage implements OnInit {
 
         const pageSize = 16
         this.totalPages.set(Math.ceil(filtered.length / pageSize) || 1)
-        
+
         if (this.page() > this.totalPages()) this.page.set(this.totalPages())
         if (this.page() < 1) this.page.set(1)
-        
+
         const pagedItems = filtered.slice((this.page() - 1) * pageSize, this.page() * pageSize).map(e => ({ ...e, _detailLoaded: false }))
         this.items.set(pagedItems)
         this.loading.set(false)
@@ -198,17 +210,19 @@ export class EquipmentsPage implements OnInit {
   }
 
 
-  private enrichWithDetails(pagedItems: EquipmentResponse[]): void {
+  private enrichWithDetails(pagedItems: (EquipmentResponse & { _detailLoaded?: boolean })[]): void {
     if (!pagedItems.length) return
-    forkJoin(pagedItems.map(item =>
+    from(pagedItems.map((item, index) =>
       this.api.equipment(item.equipmentId).pipe(
         timeout(3000),
-        catchError(() => of(null)),
-      ),
-    )).subscribe(details => {
-      const enriched = pagedItems.map((item, i) => {
-        const detailUrl = details[i]?.imageUrl
-        return { ...item, imageUrl: detailUrl || item.imageUrl, _detailLoaded: true }
+        map((detail: any) => ({ index, url: detail?.imageUrl })),
+        catchError(() => of({ index, url: null }))
+      )
+    )).pipe(mergeMap(req => req, 3), toArray()).subscribe((results: any[]) => {
+      const enriched = [...pagedItems]
+      results.forEach((res: any) => {
+        const item = enriched[res.index]
+        enriched[res.index] = { ...item, imageUrl: res.url || item.imageUrl, _detailLoaded: true }
       })
       this.items.set(enriched)
     })
@@ -235,7 +249,7 @@ export class EquipmentsPage implements OnInit {
     // Load detail to prefill optional fields
     this.api.equipment(item.equipmentId).subscribe({
       next: (detail) => { this.editForm.modelSpecs = detail.modelSpecs ?? ''; this.editForm.imageUrl = detail.imageUrl ?? ''; this.editForm.usageGuideline = detail.usageGuideline ?? ''; this.cdr.detectChanges() },
-      error: () => {}
+      error: () => { }
     })
   }
 

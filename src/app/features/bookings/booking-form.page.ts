@@ -771,13 +771,14 @@ export class BookingFormPage implements OnInit {
 
     forkJoin({ labs: this.api.labs(), equipments: this.api.equipments(), rules: this.api.priorityRules(true) }).subscribe({
       next: ({ labs, equipments, rules }) => {
-        this.labs.set(labs)
-        this.equipments.set(equipments)
+        // Filter out inactive resources from the booking form
+        this.labs.set(labs.filter(lab => lab.status !== 'Inactive'))
+        this.equipments.set(equipments.filter(eq => eq.status !== 'Inactive'))
         this.rules.set(rules)
 
         let preselectedId = this.labId()
         if (!preselectedId && targetEquipmentId) {
-          const equip = equipments.find((e) => e.equipmentId === targetEquipmentId)
+          const equip = equipments.find((e) => e.equipmentId === targetEquipmentId && e.status !== 'Inactive')
           if (equip) {
             preselectedId = equip.labId
             this.labId.set(equip.labId)
@@ -785,7 +786,7 @@ export class BookingFormPage implements OnInit {
         }
 
         if (preselectedId) {
-          const lab = labs.find((item) => item.labId === preselectedId)
+          const lab = labs.find((item) => item.labId === preselectedId && item.status !== 'Inactive')
           if (lab) {
             this.selectLab(lab, targetEquipmentId)
           }

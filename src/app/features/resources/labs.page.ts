@@ -2,8 +2,8 @@ import { NgClass } from '@angular/common'
 import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, forkJoin, of } from 'rxjs'
-import { timeout } from 'rxjs/operators'
+import { catchError, forkJoin, of, from } from 'rxjs'
+import { timeout, mergeMap, toArray, map } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { LabRoomResponse, UserManagementResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -184,8 +184,8 @@ export class LabsPage implements OnInit {
 
         if (this.keyword && this.keyword.trim().length > 0) {
           const kw = this.keyword.toLowerCase().trim()
-          filtered = filtered.filter(l => 
-            (l.labName && l.labName.toLowerCase().includes(kw)) || 
+          filtered = filtered.filter(l =>
+            (l.labName && l.labName.toLowerCase().includes(kw)) ||
             (l.roomCode && l.roomCode.toLowerCase().includes(kw)) ||
             (l.location && l.location.toLowerCase().includes(kw))
           )
@@ -198,7 +198,7 @@ export class LabsPage implements OnInit {
           else if (statusStr === '2') targetStatus = 'Maintenance'
           else if (statusStr === '3') targetStatus = 'Unavailable'
           else if (statusStr === '4') targetStatus = 'Inactive'
-          
+
           if (targetStatus) {
             filtered = filtered.filter(l => l.status === targetStatus)
           }
@@ -210,27 +210,29 @@ export class LabsPage implements OnInit {
 
         const pageSize = 12
         this.totalPages.set(Math.ceil(filtered.length / pageSize) || 1)
-        
+
         if (this.page() > this.totalPages()) this.page.set(this.totalPages())
         if (this.page() < 1) this.page.set(1)
-        
+
         const pagedItems = filtered.slice((this.page() - 1) * pageSize, this.page() * pageSize).map(l => ({ ...l, _detailLoaded: false }))
         this.labs.set(pagedItems)
         this.loading.set(false)
 
         if (pagedItems.length) {
-          forkJoin(pagedItems.map(lab =>
+          from(pagedItems.map((lab, index) =>
             this.api.lab(lab.labId).pipe(
               timeout(3000),
-              catchError(() => of(null)),
-            ),
-          )).subscribe(details => {
-              const enriched = pagedItems.map((lab, i) => {
-                const detailUrl = details[i]?.imageUrl
-                return { ...lab, imageUrl: detailUrl || lab.imageUrl, _detailLoaded: true }
-              })
-              this.labs.set(enriched)
+              map((detail: any) => ({ index, url: detail?.imageUrl })),
+              catchError(() => of({ index, url: null }))
+            )
+          )).pipe(mergeMap(req => req, 3), toArray()).subscribe((results: any[]) => {
+            const enriched = [...pagedItems]
+            results.forEach((res: any) => {
+              const lab = enriched[res.index]
+              enriched[res.index] = { ...lab, imageUrl: res.url || lab.imageUrl, _detailLoaded: true }
             })
+            this.labs.set(enriched)
+          })
         }
       },
       error: () => {
@@ -259,7 +261,7 @@ export class LabsPage implements OnInit {
     this.editManagerId = null
     this.editOpen.set(true)
     if (!this.managers().length) this.loadManagers()
-    this.api.lab(lab.labId).subscribe({ next: (detail) => { this.editForm.description = detail.description ?? ''; this.editForm.imageUrl = detail.imageUrl ?? ''; this.editForm.usageGuideline = detail.usageGuideline ?? ''; const current = this.managers().find(m => m.fullName === detail.managerName); this.editManagerId = current ? current.userId : null; this.cdr.detectChanges() }, error: () => {} })
+    this.api.lab(lab.labId).subscribe({ next: (detail) => { this.editForm.description = detail.description ?? ''; this.editForm.imageUrl = detail.imageUrl ?? ''; this.editForm.usageGuideline = detail.usageGuideline ?? ''; const current = this.managers().find(m => m.fullName === detail.managerName); this.editManagerId = current ? current.userId : null; this.cdr.detectChanges() }, error: () => { } })
   }
 
   protected save(): void {
@@ -288,6 +290,6 @@ export class LabsPage implements OnInit {
   }
 
   private finishSave(): void { this.saving.set(false); this.editOpen.set(false); this.toast.success('Đã cập nhật phòng lab'); this.load() }
-  private loadManagers(): void { this.api.users({ roleName: 'LabManager', pageNumber: 1, pageSize: 100 }).subscribe({ next: (result) => this.managers.set(result.items), error: () => this.managers.set([]) }) }
+  private loadManagers(): void { this.api.users({ roleName: 'LabManager', pageNumber: 1, pageSize: 15 }).subscribe({ next: (result) => this.managers.set(result.items), error: () => this.managers.set([]) }) }
   private emptyForm(): LabForm { return { labName: '', roomCode: '', location: '', capacity: 20, description: '', imageUrl: '', usageGuideline: '', managerId: null } }
 }

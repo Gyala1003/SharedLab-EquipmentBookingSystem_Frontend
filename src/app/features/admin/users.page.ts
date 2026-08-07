@@ -60,17 +60,17 @@ import { labelOf } from '../../shared/utils/presentation'
         </div>
       </article>
 
-      <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1.2fr_1fr_auto]">
+      <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1.2fr_1fr]">
         <div>
           <label class="field-label">{{ 'common.search' | t }}</label>
           <div class="relative">
             <span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span>
-            <input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="applyFilters()" [placeholder]="'users.searchPlaceholder' | t" />
+            <input class="input-shell pl-11" [(ngModel)]="keyword" (ngModelChange)="onKeywordChange()" [placeholder]="'users.searchPlaceholder' | t" />
           </div>
         </div>
         <div>
           <label class="field-label">{{ 'users.role' | t }}</label>
-          <select class="input-shell" [(ngModel)]="roleName">
+          <select class="input-shell" [(ngModel)]="roleName" (ngModelChange)="applyFilters()">
             <option value="">{{ 'common.all' | t }}</option>
             <option value="Admin">Admin</option>
             <option value="LabManager">LabManager</option>
@@ -79,7 +79,7 @@ import { labelOf } from '../../shared/utils/presentation'
         </div>
         <div>
           <label class="field-label">{{ 'departments.title' | t }}</label>
-          <select class="input-shell" [(ngModel)]="departmentId">
+          <select class="input-shell" [(ngModel)]="departmentId" (ngModelChange)="applyFilters()">
             <option [ngValue]="null">{{ 'common.all' | t }}</option>
             @for (department of departments(); track department.departmentId) {
               <option [ngValue]="department.departmentId">{{ department.departmentName }}</option>
@@ -88,7 +88,7 @@ import { labelOf } from '../../shared/utils/presentation'
         </div>
         <div>
           <label class="field-label">{{ 'common.status' | t }}</label>
-          <select class="input-shell" [(ngModel)]="status">
+          <select class="input-shell" [(ngModel)]="status" (ngModelChange)="applyFilters()">
             <option [ngValue]="null">{{ 'common.all' | t }}</option>
             <option [ngValue]="1">{{ 'departments.active' | t }}</option>
             <option [ngValue]="2">{{ 'departments.inactive' | t }}</option>
@@ -96,7 +96,6 @@ import { labelOf } from '../../shared/utils/presentation'
             <option [ngValue]="4">Locked</option>
           </select>
         </div>
-        <div class="flex items-end"><button type="button" class="btn-primary w-full" (click)="applyFilters()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>
 
       @if (loading()) {
@@ -172,6 +171,17 @@ export class UsersPage implements OnInit {
 
   protected pagePenaltyPoints(): number { return this.users().reduce((sum, user) => sum + user.penaltyPoints, 0) }
   protected applyFilters(): void { this.page.set(1); this.load() }
+  
+  private searchTimeout: any;
+  protected onKeywordChange(): void {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    this.searchTimeout = setTimeout(() => {
+      this.applyFilters();
+    }, 400);
+  }
+
   protected goPage(page: number): void { if (page < 1 || page > this.totalPages()) return; this.page.set(page); this.load() }
   protected initials(name: string): string { return name.trim().split(/\s+/).slice(-2).map((part) => part.charAt(0).toUpperCase()).join('') }
   protected roleLabel(role: string): string {

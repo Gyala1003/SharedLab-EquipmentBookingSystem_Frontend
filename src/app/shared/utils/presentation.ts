@@ -266,7 +266,7 @@ function setCachedImageUrl(key: string, url: string): void {
 }
 
 export function getLabImageUrl(lab?: { labId?: number; roomCode?: string; imageUrl?: string | null } | null): string {
-  const cacheKey = lab?.labId ? `lab_img_${lab.labId}` : null
+  const cacheKey = lab?.labId ? `lab_img_v2_${lab.labId}` : null
   
   if (lab?.imageUrl && lab.imageUrl.trim().length > 0 && !lab.imageUrl.includes('random')) {
     if (cacheKey) setCachedImageUrl(cacheKey, lab.imageUrl)
@@ -288,7 +288,7 @@ export function getLabImageUrl(lab?: { labId?: number; roomCode?: string; imageU
 }
 
 export function getEquipmentImageUrl(item?: { equipmentId?: number; equipmentName?: string; imageUrl?: string | null } | null): string {
-  const cacheKey = item?.equipmentId ? `eq_img_${item.equipmentId}` : null
+  const cacheKey = item?.equipmentId ? `eq_img_v2_${item.equipmentId}` : null
 
   if (item?.imageUrl && item.imageUrl.trim().length > 0 && !item.imageUrl.includes('random')) {
     if (cacheKey) setCachedImageUrl(cacheKey, item.imageUrl)

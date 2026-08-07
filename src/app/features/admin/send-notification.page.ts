@@ -62,7 +62,7 @@ export class SendNotificationPage implements OnInit {
   protected readonly selectedUser = computed(() => this.users().find((user) => user.userId === this.selectedUserId) ?? null)
   protected readonly selectedType = computed(() => this.types.find((type) => type.value === this.notificationType) ?? this.types[this.types.length - 1])
 
-  ngOnInit(): void { this.api.users({ pageNumber: 1, pageSize: 100 }).subscribe({ next: (response) => this.users.set(response.items), error: () => this.toast.error('Không tải được danh sách người nhận') }) }
+  ngOnInit(): void { this.api.users({ pageNumber: 1, pageSize: 15 }).subscribe({ next: (response) => this.users.set(response.items), error: () => this.toast.error('Không tải được danh sách người nhận') }) }
   protected initials(name: string): string { return name.trim().split(/\s+/).slice(-2).map((part) => part.charAt(0).toUpperCase()).join('') }
   protected isValid(): boolean { return this.selectedUserId !== null && this.title.trim().length > 0 && this.message.trim().length > 0 }
   protected resetForm(): void { this.userSearch = ''; this.selectedUserId = null; this.notificationType = 7; this.title = ''; this.message = '' }

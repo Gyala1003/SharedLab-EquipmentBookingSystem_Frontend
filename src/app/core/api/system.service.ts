@@ -486,8 +486,8 @@ export class SystemService {
   usersMap(forceRefresh = false): Observable<Map<number, string>> {
     if (this.usersMapCache$ && !forceRefresh) return this.usersMapCache$
 
-    this.usersMapCache$ = this.users({ pageSize: 100, pageNumber: 1 }).pipe(
-      expand(res => res.pageNumber < res.totalPages ? this.users({ pageSize: 100, pageNumber: res.pageNumber + 1 }) : EMPTY),
+    this.usersMapCache$ = this.users({ pageSize: 10, pageNumber: 1 }).pipe(
+      expand(res => res.pageNumber < res.totalPages ? this.users({ pageSize: 10, pageNumber: res.pageNumber + 1 }) : EMPTY),
       reduce((acc, res) => acc.concat(res.items), [] as UserManagementResponse[]),
       map((items) => {
         const userMap = new Map<number, string>()

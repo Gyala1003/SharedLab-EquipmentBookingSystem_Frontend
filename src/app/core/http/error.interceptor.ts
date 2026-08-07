@@ -65,11 +65,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
                 tokens.set(fresh.accessToken, fresh.refreshToken, tokens.isRemembered)
                 refreshTokenSubject.next(fresh.accessToken)
               }),
-              switchMap((fresh) => {
-                return next(
-                  req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
-                )
-              }),
               catchError((refreshError: HttpErrorResponse) => {
                 isRefreshing = false
                 refreshTokenSubject.next(null)
@@ -79,6 +74,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
                 authStore.clear()
                 void router.navigate(['/login'])
                 return throwError(() => normalize(refreshError))
+              }),
+              switchMap((fresh) => {
+                return next(
+                  req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
+                ).pipe(
+                  catchError((retriedErr: HttpErrorResponse) => throwError(() => normalize(retriedErr)))
+                )
               }),
               finalize(() => {
                 isRefreshing = false
@@ -91,6 +93,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             switchMap((token) => {
               return next(
                 req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }),
+              ).pipe(
+                catchError((retriedErr: HttpErrorResponse) => throwError(() => normalize(retriedErr)))
               )
             }),
           )

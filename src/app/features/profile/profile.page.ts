@@ -236,7 +236,7 @@ export class ProfilePage {
       { label: this.languageStore.t('profile.username'), value: user.username, icon: 'shield' },
       { label: this.languageStore.t('profile.email'), value: user.email, icon: 'mail' },
       { label: this.languageStore.t('profile.role'), value: this.roleLabel(user.roleName), icon: 'shield' },
-      { label: this.languageStore.t('profile.department'), value: labelOf('department', user.departmentName, this.languageStore.lang()) || this.languageStore.t('profile.notUpdated'), icon: 'building' },
+      ...(user.roleName !== 'Admin' ? [{ label: this.languageStore.t('profile.department'), value: labelOf('department', user.departmentName, this.languageStore.lang()) || this.languageStore.t('profile.notUpdated'), icon: 'building' }] : []),
     ]
   }
 }
