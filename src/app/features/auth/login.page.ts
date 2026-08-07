@@ -26,6 +26,7 @@ export class LoginPage {
   protected readonly rememberMe = signal(false)
   protected readonly errorKind = signal<LoginErrorKind>(null)
   protected readonly showSuccess = signal(false)
+  protected readonly submitCooldownUntil = signal<number | null>(null)
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.maxLength(100)]],
@@ -57,6 +58,12 @@ export class LoginPage {
   }
 
   async submit(): Promise<void> {
+    // Prevent duplicate/parallel submits from the client side
+    if (this.store.status() === 'loading') return
+
+    const cooldown = this.submitCooldownUntil()
+    if (cooldown && Date.now() < cooldown) return
+
     if (this.form.invalid) {
       this.form.markAllAsTouched()
       return
@@ -84,6 +91,9 @@ export class LoginPage {
     } catch (e) {
       // Nếu lỗi thật sự từ API Login, reset lại showSuccess
       this.showSuccess.set(false)
+
+      // short cooldown to avoid rapid retry flooding the backend
+      this.submitCooldownUntil.set(Date.now() + 3000)
 
       if (e instanceof ApiError && (e.status === 401 || e.status === 400)) {
         this.errorKind.set('invalidCredentials')
