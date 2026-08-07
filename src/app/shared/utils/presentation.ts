@@ -11,6 +11,12 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
     Restricted: { vi: 'Bị hạn chế', en: 'Restricted' },
     Locked: { vi: 'Bị khóa', en: 'Locked' },
   },
+  /** Canonical role names — must match BE UserRole enum exactly */
+  userRole: {
+    Admin: { vi: 'Quản trị viên', en: 'System Admin' },
+    LabManager: { vi: 'Quản lý phòng lab', en: 'Lab Manager' },
+    Requester: { vi: 'Người đặt lịch', en: 'Requester' },
+  },
   department: {
     '1': { vi: 'Đang hoạt động', en: 'Active' },
     '2': { vi: 'Ngừng hoạt động', en: 'Inactive' },
@@ -249,8 +255,28 @@ export function getCheckInWindowInfo(startTimeIso: string, endTimeIso: string): 
   return { canCheckIn, isTooEarly, isTooLate, earliestTime, latestTime, reason }
 }
 
-export function getLabImageUrl(lab?: { roomCode?: string; imageUrl?: string | null } | null): string {
-  if (lab?.imageUrl && lab.imageUrl.trim().length > 0) return lab.imageUrl
+// Cache to prevent image flashing (fallback -> real image) on page refresh
+// since the list APIs sometimes don't return imageUrls but detail APIs do.
+// Using sessionStorage ensures the cache survives F5 reloads.
+function getCachedImageUrl(key: string): string | null {
+  try { return sessionStorage.getItem(key) } catch { return null }
+}
+function setCachedImageUrl(key: string, url: string): void {
+  try { sessionStorage.setItem(key, url) } catch {}
+}
+
+export function getLabImageUrl(lab?: { labId?: number; roomCode?: string; imageUrl?: string | null } | null): string {
+  const cacheKey = lab?.labId ? `lab_img_v2_${lab.labId}` : null
+  
+  if (lab?.imageUrl && lab.imageUrl.trim().length > 0 && !lab.imageUrl.includes('random')) {
+    if (cacheKey) setCachedImageUrl(cacheKey, lab.imageUrl)
+    return lab.imageUrl
+  }
+  
+  const cached = cacheKey ? getCachedImageUrl(cacheKey) : null
+  if (cached) return cached
+
+
   const code = (lab?.roomCode || '').toUpperCase()
   if (code.includes('AI')) return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'
   if (code.includes('CYBER') || code.includes('NET')) return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop'
@@ -261,8 +287,18 @@ export function getLabImageUrl(lab?: { roomCode?: string; imageUrl?: string | nu
   return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=800&auto=format&fit=crop'
 }
 
-export function getEquipmentImageUrl(item?: { equipmentName?: string; imageUrl?: string | null } | null): string {
-  if (item?.imageUrl && item.imageUrl.trim().length > 0) return item.imageUrl
+export function getEquipmentImageUrl(item?: { equipmentId?: number; equipmentName?: string; imageUrl?: string | null } | null): string {
+  const cacheKey = item?.equipmentId ? `eq_img_v2_${item.equipmentId}` : null
+
+  if (item?.imageUrl && item.imageUrl.trim().length > 0 && !item.imageUrl.includes('random')) {
+    if (cacheKey) setCachedImageUrl(cacheKey, item.imageUrl)
+    return item.imageUrl
+  }
+
+  const cached = cacheKey ? getCachedImageUrl(cacheKey) : null
+  if (cached) return cached
+
+
   const name = (item?.equipmentName || '').toLowerCase()
   if (name.includes('quang phổ') || name.includes('ftir')) return 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=800&auto=format&fit=crop'
   if (name.includes('3d') || name.includes('máy in')) return 'https://images.unsplash.com/photo-1631556097152-c39479bbf9f2?q=80&w=800&auto=format&fit=crop'

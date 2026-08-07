@@ -91,14 +91,14 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
             <table class="table-shell">
               <thead>
                 <tr>
-                  <th>Vị trí</th>
-                  <th>Waitlist</th>
-                  <th>{{ 'nav.users' | t }}</th>
-                  <th>Tài nguyên</th>
-                  <th>Khung giờ</th>
-                  <th>Thông báo</th>
+                  <th>{{ 'common.position' | t }}</th>
+                  <th>{{ 'common.waitlist' | t }}</th>
+                  <th>{{ 'nav.items.users' | t }}</th>
+                  <th>{{ 'common.resource' | t }}</th>
+                  <th>{{ 'common.timeSlot' | t }}</th>
+                  <th>{{ 'common.notifications' | t }}</th>
                   <th>{{ 'common.status' | t }}</th>
-                  <th>Thao tác</th>
+                  <th>{{ 'common.actions' | t }}</th>
                 </tr>
               </thead>
               <tbody>

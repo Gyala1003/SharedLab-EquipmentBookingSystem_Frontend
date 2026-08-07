@@ -108,6 +108,7 @@ export const routes: Routes = [
       },
       {
         path: 'calendar',
+        canActivate: [roleGuard(['Admin', 'LabManager'])],
         title: 'Lịch tài nguyên',
         loadComponent: () =>
           import('./features/resources/calendar.page').then((m) => m.CalendarPage),

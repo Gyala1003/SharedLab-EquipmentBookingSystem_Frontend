@@ -6,6 +6,7 @@ import { catchError, forkJoin, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingItemRequest, BookingResponse, CalendarEventResponse, EquipmentResponse, LabRoomResponse, PriorityRuleResponse, SuggestedSlotResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
+import { ApiError } from '../../core/http/api-error'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
@@ -62,7 +63,9 @@ export interface SlotWithStatus extends TimeSlot {
   template: `
     <section class="space-y-6">
       <app-page-header title="{{ 'bookingForm.title' | t }}" subtitle="{{ 'bookingForm.subtitle' | t }}">
-        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'bookingForm.checkCalendar' | t }}</a>
+        @if (!store.isRequester()) {
+          <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'bookingForm.checkCalendar' | t }}</a>
+        }
       </app-page-header>
 
       @if (store.user()?.status !== 'Active') {
@@ -768,13 +771,14 @@ export class BookingFormPage implements OnInit {
 
     forkJoin({ labs: this.api.labs(), equipments: this.api.equipments(), rules: this.api.priorityRules(true) }).subscribe({
       next: ({ labs, equipments, rules }) => {
-        this.labs.set(labs)
-        this.equipments.set(equipments)
+        // Filter out inactive resources from the booking form
+        this.labs.set(labs.filter(lab => lab.status !== 'Inactive'))
+        this.equipments.set(equipments.filter(eq => eq.status !== 'Inactive'))
         this.rules.set(rules)
 
         let preselectedId = this.labId()
         if (!preselectedId && targetEquipmentId) {
-          const equip = equipments.find((e) => e.equipmentId === targetEquipmentId)
+          const equip = equipments.find((e) => e.equipmentId === targetEquipmentId && e.status !== 'Inactive')
           if (equip) {
             preselectedId = equip.labId
             this.labId.set(equip.labId)
@@ -782,7 +786,7 @@ export class BookingFormPage implements OnInit {
         }
 
         if (preselectedId) {
-          const lab = labs.find((item) => item.labId === preselectedId)
+          const lab = labs.find((item) => item.labId === preselectedId && item.status !== 'Inactive')
           if (lab) {
             this.selectLab(lab, targetEquipmentId)
           }
@@ -1077,48 +1081,52 @@ export class BookingFormPage implements OnInit {
         }),
       )
 
-      if (createRequests$.length === 1) {
-        createRequests$[0].subscribe({
-          next: (result) => {
-            this.submitting.set(false)
-            this.toast.success('Đã gửi yêu cầu booking', `Booking #${result.bookingId} đang chờ duyệt.`)
-            void this.router.navigate(['/app/bookings', result.bookingId])
-          },
-          error: (err: any) => {
-            this.submitting.set(false)
-            const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.'
-            const suggestions: SuggestedSlotResponse[] = err?.details?.suggestedSlots || err?.error?.suggestedSlots || []
-            if (suggestions.length) {
-              this.suggestedSlots.set(suggestions)
-            } else {
-              this.loadSuggestedSlots()
-            }
-            this.toast.error('Không thể tạo booking', msg)
-          },
-        })
-      } else {
-        forkJoin(createRequests$).subscribe({
-          next: (results) => {
-            this.submitting.set(false)
+      forkJoin(createRequests$).subscribe({
+        next: (results) => {
+          this.submitting.set(false)
+          if (results.length === 1) {
+            this.toast.success('Đã gửi yêu cầu booking', `Booking #${results[0].bookingId} đang chờ duyệt.`)
+            void this.router.navigate(['/app/bookings', results[0].bookingId])
+          } else {
             this.toast.success(
               'Đã gửi các yêu cầu booking',
               `Đã tạo thành công ${results.length} đơn booking riêng biệt cho từng khung giờ.`,
             )
             void this.router.navigate(['/app/bookings'])
-          },
-          error: (err: any) => {
-            this.submitting.set(false)
-            const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.'
-            const suggestions: SuggestedSlotResponse[] = err?.details?.suggestedSlots || err?.error?.suggestedSlots || []
-            if (suggestions.length) {
-              this.suggestedSlots.set(suggestions)
-            } else {
-              this.loadSuggestedSlots()
-            }
-            this.toast.error('Không thể tạo booking', msg)
-          },
-        })
-      }
+          }
+        },
+        error: (err: unknown) => {
+          this.submitting.set(false)
+          // err is already a normalized ApiError from the interceptor
+          const apiErr = err instanceof ApiError ? err : null
+          const isConflict = apiErr?.status === 409
+
+          const msg = isConflict
+            // 409 = PostgreSQL trigger or BE uniqueness constraint fired (time slot conflict)
+            ? (apiErr?.message || 'Khung giờ này đã có booking khác. Vui lòng chọn thời gian khác.')
+            : (apiErr?.message
+                || (err instanceof Error ? err.message : null)
+                || 'Không thể tạo booking. Vui lòng kiểm tra lại khung giờ chọn.')
+
+          // suggestedSlots may live directly on the raw body (apiErr.details) or nested under .details
+          const rawDetails = apiErr?.details as Record<string, unknown> | undefined
+          const suggestions: SuggestedSlotResponse[] =
+            (rawDetails?.['suggestedSlots'] as SuggestedSlotResponse[] | undefined) ??
+            (rawDetails?.['details'] as { suggestedSlots?: SuggestedSlotResponse[] } | undefined)?.suggestedSlots ??
+            []
+
+          if (suggestions.length) {
+            this.suggestedSlots.set(suggestions)
+          } else {
+            // On conflict, always attempt to load alternative slots
+            this.loadSuggestedSlots()
+          }
+
+          const toastTitle = isConflict ? 'Trùng lịch đặt phòng' : 'Không thể tạo booking'
+          this.toast.error(toastTitle, msg)
+        },
+
+      })
     })
   }
 

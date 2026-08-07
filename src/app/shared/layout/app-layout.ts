@@ -2,6 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router'
 import { catchError, forkJoin, of } from 'rxjs'
+import { delay } from 'rxjs/operators'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
 import { BookingReminderService } from '../../core/api/booking-reminder.service'
 import { SystemService } from '../../core/api/system.service'
@@ -251,7 +252,7 @@ export class AppLayoutComponent implements OnInit {
       items: [
         { labelKey: 'nav.items.home', icon: 'home', route: '/app/home', roles: ['Requester'] },
         { labelKey: 'nav.items.dashboard', icon: 'dashboard', route: '/app/dashboard', roles: ['Admin'] },
-        { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar' },
+        { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar', roles: ['LabManager', 'Admin'] },
       ],
     },
     {
@@ -284,8 +285,10 @@ export class AppLayoutComponent implements OnInit {
       ],
     },
     {
+      // LabManager và Admin đều có quyền xem các trang này.
+      // Nhưng chỉ LabManager mới có quyền Approve/Reject — Admin xem được nhưng không thực hiện.
       labelKey: 'nav.groups.management',
-      roles: ['LabManager'],
+      roles: ['LabManager', 'Admin'],
       items: [
         {
           labelKey: 'nav.items.pendingBookings',
@@ -356,7 +359,10 @@ export class AppLayoutComponent implements OnInit {
     this.reminder.init()
     this.workspace
       .unreadCount(user.userId)
-      .pipe(catchError(() => of({ userId: user.userId, unreadCount: 0 })))
+      .pipe(
+        delay(2000),
+        catchError(() => of({ userId: user.userId, unreadCount: 0 }))
+      )
       .subscribe((response) => this.badge.set(response.unreadCount))
     if (this.store.isRequester()) this.detectPendingCheckout(user.userId)
   }
@@ -434,14 +440,8 @@ export class AppLayoutComponent implements OnInit {
     })
   }
 
-  private checkLateAndReportViolation(booking: BookingResponse, actualCheckoutIso: string): void {
-    const deadline = +new Date(booking.endTime) + 15 * 60_000
-    if (+new Date(actualCheckoutIso) <= deadline) return
-    this.api
-      .createViolation({ userId: booking.userId, bookingId: booking.bookingId, violationType: 2 })
-      .subscribe({
-        next: () => {},
-        error: () => {},
-      })
+  private checkLateAndReportViolation(_booking: BookingResponse, _actualCheckoutIso: string): void {
+    // BE UsageLogService tự động sinh LateCheckout violation sau check-out.
+    // Requester không có quyền gọi createViolation — bỏ để tránh 403 và trùng lặp violation.
   }
 }

@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { AuthService } from '../../core/auth/auth.service'
+import { AuthStore } from '../../core/auth/auth.store'
 import { ApiError } from '../../core/http/api-error'
 
 import {
@@ -26,6 +27,7 @@ export class ResetPasswordPage {
   private readonly router = inject(Router)
   private readonly fb = inject(FormBuilder)
   private readonly authService = inject(AuthService)
+  private readonly authStore = inject(AuthStore)
 
   private readonly passwordPolicy = createResetPasswordPolicy()
 
@@ -100,7 +102,11 @@ export class ResetPasswordPage {
       )
       this.status.set('success')
       setTimeout(() => {
-        void this.router.navigateByUrl('/login')
+        if (this.authStore.isAuthenticated()) {
+          void this.router.navigateByUrl('/app/profile')
+        } else {
+          void this.router.navigateByUrl('/login')
+        }
       }, 1000)
     } catch (e: any) {
       this.status.set('idle')

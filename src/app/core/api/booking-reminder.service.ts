@@ -5,6 +5,10 @@ import { SystemService } from './system.service'
 import { ToastService } from '../../shared/ui/toast.service'
 import type { BookingResponse } from './system.models'
 
+// SimulatedEmail đã được xóa bỏ.
+// BE BookingReminderBackgroundService (chạy mỗi phút) xử lý email thật qua Brevo.
+// FE chỉ hiển thị toast thông báo trong app khi người dùng đang online.
+
 @Injectable({ providedIn: 'root' })
 export class BookingReminderService {
   private readonly store = inject(AuthStore)
@@ -12,10 +16,14 @@ export class BookingReminderService {
   private readonly toast = inject(ToastService)
 
   private timer: any = null
+  private consecutiveErrors = 0
+  private readonly sentReminders = new Set<string>()
 
   init(): void {
     if (this.timer) return
-    this.timer = setInterval(() => this.checkReminders(), 120_000)
+    this.checkReminders()
+    // Poll every 300 seconds (5 mins) to preserve database connection pool
+    this.timer = setInterval(() => this.checkReminders(), 300_000)
   }
 
   stop(): void {
@@ -43,18 +51,8 @@ export class BookingReminderService {
         error: () => {},
       })
 
-    // 2. If Manager or Admin, fetch all active bookings to monitor check-out for all users
-    if (this.store.isManager() || this.store.isAdmin()) {
-      this.api
-        .bookings()
-        .pipe(catchError(() => of([])))
-        .subscribe({
-          next: (allBookings) => {
-            this.processManagerCheckoutReminders(allBookings, user)
-          },
-          error: () => {},
-        })
-    }
+    // Removed fetching ALL bookings for Manager/Admin to prevent massive DB overhead.
+    // Managers will rely on Backend Background Service for notifications.
   }
 
   /**
@@ -72,17 +70,15 @@ export class BookingReminderService {
       const isApproachingCheckin = now >= startTimeMs - 15 * 60_000 && now <= startTimeMs + 30 * 60_000
       const key = `checkin_toast_${booking.bookingId}_${user.userId}`
 
-      if (isApproachingCheckin && !sessionStorage.getItem(key)) {
-        this.api.usageLogsByBooking(booking.bookingId).subscribe((logs) => {
-          const hasCheckedIn = logs.some((l) => l.actualCheckin !== null)
-          if (hasCheckedIn) return
+      if (isApproachingCheckin && !this.sentReminders.has(key) && !sessionStorage.getItem(key)) {
+        this.sentReminders.add(key)
+        sessionStorage.setItem(key, 'true')
 
-          sessionStorage.setItem(key, 'true')
-          this.toast.info(
-            `Nhắc nhở Check-in #${booking.bookingId}`,
-            `Khung giờ Check-in đã mở. Mở chi tiết booking để thực hiện.`,
-          )
-        })
+        // Show in-app toast only (BE handles actual notification + email via Brevo)
+        this.toast.info(
+          `Nhắc nhở Check-in #${booking.bookingId}`,
+          `Khung giờ Check-in đã mở. Nhấp để truy cập.`,
+        )
       }
     }
   }
@@ -101,48 +97,16 @@ export class BookingReminderService {
       const isApproachingCheckout = now >= endTimeMs - 10 * 60_000 && now <= endTimeMs + 20 * 60_000
       const key = `checkout_toast_user_${booking.bookingId}_${user.userId}`
 
-      if (isApproachingCheckout && !sessionStorage.getItem(key)) {
-        this.api.usageLogsByBooking(booking.bookingId).subscribe((logs) => {
-          const activeLog = logs.find((l) => l.actualCheckin && !l.actualCheckout)
-          if (!activeLog) return
+      if (isApproachingCheckout && !this.sentReminders.has(key) && !sessionStorage.getItem(key)) {
+        this.sentReminders.add(key)
+        sessionStorage.setItem(key, 'true')
 
-          sessionStorage.setItem(key, 'true')
-          this.toast.info(
-            `Nhắc nhở Check-out #${booking.bookingId}`,
-            `Hãy mở booking và thực hiện Check-out trước khi quá hạn.`,
-          )
-        })
+        // Show in-app toast only (BE handles actual notification + email via Brevo)
+        this.toast.info(
+          `Nhắc nhở Check-out #${booking.bookingId}`,
+          `Sắp đến giờ kết thúc. Vui lòng Check-out đúng giờ.`,
+        )
       }
     }
   }
-
-  /**
-   * Check-out Reminder for Manager (when a user is approaching or past endTime):
-   * Show a toast UI notification for managers who are currently online.
-   * NOTE: The actual DB notification + email is handled by BE BookingReminderBackgroundService.
-   */
-  private processManagerCheckoutReminders(allBookings: BookingResponse[], managerUser: any): void {
-    const now = Date.now()
-    const approved = allBookings.filter((b) => b.status === 'Approved')
-
-    for (const booking of approved) {
-      const endTimeMs = new Date(booking.endTime).getTime()
-      const isManagerNoticeWindow = now >= endTimeMs - 5 * 60_000 && now <= endTimeMs + 30 * 60_000
-      const key = `checkout_toast_mgr_${booking.bookingId}_${managerUser.userId}`
-
-      if (isManagerNoticeWindow && !sessionStorage.getItem(key)) {
-        this.api.usageLogsByBooking(booking.bookingId).subscribe((logs) => {
-          const activeLog = logs.find((l) => l.actualCheckin && !l.actualCheckout)
-          if (!activeLog) return
-
-          sessionStorage.setItem(key, 'true')
-          this.toast.info(
-            `[Nhiệm vụ Quản lý] Booking #${booking.bookingId} đến giờ Check-out`,
-            `Kiểm tra và hỗ trợ người dùng tại trang Booking.`,
-          )
-        })
-      }
-    }
-  }
-
 }

@@ -1,10 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { SystemService } from '../../core/api/system.service'
 import type { RoleResponse } from '../../core/api/system.models'
+import { ROLE } from '../../core/auth/auth.types'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { ToastService } from '../../shared/ui/toast.service'
+import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-roles-page',
@@ -45,8 +47,8 @@ export class RolesPage implements OnInit {
   ]
 
   ngOnInit(): void { this.api.roles().subscribe({ next: (items) => { this.roles.set(items); this.loading.set(false) }, error: () => { this.loading.set(false); this.toast.error('Không tải được danh sách vai trò') } }) }
-  protected roleLabel(role: string): string { return role === 'Admin' ? 'Quản trị viên' : role === 'LabManager' ? 'Quản lý phòng lab' : 'Người đặt lịch' }
-  protected roleIcon(role: string): string { return role === 'Admin' ? 'shield' : role === 'LabManager' ? 'wrench' : 'user' }
-  protected fallbackDescription(role: string): string { return role === 'Admin' ? 'Toàn quyền quản trị dữ liệu và nghiệp vụ hệ thống.' : role === 'LabManager' ? 'Quản lý nghiệp vụ trong các phòng lab được phân công.' : 'Xem tài nguyên, tạo booking và theo dõi hoạt động cá nhân.' }
-  protected permissions(role: string): string[] { if (role === 'Admin') return ['Quản lý người dùng, đơn vị, tài nguyên', 'Xem toàn bộ báo cáo và audit log', 'Cấu hình quy tắc ưu tiên']; if (role === 'LabManager') return ['Duyệt booking trong phạm vi quản lý', 'Quản lý bảo trì và sự cố', 'Xem dashboard theo phòng phụ trách']; return ['Tạo booking và tham gia hàng chờ', 'Check-in/check-out tài nguyên', 'Xem thông báo và vi phạm cá nhân'] }
+  protected roleLabel(role: string): string { return labelOf('userRole', role) }
+  protected roleIcon(role: string): string { return role === ROLE.Admin ? 'shield' : role === ROLE.LabManager ? 'wrench' : 'user' }
+  protected fallbackDescription(role: string): string { return role === ROLE.Admin ? 'Toàn quyền quản trị dữ liệu và nghiệp vụ hệ thống.' : role === ROLE.LabManager ? 'Quản lý nghiệp vụ trong các phòng lab được phân công.' : 'Xem tài nguyên, tạo booking và theo dõi hoạt động cá nhân.' }
+  protected permissions(role: string): string[] { if (role === ROLE.Admin) return ['Quản lý người dùng, đơn vị, tài nguyên', 'Xem toàn bộ báo cáo và audit log', 'Cấu hình quy tắc ưu tiên']; if (role === ROLE.LabManager) return ['Duyệt booking trong phạm vi quản lý', 'Quản lý bảo trì và sự cố', 'Xem dashboard theo phòng phụ trách']; return ['Tạo booking và tham gia hàng chờ', 'Check-in/check-out tài nguyên', 'Xem thông báo và vi phạm cá nhân'] }
 }

@@ -55,17 +55,17 @@ import { ToastService } from '../../shared/ui/toast.service'
       </article>
 
       <!-- Filter Bar -->
-      <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_auto]">
+      <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr]">
         <div>
           <label class="field-label">{{ 'common.search' | t }}</label>
           <div class="relative">
             <span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span>
-            <input class="input-shell pl-11" [(ngModel)]="keyword" [placeholder]="'departments.searchPlaceholder' | t" />
+            <input class="input-shell pl-11" [ngModel]="keyword()" (ngModelChange)="keyword.set($event)" [placeholder]="'departments.searchPlaceholder' | t" />
           </div>
         </div>
         <div>
           <label class="field-label">{{ 'common.status' | t }}</label>
-          <select class="input-shell" [(ngModel)]="statusFilter">
+          <select class="input-shell" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
             <option value="all">{{ 'common.all' | t }}</option>
             <option value="active">{{ 'departments.active' | t }}</option>
             <option value="inactive">{{ 'departments.inactive' | t }}</option>
@@ -77,9 +77,6 @@ import { ToastService } from '../../shared/ui/toast.service'
             <button type="button" class="flex-1 h-full inline-flex items-center justify-center rounded-xl text-xs font-black transition-all duration-150" [ngClass]="view() === 'grid' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'" (click)="view.set('grid')"><app-icon name="grid" [size]="17" /></button>
             <button type="button" class="flex-1 h-full inline-flex items-center justify-center rounded-xl text-xs font-black transition-all duration-150" [ngClass]="view() === 'table' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'" (click)="view.set('table')"><app-icon name="list" [size]="17" /></button>
           </div>
-        </div>
-        <div class="flex items-end">
-          <button type="button" class="btn-secondary w-full" (click)="load()"><app-icon name="refresh" [size]="17" /> {{ 'common.reset' | t }}</button>
         </div>
       </div>
 
@@ -226,14 +223,15 @@ export class DepartmentsPage implements OnInit {
   protected readonly members = signal<UserManagementResponse[]>([])
   protected readonly membersLoading = signal(false)
 
-  protected keyword = ''
-  protected statusFilter = 'all'
+  protected readonly keyword = signal('')
+  protected readonly statusFilter = signal('all')
   protected form = { departmentName: '', description: '' }
   protected readonly activeCount = computed(() => this.departments().filter((item) => this.isActive(item.status)).length)
   protected readonly filtered = computed(() => {
-    const keyword = this.keyword.trim().toLowerCase()
+    const keyword = this.keyword().trim().toLowerCase()
+    const statusFilter = this.statusFilter()
     return this.departments().filter((item) => {
-      const statusMatches = this.statusFilter === 'all' || (this.statusFilter === 'active' ? this.isActive(item.status) : !this.isActive(item.status))
+      const statusMatches = statusFilter === 'all' || (statusFilter === 'active' ? this.isActive(item.status) : !this.isActive(item.status))
       const keywordMatches = !keyword || `${item.departmentName} ${item.description ?? ''} #dep-${item.departmentId}`.toLowerCase().includes(keyword)
       return statusMatches && keywordMatches
     })
@@ -263,7 +261,7 @@ export class DepartmentsPage implements OnInit {
     this.detailDepartment.set(item)
     this.membersLoading.set(true)
     this.detailOpen.set(true)
-    this.api.users({ departmentId: item.departmentId, pageSize: 100 }).subscribe({
+    this.api.users({ departmentId: item.departmentId, pageSize: 10 }).subscribe({
       next: (res) => { this.members.set(res.items); this.membersLoading.set(false) },
       error: () => { this.membersLoading.set(false); this.toast.error('Không tải được danh sách thành viên') }
     })

@@ -81,6 +81,12 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'common.from': { vi: 'Từ', en: 'From' },
   'common.to': { vi: 'Đến', en: 'To' },
   'common.apply': { vi: 'Áp dụng', en: 'Apply' },
+  'common.position': { vi: 'Vị trí', en: 'Position' },
+  'common.waitlist': { vi: 'Waitlist', en: 'Waitlist' },
+  'common.resource': { vi: 'Tài nguyên', en: 'Resource' },
+  'common.timeSlot': { vi: 'Khung giờ', en: 'Time Slot' },
+  'common.notifications': { vi: 'Thông báo', en: 'Notifications' },
+  'common.actions': { vi: 'Thao tác', en: 'Actions' },
   // Common Actions, Pagination & Form
   'common.search': { vi: 'Tìm kiếm', en: 'Search' },
   'common.all': { vi: 'Tất cả', en: 'All' },
@@ -99,7 +105,6 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'common.save': { vi: 'Lưu', en: 'Save' },
   'common.saving': { vi: 'Đang lưu...', en: 'Saving...' },
   'common.create': { vi: 'Tạo mới', en: 'Create' },
-  'common.actions': { vi: 'Thao tác', en: 'Actions' },
   'common.pending': { vi: 'Chờ duyệt', en: 'Pending' },
   'common.approved': { vi: 'Đã duyệt', en: 'Approved' },
   'common.completed': { vi: 'Hoàn thành', en: 'Completed' },
@@ -112,6 +117,25 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'common.code': { vi: 'Mã', en: 'Code' },
   'common.tableView': { vi: 'Bảng', en: 'Table' },
   'common.cardView': { vi: 'Thẻ', en: 'Cards' },
+  
+  // Edit modal fields
+  'common.description': { vi: 'Mô tả', en: 'Description' },
+  'common.imageUrl': { vi: 'URL ảnh', en: 'Image URL' },
+  'common.usageGuideline': { vi: 'Hướng dẫn sử dụng', en: 'Usage Guidelines' },
+  'common.disable': { vi: 'Ngừng sử dụng', en: 'Deactivate' },
+  'common.none': { vi: 'Không có', en: 'None' },
+  'common.saveChanges': { vi: 'Lưu thay đổi', en: 'Save changes' },
+  'common.editTitle': { vi: 'Chỉnh sửa: ', en: 'Edit: ' },
+  'common.manager': { vi: 'Manager', en: 'Manager' },
+
+  'labs.editSubtitle': { vi: 'Cập nhật thông tin phòng lab.', en: 'Update lab room information.' },
+  'labs.name': { vi: 'Tên phòng', en: 'Room name' },
+
+  'equipments.editSubtitle': { vi: 'Cập nhật thông tin kỹ thuật hoặc chuyển thiết bị sang phòng khác.', en: 'Update technical specs or move to another lab.' },
+  'equipments.name': { vi: 'Tên thiết bị', en: 'Equipment name' },
+  'equipments.labRoom': { vi: 'Phòng lab', en: 'Lab room' },
+  'equipments.modelSpecs': { vi: 'Model / thông số', en: 'Model / specs' },
+
   'maintenances.recurring': { vi: 'Định kỳ', en: 'Recurrence' },
 
   // Incidents

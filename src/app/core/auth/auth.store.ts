@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs'
 import { ApiError } from '../http/api-error'
 import { AuthService } from './auth.service'
 import { TokenStorage } from './token-storage'
+import { ROLE } from './auth.types'
 import type { AuthUser, LoginPayload, UserRole } from './auth.types'
 
 const USER_KEY = 'auth.user'
@@ -25,18 +26,9 @@ export class AuthStore {
   readonly roles = computed(() =>
     this._user()?.roleName ? [this._user()!.roleName as UserRole] : [],
   )
-  readonly isRequester = computed(() => {
-    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
-    return r === 'requester' || r === 'student'
-  })
-  readonly isManager = computed(() => {
-    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
-    return r === 'labmanager' || r === 'manager'
-  })
-  readonly isAdmin = computed(() => {
-    const r = this.role().toLowerCase().replace(/[\s_]+/g, '')
-    return r === 'admin' || r === 'administrator'
-  })
+  readonly isRequester = computed(() => this.matchRole(ROLE.Requester))
+  readonly isManager = computed(() => this.matchRole(ROLE.LabManager))
+  readonly isAdmin = computed(() => this.matchRole(ROLE.Admin))
   readonly logoutStatus = this._logoutStatus.asReadonly()
 
   async login(payload: LoginPayload, remember = false): Promise<AuthUser> {
@@ -45,8 +37,9 @@ export class AuthStore {
     try {
       const res = await firstValueFrom(this.auth.login(payload))
       this.tokens.set(res.accessToken, res.refreshToken, remember)
-      // BE AuthResponseDTO returns { accessToken, refreshToken }. Call GET /Auth/me to hydrate current user.
-      const user = res.user ?? (await firstValueFrom(this.auth.me()))
+      // BE AuthResponseDTO chỉ trả { accessToken, refreshToken }.
+      // Luôn gọi GET /Auth/me để lấy thông tin user và role sau khi nhận token.
+      const user = await firstValueFrom(this.auth.me())
       this.setUser(user, remember)
       this._error.set(null)
       this._status.set('idle')
@@ -90,16 +83,15 @@ export class AuthStore {
   }
 
   hasRole(roles: readonly UserRole[]): boolean {
-    const rawRole = this.role().trim().toLowerCase().replace(/[\s_]+/g, '')
-    if (!rawRole) return false
-    return roles.some((r) => {
-      const target = r.trim().toLowerCase().replace(/[\s_]+/g, '')
-      if (target === rawRole) return true
-      if (target === 'admin' && (rawRole === 'admin' || rawRole === 'administrator' || rawRole.includes('quantri'))) return true
-      if (target === 'labmanager' && (rawRole === 'labmanager' || rawRole === 'manager' || rawRole.includes('quanly'))) return true
-      if (target === 'requester' && (rawRole === 'requester' || rawRole === 'student' || rawRole.includes('sinhvien') || rawRole.includes('nguoidung'))) return true
-      return false
-    })
+    if (!this.role()) return false
+    return roles.some((r) => this.matchRole(r))
+  }
+
+  /** Strict match: normalize whitespace/underscore only, respect BE enum values exactly. */
+  private matchRole(target: UserRole): boolean {
+    const raw = this.role().trim().replace(/[\s_]+/g, '')
+    const tgt = target.trim().replace(/[\s_]+/g, '')
+    return raw.toLowerCase() === tgt.toLowerCase()
   }
 
   clear(): void {

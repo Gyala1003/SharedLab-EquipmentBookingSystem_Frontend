@@ -1,8 +1,9 @@
 import { NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, forkJoin, of } from 'rxjs'
+import { catchError, forkJoin, of, from } from 'rxjs'
+import { timeout, mergeMap, toArray, map } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { EquipmentResponse, EquipmentDetailResponse, LabRoomResponse } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
@@ -30,7 +31,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
         <div><label class="field-label">{{ 'common.search' | t }}</label><div class="relative"><span class="pointer-events-none absolute left-4 top-3.5 text-slate-400"><app-icon name="search" [size]="18" /></span><input class="input-shell pl-11" [(ngModel)]="keyword" (keyup.enter)="load()" placeholder="{{ 'equipments.searchPlaceholder' | t }}" /></div></div>
         <div><label class="field-label">{{ 'calendar.labFilter' | t }}</label><app-searchable-select [options]="labOptions()" [(ngModel)]="labId" placeholder="{{ 'calendar.allLabs' | t }}" searchPlaceholder="Tìm tên, mã phòng..." (selectionChange)="load()" /></div>
         <div><label class="field-label">{{ 'common.status' | t }}</label><select class="input-shell" [(ngModel)]="status"><option value="">{{ 'common.all' | t }}</option><option [value]="1">{{ 'equipments.ready' | t }}</option><option [value]="2">{{ 'equipments.inUse' | t }}</option><option [value]="3">{{ 'labs.maintenance' | t }}</option><option [value]="4">{{ 'equipments.broken' | t }}</option><option [value]="5">{{ 'equipments.retired' | t }}</option></select></div>
-        <div class="flex items-end"><button class="btn-primary w-full" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
+        <div><label class="field-label hidden xl:block opacity-0 pointer-events-none">&nbsp;</label><button class="btn-primary w-full h-12" (click)="load()"><app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}</button></div>
       </div>
 
       @if (loading()) { <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">@for (i of [1,2,3,4,5,6,7,8]; track i) { <div class="card-surface p-5"><div class="skeleton h-36 rounded-2xl"></div><div class="skeleton mt-4 h-5 w-3/4 rounded"></div><div class="skeleton mt-3 h-4 rounded"></div></div> }</div> }
@@ -40,15 +41,28 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
           @for (item of items(); track item.equipmentId; let index = $index) {
             <article class="group card-surface overflow-hidden transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,.1)]">
               <div class="relative flex h-40 items-center justify-center overflow-hidden bg-slate-900">
-                <img [src]="getEquipmentImage(item)" [alt]="item.equipmentName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent"></div>
-                <div class="absolute right-4 top-4 z-10"><app-status-badge [value]="item.status" domain="equipment" /></div>
-                @if (store.isAdmin()) {
-                  <div class="absolute left-3 top-3 z-10 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button type="button" class="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur hover:bg-white/25" title="Chỉnh sửa" (click)="openEdit(item); $event.stopPropagation()"><app-icon name="edit" [size]="14" /></button>
-                    <button type="button" class="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/80 text-white backdrop-blur hover:bg-rose-600/90" title="Ngừng sử dụng" (click)="removeItem(item); $event.stopPropagation()"><app-icon name="trash" [size]="14" /></button>
+                @if (!$any(item)._detailLoaded) {
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-slate-400"></div>
                   </div>
+                } @else {
+                  <img [src]="getEquipmentImage(item)" [alt]="item.equipmentName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" [class.grayscale]="item.status === 'Inactive' || item.status === 'Maintenance' || item.status === 'Broken'" />
                 }
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent"></div>
+                
+                @if (item.status === 'Maintenance') {
+                  <div class="absolute inset-0 bg-indigo-950/50 backdrop-blur-[1px]"></div>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8 text-indigo-300 opacity-80"><app-icon name="wrench" [size]="32" /><span class="mt-2 text-xs font-black uppercase tracking-widest">{{ 'labs.maintenance' | t }}</span></div>
+                } @else if (item.status === 'Inactive') {
+                  <div class="absolute inset-0 bg-red-950/50 backdrop-blur-[1px]"></div>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8 text-red-300 opacity-80"><app-icon name="ban" [size]="32" /><span class="mt-2 text-xs font-black uppercase tracking-widest">Ngừng hoạt động</span></div>
+                } @else if (item.status === 'Broken') {
+                  <div class="absolute inset-0 bg-orange-950/50 backdrop-blur-[1px]"></div>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8 text-orange-300 opacity-80"><app-icon name="triangle-alert" [size]="32" /><span class="mt-2 text-xs font-black uppercase tracking-widest">Bị hỏng</span></div>
+                }
+
+                <div class="absolute right-4 top-4 z-10"><app-status-badge [value]="item.status" domain="equipment" /></div>
+
               </div>
               <div class="p-5">
                 <p class="truncate text-base font-black text-slate-950">{{ item.equipmentName | t }}</p>
@@ -70,7 +84,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
 
       <!-- Modal Tạo thiết bị -->
       <app-modal [open]="createOpen()" title="Thêm thiết bị mới" subtitle="Thiết bị phải thuộc một phòng lab đang tồn tại." (close)="createOpen.set(false)">
-        <form class="grid gap-4" (ngSubmit)="create()">
+        <form class="grid gap-4" (ngSubmit)="create()" ngNativeValidate>
           <div><label class="field-label">Phòng lab *</label><app-searchable-select [options]="labOptions()" [(ngModel)]="form.labId" name="labId" [allowNull]="false" placeholder="Chọn phòng lab" searchPlaceholder="Tìm tên, mã phòng..." /></div>
           <div><label class="field-label">Tên thiết bị *</label><input class="input-shell" required [(ngModel)]="form.equipmentName" name="equipmentName" placeholder="Máy quang phổ FTIR" /></div>
           <div><label class="field-label">Model / thông số</label><textarea class="textarea-shell" [(ngModel)]="form.modelSpecs" name="modelSpecs" placeholder="Hãng, model, dải đo..."></textarea></div>
@@ -81,16 +95,16 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
       </app-modal>
 
       <!-- Modal Chỉnh sửa thiết bị -->
-      <app-modal [open]="editOpen()" [title]="'Chỉnh sửa: ' + editingItem()?.equipmentName" subtitle="Cập nhật thông tin kỹ thuật hoặc chuyển thiết bị sang phòng khác." (close)="editOpen.set(false)">
-        <form class="grid gap-4" (ngSubmit)="save()">
-          <div><label class="field-label">Tên thiết bị *</label><input class="input-shell" required [(ngModel)]="editForm.equipmentName" name="eequipmentName" /></div>
-          <div><label class="field-label">Phòng lab *</label><app-searchable-select [options]="labOptions()" [(ngModel)]="editForm.labId" name="elaborId" [allowNull]="false" placeholder="Chọn phòng lab" searchPlaceholder="Tìm tên, mã phòng..." /></div>
-          <div><label class="field-label">Model / thông số</label><textarea class="textarea-shell" [(ngModel)]="editForm.modelSpecs" name="emodelSpecs"></textarea></div>
-          <div><label class="field-label">URL ảnh</label><input class="input-shell" [(ngModel)]="editForm.imageUrl" name="eimageUrl" /></div>
-          <div><label class="field-label">Hướng dẫn sử dụng</label><textarea class="textarea-shell" [(ngModel)]="editForm.usageGuideline" name="eusageGuideline"></textarea></div>
+      <app-modal [open]="editOpen()" [title]="('common.editTitle' | t) + editingItem()?.equipmentName" [subtitle]="'equipments.editSubtitle' | t" (close)="editOpen.set(false)">
+        <form class="grid gap-4" (ngSubmit)="save()" ngNativeValidate>
+          <div><label class="field-label">{{ 'equipments.name' | t }} *</label><input class="input-shell" required [(ngModel)]="editForm.equipmentName" name="eequipmentName" /></div>
+          <div><label class="field-label">{{ 'equipments.labRoom' | t }} *</label><app-searchable-select [options]="labOptions()" [(ngModel)]="editForm.labId" name="elaborId" [allowNull]="false" [placeholder]="'calendar.allLabs' | t" searchPlaceholder="Tìm tên, mã phòng..." /></div>
+          <div><label class="field-label">{{ 'equipments.modelSpecs' | t }}</label><textarea class="textarea-shell" [(ngModel)]="editForm.modelSpecs" name="emodelSpecs"></textarea></div>
+          <div><label class="field-label">{{ 'common.imageUrl' | t }}</label><input class="input-shell" [(ngModel)]="editForm.imageUrl" name="eimageUrl" /></div>
+          <div><label class="field-label">{{ 'common.usageGuideline' | t }}</label><textarea class="textarea-shell" [(ngModel)]="editForm.usageGuideline" name="eusageGuideline"></textarea></div>
           <div class="flex justify-between gap-2">
-            <button type="button" class="btn-secondary btn-danger" (click)="removeItem(editingItem()!)"><app-icon name="trash" [size]="16" /> Ngừng sử dụng</button>
-            <div class="flex gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">Hủy</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}</button></div>
+            <button type="button" class="btn-secondary btn-danger" (click)="removeItem(editingItem()!)"><app-icon name="trash" [size]="16" /> {{ 'common.disable' | t }}</button>
+            <div class="flex gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">{{ 'common.cancel' | t }}</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? ('common.saving' | t) : ('common.saveChanges' | t) }}</button></div>
           </div>
         </form>
       </app-modal>
@@ -100,6 +114,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
 export class EquipmentsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly cdr = inject(ChangeDetectorRef)
   protected readonly store = inject(AuthStore)
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly items = signal<EquipmentResponse[]>([])
@@ -146,30 +161,71 @@ export class EquipmentsPage implements OnInit {
 
   protected load(): void {
     this.loading.set(true)
-    this.api.searchEquipments({ keyword: this.keyword || undefined, labId: this.labId ?? undefined, status: this.status || undefined, pageNumber: this.page(), pageSize: 16 }).subscribe({
+    // Backend search API has broken filter logic.
+    // Fetch all equipments using searchEquipments with pageSize=100 (backend max limit) and filter on frontend.
+    this.api.searchEquipments({ pageNumber: 1, pageSize: 100 }).subscribe({
       next: (result) => {
-        this.items.set(result.items)
-        this.totalPages.set(result.totalPages || 1)
+        let filtered = result.items || []
+
+        if (this.keyword && this.keyword.trim().length > 0) {
+          const kw = this.keyword.toLowerCase().trim()
+          filtered = filtered.filter(e => e.equipmentName && e.equipmentName.toLowerCase().includes(kw))
+        }
+
+        if (this.labId) {
+          filtered = filtered.filter(e => e.labId === this.labId)
+        }
+
+        if (this.status) {
+          const statusStr = String(this.status)
+          let targetStatus = ''
+          if (statusStr === '1') targetStatus = 'Available'
+          else if (statusStr === '2') targetStatus = 'In Use'
+          else if (statusStr === '3') targetStatus = 'Under Maintenance'
+          else if (statusStr === '4') targetStatus = 'Broken'
+          else if (statusStr === '5') targetStatus = 'Retired'
+
+          if (targetStatus) {
+            filtered = filtered.filter(e => e.status === targetStatus)
+          }
+        }
+
+        const pageSize = 16
+        this.totalPages.set(Math.ceil(filtered.length / pageSize) || 1)
+
+        if (this.page() > this.totalPages()) this.page.set(this.totalPages())
+        if (this.page() < 1) this.page.set(1)
+
+        const pagedItems = filtered.slice((this.page() - 1) * pageSize, this.page() * pageSize).map(e => ({ ...e, _detailLoaded: false }))
+        this.items.set(pagedItems)
         this.loading.set(false)
-        this.enrichWithDetails(result.items)
+
+        this.enrichWithDetails(pagedItems)
       },
-      error: () => { this.loading.set(false); this.toast.error('Không tải được thiết bị') }
+      error: () => {
+        this.loading.set(false)
+        this.toast.error('Không tải được danh sách thiết bị')
+      }
     })
   }
 
-  private enrichWithDetails(items: EquipmentResponse[]): void {
-    if (!items.length) return
-    forkJoin(items.map(item => this.api.equipment(item.equipmentId).pipe(catchError(() => of(null)))))
-      .subscribe(details => {
-        const enriched = items.map((item, i) => {
-          const detailUrl = details[i]?.imageUrl
-          return detailUrl ? { ...item, imageUrl: detailUrl } : item
-        })
-        // Only update signal if at least one imageUrl was enriched to avoid unnecessary re-render
-        if (enriched.some((item, i) => item !== items[i])) {
-          this.items.set(enriched)
-        }
+
+  private enrichWithDetails(pagedItems: (EquipmentResponse & { _detailLoaded?: boolean })[]): void {
+    if (!pagedItems.length) return
+    from(pagedItems.map((item, index) =>
+      this.api.equipment(item.equipmentId).pipe(
+        timeout(3000),
+        map((detail: any) => ({ index, url: detail?.imageUrl })),
+        catchError(() => of({ index, url: null }))
+      )
+    )).pipe(mergeMap(req => req, 3), toArray()).subscribe((results: any[]) => {
+      const enriched = [...pagedItems]
+      results.forEach((res: any) => {
+        const item = enriched[res.index]
+        enriched[res.index] = { ...item, imageUrl: res.url || item.imageUrl, _detailLoaded: true }
       })
+      this.items.set(enriched)
+    })
   }
 
 
@@ -192,8 +248,8 @@ export class EquipmentsPage implements OnInit {
     this.editOpen.set(true)
     // Load detail to prefill optional fields
     this.api.equipment(item.equipmentId).subscribe({
-      next: (detail) => { this.editForm.modelSpecs = detail.modelSpecs ?? ''; this.editForm.imageUrl = detail.imageUrl ?? ''; this.editForm.usageGuideline = detail.usageGuideline ?? '' },
-      error: () => {}
+      next: (detail) => { this.editForm.modelSpecs = detail.modelSpecs ?? ''; this.editForm.imageUrl = detail.imageUrl ?? ''; this.editForm.usageGuideline = detail.usageGuideline ?? ''; this.cdr.detectChanges() },
+      error: () => { }
     })
   }
 

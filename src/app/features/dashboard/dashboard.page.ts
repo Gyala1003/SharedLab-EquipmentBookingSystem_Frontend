@@ -14,6 +14,7 @@ import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { ApiError } from '../../core/http/api-error'
+import { delay } from 'rxjs/operators'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
@@ -447,7 +448,7 @@ export class DashboardPage implements OnInit {
   protected readonly statusDonut = computed(() => this.buildDonut(this.dashboard().bookingStatusCounts))
 
   ngOnInit(): void {
-    this.systemApi.getPolicy().subscribe({
+    this.systemApi.getPolicy().pipe(delay(1000)).subscribe({
       next: (res) => this.customPolicy.set(res),
       error: () => {},
     })

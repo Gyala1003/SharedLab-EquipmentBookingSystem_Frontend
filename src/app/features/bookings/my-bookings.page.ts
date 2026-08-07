@@ -2,7 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { EMPTY, forkJoin, from, of, timeout } from 'rxjs'
+import { EMPTY, from, of, timeout } from 'rxjs'
 import { catchError, mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingItemResponse, BookingResponse, UsageLogResponse } from '../../core/api/system.models'
@@ -694,7 +694,7 @@ export class MyBookingsPage implements OnInit {
       this.api.booking(b.bookingId).pipe(catchError(() => of(null)))
     )
 
-    forkJoin(detailReqs).subscribe({
+    from(detailReqs).pipe(mergeMap(req => req, 3), toArray()).subscribe({
       next: (details) => {
         const map = new Map<number, BookingDetailResponse>()
         details.forEach((d) => {
@@ -711,7 +711,7 @@ export class MyBookingsPage implements OnInit {
           const logReqs = approved.map((b) =>
             this.api.usageLogsByBooking(b.bookingId).pipe(catchError(() => of([])))
           )
-          forkJoin(logReqs).subscribe({
+          from(logReqs).pipe(mergeMap(req => req, 3), toArray()).subscribe({
             next: (logsList) => {
               this.allLogs.set(logsList.flat())
             },

@@ -1,6 +1,16 @@
 export type UserRole = 'Admin' | 'LabManager' | 'Requester'
 export type UserStatus = 'Active' | 'Restricted' | 'Inactive' | 'Locked' | number
 
+/**
+ * Canonical role names matching BE contract exactly (case-sensitive).
+ * Always reference these constants instead of hardcoded strings.
+ */
+export const ROLE = {
+  Admin: 'Admin' as UserRole,
+  LabManager: 'LabManager' as UserRole,
+  Requester: 'Requester' as UserRole,
+} as const
+
 export interface AuthUser {
   userId: number
   fullName: string
@@ -22,8 +32,8 @@ export interface LoginPayload {
 export interface AuthTokens {
   accessToken: string
   refreshToken: string
-  expiresIn?: number
-  user?: AuthUser
+  // BE AuthResponseDTO chỉ trả accessToken + refreshToken.
+  // Không có expiresIn hay user trong login/refresh response.
 }
 
 export interface ForgotPasswordPayload {

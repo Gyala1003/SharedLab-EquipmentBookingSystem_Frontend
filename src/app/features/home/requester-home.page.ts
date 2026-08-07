@@ -61,13 +61,7 @@ interface ScheduleSlotEvent {
           <p class="mt-1 text-sm font-medium text-slate-500">{{ 'home.sub' | t }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <a
-            routerLink="/app/calendar"
-            class="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-xs font-black text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-          >
-            <app-icon name="calendar" [size]="18" class="text-slate-500" />
-            {{ 'home.viewCalendar' | t }}
-          </a>
+
           <a
             routerLink="/app/bookings/new"
             class="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 px-5 text-xs font-black text-white shadow-lg shadow-indigo-500/25 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/35"
@@ -855,6 +849,8 @@ export class RequesterHomePage implements OnInit {
 
     // 1. Real user bookings from database
     for (const b of this.bookings()) {
+      if (b.status === 'Rejected' || b.status === 'Cancelled') continue
+
       const start = new Date(b.startTime)
       const end = new Date(b.endTime)
       const bDateKey = toDateInput(start)
@@ -875,9 +871,10 @@ export class RequesterHomePage implements OnInit {
                   : 'emerald'
 
           const matchedEv = this.calendarEvents().find((ev) => ev.sourceId === b.bookingId)
+          const isEn = this.languageStore.lang() === 'en'
           const roomName = matchedEv?.resources?.length
             ? matchedEv.resources[0].resourceName
-            : `Phòng Lab (Booking #${b.bookingId})`
+            : (isEn ? `Lab Room (Booking #${b.bookingId})` : `Phòng Lab (Booking #${b.bookingId})`)
 
           events.push({
             roomName,
@@ -893,8 +890,11 @@ export class RequesterHomePage implements OnInit {
       }
     }
 
-    // 2. Real system calendar events (e.g., maintenance & other bookings)
+    // 2. Real system calendar events (e.g., maintenance)
+    // Filtered out other users' bookings as per requirement, keeping only Maintenance
     for (const ev of this.calendarEvents()) {
+      if (ev.eventType === 'Booking') continue
+
       const start = new Date(ev.startTime)
       const end = new Date(ev.endTime)
       const evDateKey = toDateInput(start)
@@ -909,13 +909,14 @@ export class RequesterHomePage implements OnInit {
           const exists = events.some((r) => r.timeStr === timeStr)
 
           if (!exists) {
+            const isEn = this.languageStore.lang() === 'en'
             const roomName = ev.resources?.length
               ? ev.resources[0].resourceName
-              : 'Phòng Lab'
+              : (isEn ? 'Lab Room' : 'Phòng Lab')
 
             events.push({
               roomName,
-              title: isMaintenance ? `Bảo trì: ${ev.title}` : ev.title,
+              title: isMaintenance ? (isEn ? `Maintenance: ${ev.title}` : `Bảo trì: ${ev.title}`) : ev.title,
               timeStr,
               dateKey: targetDateKey,
               rowIndex,

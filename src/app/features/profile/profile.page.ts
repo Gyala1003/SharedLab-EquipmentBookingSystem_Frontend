@@ -47,7 +47,7 @@ import { labelOf } from '../../shared/utils/presentation'
                 <div><label class="field-label">{{ 'profile.fullName' | t }}</label><input class="input-shell" type="text" [value]="user.fullName" readonly /></div>
                 <div><label class="field-label">{{ 'profile.username' | t }}</label><input class="input-shell" type="text" [value]="user.username" readonly /></div>
                 <div><label class="field-label">{{ 'profile.email' | t }}</label><input class="input-shell" type="email" [value]="user.email" readonly /></div>
-                <div><label class="field-label">{{ 'profile.department' | t }}</label><input class="input-shell" type="text" [value]="user.departmentName || ('profile.notUpdated' | t)" readonly /></div>
+                @if (user.roleName !== 'Admin') { <div><label class="field-label">{{ 'profile.department' | t }}</label><input class="input-shell" type="text" [value]="user.departmentName || ('profile.notUpdated' | t)" readonly /></div> }
               </div>
 
               <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-5">
@@ -236,7 +236,7 @@ export class ProfilePage {
       { label: this.languageStore.t('profile.username'), value: user.username, icon: 'shield' },
       { label: this.languageStore.t('profile.email'), value: user.email, icon: 'mail' },
       { label: this.languageStore.t('profile.role'), value: this.roleLabel(user.roleName), icon: 'shield' },
-      { label: this.languageStore.t('profile.department'), value: labelOf('department', user.departmentName, this.languageStore.lang()) || this.languageStore.t('profile.notUpdated'), icon: 'building' },
+      ...(user.roleName !== 'Admin' ? [{ label: this.languageStore.t('profile.department'), value: labelOf('department', user.departmentName, this.languageStore.lang()) || this.languageStore.t('profile.notUpdated'), icon: 'building' }] : []),
     ]
   }
 }

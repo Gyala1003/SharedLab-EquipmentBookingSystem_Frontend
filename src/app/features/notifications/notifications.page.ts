@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { RouterLink } from '@angular/router'
 import type { NotificationResponse } from '../../core/api/api.models'
 import { NotificationBadgeService } from '../../core/api/notification-badge.service'
 import { WorkspaceService } from '../../core/api/workspace.service'
@@ -9,6 +10,7 @@ import { LanguageStore } from '../../core/i18n/language.store'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { ApiError } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
+import { ModalComponent } from '../../shared/ui/modal'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
 
@@ -16,7 +18,7 @@ type NotificationTab = 'all' | 'unread'
 
 @Component({
   selector: 'app-notifications-page',
-  imports: [FormsModule, DatePipe, IconComponent, TranslatePipe],
+  imports: [FormsModule, DatePipe, RouterLink, IconComponent, TranslatePipe],
   template: `
     <section class="space-y-6">
       <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
@@ -186,6 +188,17 @@ type NotificationTab = 'all' | 'unread'
             <div class="flex items-center justify-between gap-4 text-sm"><span class="text-slate-400">Trạng thái</span><strong [class.text-emerald-600]="notification.isRead" [class.text-indigo-600]="!notification.isRead">{{ notification.isRead ? 'Đã đọc' : 'Chưa đọc' }}</strong></div>
           </div>
 
+          @if (notification.notificationType === 'BookingReminder' && notification.title.includes('Nhắc check-in booking #')) {
+            <div class="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-6 text-indigo-700">
+              <strong>Check-in ngay bây giờ.</strong><br />
+              Booking của bạn đã sắp đến giờ. Vui lòng check-in để xác nhận.
+              <div class="mt-3">
+                <a [routerLink]="['/app/bookings', extractBookingId(notification.title)]" class="btn-primary inline-flex" (click)="selected.set(null)">
+                  <app-icon name="login" [size]="16" /> Check-in ngay
+                </a>
+              </div>
+            </div>
+          }
           @if (notification.notificationType.toLowerCase().includes('waitlist') || notification.notificationType.toLowerCase().includes('available')) {
             <div class="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-6 text-emerald-700"><strong>Hàng chờ đã được cập nhật.</strong><br />Hãy tạo booking trong thời gian backend cho phép giữ chỗ.</div>
           }
@@ -199,6 +212,7 @@ type NotificationTab = 'all' | 'unread'
       </aside>
     }
 
+    <!-- Simulated Email modal has been removed -->
   `,
 })
 export class NotificationsPage implements OnInit {
@@ -218,7 +232,6 @@ export class NotificationsPage implements OnInit {
   protected searchText = ''
   protected typeFilter = 'all'
 
-
   protected readonly availableTypes = computed(() =>
     [...new Set(this.notifications().map((item) => item.notificationType))].sort(),
   )
@@ -226,10 +239,16 @@ export class NotificationsPage implements OnInit {
     const query = this.searchText.trim().toLowerCase()
     return this.notifications().filter((item) => {
       const matchesType = this.typeFilter === 'all' || item.notificationType === this.typeFilter
-      const matchesQuery = !query || `${item.title} ${item.message}`.toLowerCase().includes(query)
-      return matchesType && matchesQuery
+      const matchesSearch = item.title.toLowerCase().includes(query) || item.message.toLowerCase().includes(query)
+      return matchesType && matchesSearch
     })
   }
+
+  protected extractBookingId(title: string): string {
+    const match = title.match(/#(\d+)/)
+    return match ? match[1] : ''
+  }
+
   protected readonly typeSummaries = computed(() => {
     const counts = new Map<string, number>()
     for (const item of this.notifications()) counts.set(item.notificationType, (counts.get(item.notificationType) ?? 0) + 1)

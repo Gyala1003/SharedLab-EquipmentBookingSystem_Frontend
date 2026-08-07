@@ -1,6 +1,7 @@
 import { inject } from '@angular/core'
 import { CanActivateFn, Router } from '@angular/router'
 import { AuthStore } from './auth.store'
+import { ROLE } from './auth.types'
 import type { UserRole } from './auth.types'
 
 export const authGuard: CanActivateFn = (_route, state) => {
@@ -33,10 +34,8 @@ export const landingGuard: CanActivateFn = () => {
 }
 
 export function landingPath(role: string): string {
-  const formattedRole = role?.trim().toLowerCase().replace(/[\s_]+/g, '')
-
-  if (formattedRole === 'admin' || formattedRole === 'administrator') return '/app/dashboard'
-  if (formattedRole === 'labmanager' || formattedRole === 'manager') return '/app/calendar'
-
+  const normalized = role?.trim().replace(/[\s_]+/g, '').toLowerCase()
+  if (normalized === ROLE.Admin.toLowerCase()) return '/app/dashboard'
+  if (normalized === ROLE.LabManager.toLowerCase()) return '/app/calendar'
   return '/app/home'
 }

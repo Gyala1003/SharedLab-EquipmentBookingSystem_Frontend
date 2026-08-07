@@ -73,9 +73,12 @@ export class LoginPage {
     this.showSuccess.set(false)
 
     const identifier = this.form.controls.email.getRawValue().trim()
+    const isEmail = identifier.includes('@')
     const payload: LoginPayload = {
-      email: identifier,
-      username: identifier,
+      // Send only the relevant field so BE contract is respected.
+      // If identifier contains '@', treat as email; otherwise as username.
+      email: isEmail ? identifier : undefined,
+      username: !isEmail ? identifier : undefined,
       password: this.form.controls.password.getRawValue(),
     }
 
@@ -125,16 +128,10 @@ export class LoginPage {
     ) {
       return landingPath(role)
     }
-
-    if (
-      target.startsWith('/') &&
-      !target.startsWith('//') &&
-      !target.startsWith('/\\') &&
-      /^[\w\-\/\?=&%:#]+$/.test(target)
-    ) {
+    // Chỉ chấp nhận path nội bộ bắt đầu bằng /app/ — chặn open redirect dạng //domain.com
+    if (/^\/[^/\\]/.test(target) && target.startsWith('/app/')) {
       return target
     }
-
     return landingPath(role)
   }
 }

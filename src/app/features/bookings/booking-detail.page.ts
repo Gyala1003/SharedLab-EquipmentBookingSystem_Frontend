@@ -196,9 +196,16 @@ export class BookingDetailPage implements OnInit {
     return getCheckInWindowInfo(item.startTime, item.endTime).isTooEarly
   }
   protected checkUserRestricted(): boolean {
+    // BOOK-004: BE UsageLogService chỉ chặn Inactive/Locked, không chặn Restricted.
+    // Chặn Restricted ở FE có thể làm người dùng không check-out được, gây vi phạm thêm.
+    // Đồng bộ rule với BE: chỉ chặn Inactive và Locked.
     const status = this.store.user()?.status
-    if (status === 'Restricted' || status === 3) {
-      this.toast.error('Tài khoản đang bị hạn chế', 'Tài khoản của bạn đang ở trạng thái Bị hạn chế do có điểm vi phạm. Không thể thực hiện Check-in / Check-out.')
+    if (status === 'Inactive' || status === 2) {
+      this.toast.error('Tài khoản bị vô hiệu hóa', 'Tài khoản của bạn đang bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.')
+      return true
+    }
+    if (status === 'Locked' || status === 4) {
+      this.toast.error('Tài khoản bị khóa', 'Tài khoản của bạn đang bị khóa. Vui lòng liên hệ quản trị viên.')
       return true
     }
     return false
@@ -294,13 +301,18 @@ export class BookingDetailPage implements OnInit {
         timeout(2500),
         catchError((err: any) => {
           this.accessDenied.set(true)
-          const msg =
-            err?.message ||
+          let msg =
             err?.error?.message ||
             err?.error?.detail ||
-            (err?.name === 'TimeoutError'
-              ? 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
-              : 'Bạn không có quyền xem booking này.')
+            err?.message ||
+            'Bạn không có quyền xem booking này.'
+
+          if (err?.status === 403 || msg.toLowerCase().includes('403') || msg.toLowerCase().includes('forbidden')) {
+            msg = '🔒 Bạn không có quyền quản lý phòng Lab này nên không thể xem chi tiết.\\nChỉ có Admin hoặc Quản lý của phòng này mới xem được.'
+          } else if (err?.name === 'TimeoutError') {
+            msg = 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
+          }
+
           this.errorMessage.set(msg)
           return of(null)
         }),
