@@ -70,7 +70,7 @@ refresh(): Observable<AuthTokens> {
   forgotPassword(email: string, resetLink?: string): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(
       `${this.baseUrl}/forgot-password`,
-      { email },
+      { email, resetLink },
     )
   }
 

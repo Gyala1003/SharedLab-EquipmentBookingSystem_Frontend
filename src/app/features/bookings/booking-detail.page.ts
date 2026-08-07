@@ -301,13 +301,18 @@ export class BookingDetailPage implements OnInit {
         timeout(2500),
         catchError((err: any) => {
           this.accessDenied.set(true)
-          const msg =
-            err?.message ||
+          let msg =
             err?.error?.message ||
             err?.error?.detail ||
-            (err?.name === 'TimeoutError'
-              ? 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
-              : 'Bạn không có quyền xem booking này.')
+            err?.message ||
+            'Bạn không có quyền xem booking này.'
+
+          if (err?.status === 403 || msg.toLowerCase().includes('403') || msg.toLowerCase().includes('forbidden')) {
+            msg = '🔒 Bạn không có quyền quản lý phòng Lab này nên không thể xem chi tiết.\\nChỉ có Admin hoặc Quản lý của phòng này mới xem được.'
+          } else if (err?.name === 'TimeoutError') {
+            msg = 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
+          }
+
           this.errorMessage.set(msg)
           return of(null)
         }),

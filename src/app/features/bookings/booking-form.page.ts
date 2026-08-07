@@ -63,7 +63,9 @@ export interface SlotWithStatus extends TimeSlot {
   template: `
     <section class="space-y-6">
       <app-page-header title="{{ 'bookingForm.title' | t }}" subtitle="{{ 'bookingForm.subtitle' | t }}">
-        <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'bookingForm.checkCalendar' | t }}</a>
+        @if (!store.isRequester()) {
+          <a routerLink="/app/calendar" class="btn-secondary"><app-icon name="calendar" [size]="17" /> {{ 'bookingForm.checkCalendar' | t }}</a>
+        }
       </app-page-header>
 
       @if (store.user()?.status !== 'Active') {

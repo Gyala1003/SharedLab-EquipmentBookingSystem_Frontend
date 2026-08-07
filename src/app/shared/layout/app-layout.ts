@@ -251,7 +251,7 @@ export class AppLayoutComponent implements OnInit {
       items: [
         { labelKey: 'nav.items.home', icon: 'home', route: '/app/home', roles: ['Requester'] },
         { labelKey: 'nav.items.dashboard', icon: 'dashboard', route: '/app/dashboard', roles: ['Admin'] },
-        { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar' },
+        { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar', roles: ['LabManager', 'Admin'] },
       ],
     },
     {
