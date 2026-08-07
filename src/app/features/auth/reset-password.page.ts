@@ -14,7 +14,7 @@ import {
 } from '../../core/auth/fluent-password.validator'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 
-type ResetErrorKind = 'invalidToken' | 'tooManyRequests' | 'generic' | null
+type ResetErrorKind = 'invalidToken' | 'sameAsOldPassword' | 'tooManyRequests' | 'generic' | null
 
 @Component({
   selector: 'app-reset-password-page',
@@ -65,6 +65,15 @@ export class ResetPasswordPage {
     'special',
   ]
 
+  constructor() {
+    this.form.valueChanges.subscribe(() => {
+      if (this.errorKind()) {
+        this.errorKind.set(null)
+        this.errorDetail.set(null)
+      }
+    })
+  }
+
   toggleNewPassword(): void {
     this.showNewPassword.update((v) => !v)
   }
@@ -99,16 +108,44 @@ export class ResetPasswordPage {
           void this.router.navigateByUrl('/login')
         }
       }, 1000)
-    } catch (e) {
+    } catch (e: any) {
       this.status.set('idle')
+
+      // Bóc tách sâu payload error từ Backend (e.error, e.error.message, e.message)
+      const rawError = e?.error ?? e
+      const serverMessage = (
+        typeof rawError === 'string'
+          ? rawError
+          : rawError?.message || rawError?.detail || e?.message || ''
+      ).toString()
+
+      const msgLower = serverMessage.toLowerCase()
+
       if (e instanceof ApiError && e.status === 429) {
         this.errorKind.set('tooManyRequests')
+        this.errorDetail.set(serverMessage)
       } else if (e instanceof ApiError && e.status === 400) {
-        this.errorKind.set('invalidToken')
-        this.errorDetail.set(e.message)
+        if (
+          msgLower.includes('trùng') ||
+          msgLower.includes('same') ||
+          msgLower.includes('mật khẩu cũ') ||
+          msgLower.includes('old password')
+        ) {
+          this.errorKind.set('sameAsOldPassword')
+        } else if (
+          msgLower.includes('token') ||
+          msgLower.includes('hết hạn') ||
+          msgLower.includes('expired') ||
+          msgLower.includes('invalid')
+        ) {
+          this.errorKind.set('invalidToken')
+        } else {
+          this.errorKind.set('generic')
+        }
+        this.errorDetail.set(serverMessage)
       } else {
         this.errorKind.set('generic')
-        this.errorDetail.set(e instanceof Error ? e.message : null)
+        this.errorDetail.set(serverMessage || null)
       }
     }
   }
