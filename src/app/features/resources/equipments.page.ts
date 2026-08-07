@@ -50,11 +50,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
                 }
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent"></div>
                 <div class="absolute right-4 top-4 z-10"><app-status-badge [value]="item.status" domain="equipment" /></div>
-                @if (store.isAdmin()) {
-                  <div class="absolute left-3 top-3 z-10 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button type="button" class="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/80 text-white backdrop-blur hover:bg-rose-600/90" title="Ngừng sử dụng" (click)="removeItem(item); $event.stopPropagation()"><app-icon name="trash" [size]="14" /></button>
-                  </div>
-                }
+
               </div>
               <div class="p-5">
                 <p class="truncate text-base font-black text-slate-950">{{ item.equipmentName | t }}</p>

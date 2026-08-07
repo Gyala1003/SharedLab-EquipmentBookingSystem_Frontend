@@ -62,11 +62,7 @@ interface LabForm {
                   <img [src]="getLabImage(lab)" [alt]="lab.labName" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 }
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
-                @if (store.isAdmin()) {
-                  <div class="absolute right-3 top-3 z-10 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button type="button" class="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/80 text-white backdrop-blur hover:bg-rose-600/90" title="Ngừng sử dụng" (click)="removeLab(lab); $event.stopPropagation()"><app-icon name="trash" [size]="15" /></button>
-                  </div>
-                }
+
                 <div class="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-slate-950/85 to-transparent p-5 pt-14"><div class="flex items-end justify-between gap-3"><div><p class="text-xs font-bold uppercase tracking-[.18em] text-cyan-300">{{ lab.roomCode }}</p><h2 class="mt-1 text-xl font-black text-white">{{ lab.labName | t }}</h2></div><span class="rounded-2xl bg-white/12 px-3 py-2 text-xs font-black text-white backdrop-blur"><app-icon name="users" [size]="15" /> {{ lab.capacity }}</span></div></div>
               </div>
               <div class="p-5">
@@ -106,7 +102,6 @@ interface LabForm {
                       <a [routerLink]="['/app/labs', lab.labId]" class="font-black text-violet-600 hover:text-violet-800">{{ 'common.details' | t }} →</a>
                       @if (store.isAdmin()) {
                         <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" title="Chỉnh sửa" (click)="openEdit(lab)"><app-icon name="edit" [size]="16" /></button>
-                        <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100" title="Ngừng sử dụng" (click)="removeLab(lab)"><app-icon name="trash" [size]="16" /></button>
                       }
                     </div>
                   </td>
