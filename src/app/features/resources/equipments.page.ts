@@ -140,28 +140,25 @@ export class EquipmentsPage implements OnInit {
   protected editForm = { labId: null as number | null, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
   protected readonly labMap = computed(() => new Map(this.labs().map((lab) => [lab.labId, lab.labName])))
   protected readonly labOptions = computed<SelectOption[]>(() =>
-    this.labs().map((lab) => ({
-      value: lab.labId,
-      label: lab.labName,
-      code: lab.roomCode,
-      sublabel: lab.location,
-    })),
+    this.labs()
+      .filter((lab) => this.store.isAdmin() || (lab.status !== 'Inactive' && lab.status !== '4' && String(lab.status).toLowerCase() !== 'inactive'))
+      .map((lab) => ({
+        value: lab.labId,
+        label: lab.labName,
+        code: lab.roomCode,
+        sublabel: lab.location,
+      })),
   )
 
   ngOnInit(): void {
-    // Run labs() and searchEquipments() in parallel — saves ~241ms vs sequential
-    forkJoin({
-      labs: this.api.labs().pipe(catchError(() => of([]))),
-      result: this.api.searchEquipments({ pageNumber: this.page(), pageSize: 16 }).pipe(catchError(() => of({ items: [], totalPages: 1, totalCount: 0, pageNumber: 1, pageSize: 16 }))),
-    }).subscribe({
-      next: ({ labs, result }) => {
+    this.api.labs().pipe(catchError(() => of([]))).subscribe({
+      next: (labs) => {
         this.labs.set(labs)
-        this.items.set(result.items)
-        this.totalPages.set(result.totalPages || 1)
-        this.loading.set(false)
-        this.enrichWithDetails(result.items)
+        this.load()
       },
-      error: () => { this.loading.set(false); this.toast.error('Không tải được dữ liệu') },
+      error: () => {
+        this.load()
+      }
     })
   }
 
@@ -174,6 +171,16 @@ export class EquipmentsPage implements OnInit {
     this.api.searchEquipments({ pageNumber: 1, pageSize: 100 }).subscribe({
       next: (result) => {
         let filtered = result.items || []
+
+        if (!this.store.isAdmin()) {
+          filtered = filtered.filter(e =>
+            e.status !== 'Inactive' &&
+            e.status !== 'Retired' &&
+            e.status !== '5' &&
+            String(e.status).toLowerCase() !== 'inactive' &&
+            String(e.status).toLowerCase() !== 'retired'
+          )
+        }
 
         if (this.keyword && this.keyword.trim().length > 0) {
           const kw = this.keyword.toLowerCase().trim()

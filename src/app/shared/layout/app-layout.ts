@@ -285,10 +285,8 @@ export class AppLayoutComponent implements OnInit {
       ],
     },
     {
-      // LabManager và Admin đều có quyền xem các trang này.
-      // Nhưng chỉ LabManager mới có quyền Approve/Reject — Admin xem được nhưng không thực hiện.
       labelKey: 'nav.groups.management',
-      roles: ['LabManager', 'Admin'],
+      roles: ['LabManager'],
       items: [
         {
           labelKey: 'nav.items.pendingBookings',
