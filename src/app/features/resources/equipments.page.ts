@@ -97,6 +97,14 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
       <!-- Modal Chỉnh sửa thiết bị -->
       <app-modal [open]="editOpen()" [title]="('common.editTitle' | t) + editingItem()?.equipmentName" [subtitle]="'equipments.editSubtitle' | t" (close)="editOpen.set(false)">
         <form class="grid gap-4" (ngSubmit)="save()" ngNativeValidate>
+          @if (editingItem()?.status === 'Inactive' || editingItem()?.status === 'Retired') {
+            <div class="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50/90 p-3.5 text-xs leading-5 text-rose-950">
+              <app-icon name="alert-triangle" [size]="18" class="mt-0.5 shrink-0 text-rose-600" />
+              <div>
+                <strong class="font-bold">Lưu ý về quy tắc Backend:</strong> Thiết bị này đang ở trạng thái <em>Ngừng hoạt động (Retired/Inactive)</em>. Backend hiện đang có quy tắc chặn cập nhật thiết bị ở trạng thái Retired.
+              </div>
+            </div>
+          }
           <div><label class="field-label">{{ 'equipments.name' | t }} *</label><input class="input-shell" required [(ngModel)]="editForm.equipmentName" name="eequipmentName" /></div>
           <div><label class="field-label">{{ 'equipments.labRoom' | t }} *</label><app-searchable-select [options]="labOptions()" [(ngModel)]="editForm.labId" name="elaborId" [allowNull]="false" [placeholder]="'calendar.allLabs' | t" searchPlaceholder="Tìm tên, mã phòng..." /></div>
           <div><label class="field-label">{{ 'equipments.modelSpecs' | t }}</label><textarea class="textarea-shell" [(ngModel)]="editForm.modelSpecs" name="emodelSpecs"></textarea></div>
@@ -259,7 +267,11 @@ export class EquipmentsPage implements OnInit {
     this.saving.set(true)
     this.api.updateEquipment(item.equipmentId, { labId: this.editForm.labId, equipmentName: this.editForm.equipmentName, modelSpecs: this.editForm.modelSpecs || null, imageUrl: this.editForm.imageUrl || null, usageGuideline: this.editForm.usageGuideline || null }).subscribe({
       next: () => { this.saving.set(false); this.editOpen.set(false); this.toast.success('Đã cập nhật thiết bị'); this.load() },
-      error: () => { this.saving.set(false); this.toast.error('Không thể cập nhật thiết bị') }
+      error: (err: any) => {
+        this.saving.set(false)
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể cập nhật thiết bị'
+        this.toast.error('Không thể cập nhật thiết bị', msg)
+      }
     })
   }
 

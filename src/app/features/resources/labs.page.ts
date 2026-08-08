@@ -132,6 +132,14 @@ interface LabForm {
       <!-- Modal Chỉnh sửa phòng -->
       <app-modal [open]="editOpen()" [title]="('common.editTitle' | t) + editingLab()?.labName" [subtitle]="'labs.editSubtitle' | t" (close)="editOpen.set(false)">
         <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="save()" ngNativeValidate>
+          @if (editingLab()?.status === 'Inactive') {
+            <div class="sm:col-span-2 flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50/90 p-3.5 text-xs leading-5 text-rose-950">
+              <app-icon name="alert-triangle" [size]="18" class="mt-0.5 shrink-0 text-rose-600" />
+              <div>
+                <strong class="font-bold">Lưu ý về quy tắc Backend:</strong> Phòng lab này đang ở trạng thái <em>Ngừng hoạt động (Inactive)</em>. Backend hiện đang có quy tắc chặn cập nhật phòng ở trạng thái Inactive.
+              </div>
+            </div>
+          }
           <div><label class="field-label">{{ 'labs.name' | t }} *</label><input class="input-shell" required [(ngModel)]="editForm.labName" name="elabName" /></div>
           <div><label class="field-label">{{ 'labs.location' | t }} *</label><input class="input-shell" required [(ngModel)]="editForm.location" name="elocation" /></div>
           <div><label class="field-label">{{ 'labs.capacity' | t }} *</label><input class="input-shell" type="number" min="1" required [(ngModel)]="editForm.capacity" name="ecapacity" /></div>
@@ -273,11 +281,19 @@ export class LabsPage implements OnInit {
         if (this.editManagerId) {
           this.api.changeLabManager(lab.labId, this.editManagerId).subscribe({
             next: () => this.finishSave(),
-            error: () => { this.saving.set(false); this.toast.error('Đã lưu thông tin nhưng chưa đổi được quản lý') }
+            error: (err: any) => {
+              this.saving.set(false)
+              const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Đã lưu thông tin nhưng chưa đổi được quản lý'
+              this.toast.error('Không thể cập nhật quản lý phòng lab', msg)
+            }
           })
         } else this.finishSave()
       },
-      error: () => { this.saving.set(false); this.toast.error('Không thể cập nhật phòng lab') }
+      error: (err: any) => {
+        this.saving.set(false)
+        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể cập nhật phòng lab'
+        this.toast.error('Không thể cập nhật phòng lab', msg)
+      }
     })
   }
 
