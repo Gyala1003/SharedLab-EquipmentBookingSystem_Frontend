@@ -148,7 +148,14 @@ interface LabForm {
           <div class="sm:col-span-2"><label class="field-label">{{ 'common.imageUrl' | t }}</label><input class="input-shell" [(ngModel)]="editForm.imageUrl" name="eimageUrl" /></div>
           <div class="sm:col-span-2"><label class="field-label">{{ 'common.usageGuideline' | t }}</label><textarea class="textarea-shell" [(ngModel)]="editForm.usageGuideline" name="eusageGuideline"></textarea></div>
           <div class="flex justify-between gap-2 sm:col-span-2">
-            <button type="button" class="btn-secondary btn-danger" (click)="removeLab(editingLab()!)"><app-icon name="trash" [size]="16" /> {{ 'common.disable' | t }}</button>
+            @if (editingLab()?.status === 'Inactive') {
+              <div class="flex gap-2">
+                <button type="button" class="btn-secondary text-emerald-700 hover:bg-emerald-50" (click)="reactivateLab(editingLab()!)"><app-icon name="check" [size]="16" /> Active lại phòng</button>
+                <button type="button" class="btn-secondary btn-danger" (click)="permanentDeleteLab(editingLab()!)"><app-icon name="trash" [size]="16" /> Xóa vĩnh viễn khỏi DB</button>
+              </div>
+            } @else {
+              <button type="button" class="btn-secondary btn-danger" (click)="removeLab(editingLab()!)"><app-icon name="trash" [size]="16" /> {{ 'common.disable' | t }}</button>
+            }
             <div class="flex gap-2"><button type="button" class="btn-secondary" (click)="editOpen.set(false)">{{ 'common.cancel' | t }}</button><button class="btn-primary" [disabled]="saving()">{{ saving() ? ('common.saving' | t) : ('common.saveChanges' | t) }}</button></div>
           </div>
         </form>
@@ -301,7 +308,23 @@ export class LabsPage implements OnInit {
     if (!confirm(`Ngừng sử dụng phòng "${lab.labName}"?`)) return
     this.api.deleteLab(lab.labId).subscribe({
       next: () => { this.toast.success('Đã ngừng sử dụng phòng lab'); this.editOpen.set(false); this.load() },
-      error: () => this.toast.error('Không thể ngừng sử dụng phòng')
+      error: (err: any) => { const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || 'Không thể ngừng sử dụng phòng'; this.toast.error('Không thể ngừng sử dụng phòng', msg) }
+    })
+  }
+
+  protected reactivateLab(lab: LabRoomResponse): void {
+    if (!confirm(`Kích hoạt lại phòng "${lab.labName}"?`)) return
+    this.api.reactivateLab(lab.labId).subscribe({
+      next: () => { this.toast.success('Đã kích hoạt lại phòng lab'); this.editOpen.set(false); this.load() },
+      error: (err: any) => { const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || 'Backend chưa có API hỗ trợ kích hoạt lại (PUT /api/LabRooms/{id}/reactivate). Xem Dev Note.'; this.toast.error('Không thể kích hoạt lại phòng lab', msg) }
+    })
+  }
+
+  protected permanentDeleteLab(lab: LabRoomResponse): void {
+    if (!confirm(`Xác nhận XÓA VĨNH VIỄN phòng "${lab.labName}" khỏi CSDL? Hành động này không thể hoàn tác!`)) return
+    this.api.permanentDeleteLab(lab.labId).subscribe({
+      next: () => { this.toast.success('Đã xóa vĩnh viễn phòng lab khỏi CSDL'); this.editOpen.set(false); this.load() },
+      error: (err: any) => { const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || 'Backend chưa có API hỗ trợ xóa vĩnh viễn (DELETE /api/LabRooms/{id}/permanent). Xem Dev Note.'; this.toast.error('Không thể xóa vĩnh viễn', msg) }
     })
   }
 

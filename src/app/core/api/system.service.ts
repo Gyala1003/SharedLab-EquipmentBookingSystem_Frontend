@@ -189,6 +189,18 @@ export class SystemService {
     )
   }
 
+  reactivateLab(id: number): Observable<void> {
+    return this.http.put<void>(`${this.base}/LabRooms/${id}/reactivate`, {}).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
+  }
+
+  permanentDeleteLab(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/LabRooms/${id}/permanent`).pipe(
+      tap(() => this.invalidateLabsCache()),
+    )
+  }
+
   equipments(forceRefresh = false): Observable<EquipmentResponse[]> {
     // Layer 1: in-memory shareReplay (fastest, same session)
     if (this.equipmentsCache$ && !forceRefresh) return this.equipmentsCache$
