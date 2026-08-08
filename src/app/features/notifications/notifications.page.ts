@@ -199,6 +199,17 @@ type NotificationTab = 'all' | 'unread'
               </div>
             </div>
           }
+          @if (notification.notificationType === 'BookingReminder' && notification.title.includes('Nhắc check-out booking #')) {
+            <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+              <strong>Check-out sắp đến giờ.</strong><br />
+              Booking của bạn sắp kết thúc. Vui lòng check-out đúng giờ để tránh bị tính vi phạm trả muộn.
+              <div class="mt-3">
+                <a [routerLink]="['/app/bookings', extractBookingId(notification.title)]" class="btn-primary inline-flex bg-amber-600 hover:bg-amber-700" (click)="selected.set(null)">
+                  <app-icon name="logout" [size]="16" /> Check-out ngay
+                </a>
+              </div>
+            </div>
+          }
           @if (notification.notificationType.toLowerCase().includes('waitlist') || notification.notificationType.toLowerCase().includes('available')) {
             <div class="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-6 text-emerald-700"><strong>Hàng chờ đã được cập nhật.</strong><br />Hãy tạo booking trong thời gian backend cho phép giữ chỗ.</div>
           }

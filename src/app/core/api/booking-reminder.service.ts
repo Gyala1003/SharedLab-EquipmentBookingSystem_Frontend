@@ -94,7 +94,7 @@ export class BookingReminderService {
 
     for (const booking of approved) {
       const endTimeMs = new Date(booking.endTime).getTime()
-      const isApproachingCheckout = now >= endTimeMs - 10 * 60_000 && now <= endTimeMs + 20 * 60_000
+      const isApproachingCheckout = now >= endTimeMs - 15 * 60_000 && now <= endTimeMs + 30 * 60_000
       const key = `checkout_toast_user_${booking.bookingId}_${user.userId}`
 
       if (isApproachingCheckout && !this.sentReminders.has(key) && !sessionStorage.getItem(key)) {
