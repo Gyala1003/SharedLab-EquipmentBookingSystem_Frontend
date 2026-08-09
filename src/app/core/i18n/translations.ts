@@ -117,7 +117,7 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'common.code': { vi: 'Mã', en: 'Code' },
   'common.tableView': { vi: 'Bảng', en: 'Table' },
   'common.cardView': { vi: 'Thẻ', en: 'Cards' },
-  
+
   // Edit modal fields
   'common.description': { vi: 'Mô tả', en: 'Description' },
   'common.imageUrl': { vi: 'URL ảnh', en: 'Image URL' },
@@ -131,7 +131,10 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'labs.editSubtitle': { vi: 'Cập nhật thông tin phòng lab.', en: 'Update lab room information.' },
   'labs.name': { vi: 'Tên phòng', en: 'Room name' },
 
-  'equipments.editSubtitle': { vi: 'Cập nhật thông tin kỹ thuật hoặc chuyển thiết bị sang phòng khác.', en: 'Update technical specs or move to another lab.' },
+  'equipments.editSubtitle': {
+    vi: 'Cập nhật thông tin kỹ thuật hoặc chuyển thiết bị sang phòng khác.',
+    en: 'Update technical specs or move to another lab.',
+  },
   'equipments.name': { vi: 'Tên thiết bị', en: 'Equipment name' },
   'equipments.labRoom': { vi: 'Phòng lab', en: 'Lab room' },
   'equipments.modelSpecs': { vi: 'Model / thông số', en: 'Model / specs' },
@@ -1496,6 +1499,68 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'bookings.requester': {
     vi: 'Người đăng ký',
     en: 'Requester',
+  },
+
+  // Audit Logs Page
+  'auditLogs.title': { vi: 'Nhật ký kiểm toán', en: 'Audit Logs' },
+  'auditLogs.subtitle': {
+    vi: 'Theo dõi ai đã làm gì, trên dữ liệu nào và vào thời điểm nào trong hệ thống.',
+    en: 'Track who did what, on which data, and when within the system.',
+  },
+  'auditLogs.kpi.totalRecords': { vi: 'Tổng bản ghi', en: 'Total Records' },
+  'auditLogs.kpi.currentPage': { vi: 'Trang hiện tại', en: 'Current Page' },
+  'auditLogs.kpi.changeActions': { vi: 'Thao tác thay đổi', en: 'Change Actions' },
+  'auditLogs.kpi.activeUsers': { vi: 'Người thao tác', en: 'Active Users' },
+  'auditLogs.filters.user': { vi: 'Người thao tác', en: 'User / Operator' },
+  'auditLogs.filters.actionType': { vi: 'Loại hành động', en: 'Action Type' },
+  'auditLogs.filters.entity': { vi: 'Đối tượng (Entity)', en: 'Target Entity' },
+  'auditLogs.filters.entityPlaceholder': {
+    vi: 'Booking, User, LabRoom...',
+    en: 'Booking, User, LabRoom...',
+  },
+  'auditLogs.filters.entityId': { vi: 'Mã đối tượng (Entity ID)', en: 'Entity ID' },
+  'auditLogs.filters.fromDate': { vi: 'Từ ngày', en: 'From Date' },
+  'auditLogs.filters.toDate': { vi: 'Đến ngày', en: 'To Date' },
+  'auditLogs.filters.pageSize': { vi: 'Số bản ghi/trang', en: 'Page Size' },
+  'auditLogs.filters.searchBtn': { vi: 'Tra cứu', en: 'Search' },
+  'auditLogs.empty.title': { vi: 'Không có audit log', en: 'No Audit Logs Found' },
+  'auditLogs.empty.message': {
+    vi: 'Không tìm thấy hoạt động nào phù hợp với bộ lọc đã chọn.',
+    en: 'No activity found matching the selected filters.',
+  },
+  'auditLogs.table.time': { vi: 'Thời gian', en: 'Timestamp' },
+  'auditLogs.table.user': { vi: 'Người thao tác', en: 'User' },
+  'auditLogs.table.action': { vi: 'Hành động', en: 'Action' },
+  'auditLogs.table.entity': { vi: 'Đối tượng', en: 'Target' },
+  'auditLogs.table.ip': { vi: 'IP Address', en: 'IP Address' },
+  'auditLogs.table.viewChanges': { vi: 'Xem thay đổi', en: 'View Changes' },
+  'auditLogs.actions.Create': { vi: 'Tạo mới', en: 'Create' },
+  'auditLogs.actions.Update': { vi: 'Cập nhật', en: 'Update' },
+  'auditLogs.actions.Delete': { vi: 'Xóa', en: 'Delete' },
+  'auditLogs.actions.Login': { vi: 'Đăng nhập', en: 'Login' },
+  'auditLogs.actions.Logout': { vi: 'Đăng xuất', en: 'Logout' },
+  'auditLogs.actions.ApproveBooking': { vi: 'Duyệt booking', en: 'Approve Booking' },
+  'auditLogs.actions.RejectBooking': { vi: 'Từ chối booking', en: 'Reject Booking' },
+  'auditLogs.actions.CheckIn': { vi: 'Check-in', en: 'Check-in' },
+  'auditLogs.actions.CheckOut': { vi: 'Check-out', en: 'Check-out' },
+  'auditLogs.pagination.page': { vi: 'Trang', en: 'Page' },
+  'auditLogs.pagination.records': { vi: 'bản ghi', en: 'records' },
+  'auditLogs.modal.title': { vi: 'Chi tiết thay đổi', en: 'Change Details' },
+  'auditLogs.modal.auditId': { vi: 'Audit ID', en: 'Audit ID' },
+  'auditLogs.modal.action': { vi: 'Hành động', en: 'Action' },
+  'auditLogs.modal.entity': { vi: 'Đối tượng', en: 'Target Entity' },
+  'auditLogs.modal.ip': { vi: 'IP Address', en: 'IP Address' },
+  'auditLogs.modal.oldValue': { vi: 'Giá trị cũ', en: 'Old Value' },
+  'auditLogs.modal.newValue': { vi: 'Giá trị mới', en: 'New Value' },
+  'auditLogs.modal.noData': { vi: 'Không có dữ liệu', en: 'No data available' },
+  'auditLogs.toast.loadError': { vi: 'Không tải được audit log', en: 'Failed to load audit logs' },
+  'auditLogs.toast.detailError': {
+    vi: 'Không tải được chi tiết audit log',
+    en: 'Failed to load audit log detail',
+  },
+  'auditLogs.toast.dateError': {
+    vi: 'Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).',
+    en: 'From date cannot be later than To date.',
   },
 }
 

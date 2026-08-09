@@ -14,6 +14,10 @@ for (const [k, v] of Object.entries(translations)) {
 // Memoization cache for instant translation retrieval
 const translationCache = new Map<string, string>()
 
+export function clearTranslationCache(): void {
+  translationCache.clear()
+}
+
 export function findTranslation(key: string, lang: 'vi' | 'en'): string | null {
   if (!key) return null
   const cacheKey = `${lang}:${key}`
@@ -31,10 +35,21 @@ export function findTranslation(key: string, lang: 'vi' | 'en'): string | null {
   const nfcLower = nfc.toLowerCase()
 
   // 1. Direct lookup O(1)
-  let entry: { vi?: string; en?: string } | undefined = translations[cleanKey] || translations[nfc]
+  let entry: { vi?: string; en?: string } | undefined =
+    (translations as Record<string, { vi?: string; en?: string }>)[cleanKey] ||
+    (translations as Record<string, { vi?: string; en?: string }>)[nfc]
   if (!entry) {
     // 2. Fast normalized map lookup O(1)
     entry = normalizedTranslationMap.get(nfcLower)
+    if (!entry) {
+      const matchedKey = Object.keys(translations).find(
+        (k) => k.trim().normalize('NFC').toLowerCase() === nfcLower,
+      )
+      if (matchedKey) {
+        entry = (translations as Record<string, { vi?: string; en?: string }>)[matchedKey]
+        if (entry) normalizedTranslationMap.set(nfcLower, entry)
+      }
+    }
   }
 
   let result: string | null = null
@@ -43,15 +58,22 @@ export function findTranslation(key: string, lang: 'vi' | 'en'): string | null {
     const text = entry[lang] || entry.vi || cleanKey
     result = text + suffix
   } else if (lang === 'en') {
-    if (nfcLower.includes('mạng') || nfcLower.includes('hạ tầng')) result = 'Network & Infrastructure Lab' + suffix
-    else if (nfcLower.includes('điện tử') || nfcLower.includes('viễn thông')) result = 'Electronics & Telecom Lab' + suffix
+    if (nfcLower.includes('mạng') || nfcLower.includes('hạ tầng'))
+      result = 'Network & Infrastructure Lab' + suffix
+    else if (nfcLower.includes('điện tử') || nfcLower.includes('viễn thông'))
+      result = 'Electronics & Telecom Lab' + suffix
     else if (nfcLower.includes('sinh học')) result = 'Biology Laboratory' + suffix
     else if (nfcLower.includes('hóa học')) result = 'Chemistry Laboratory' + suffix
-    else if (nfcLower.includes('robot') || nfcLower.includes('tự động hóa')) result = 'Robotics & Automation Lab' + suffix
-    else if (nfcLower.includes('ai') || nfcLower.includes('khoa học dữ liệu')) result = 'AI & Data Science Lab' + suffix
-    else if (nfcLower.includes('iot') || nfcLower.includes('nhúng')) result = 'IoT & Embedded Systems Lab' + suffix
-    else if (nfcLower.includes('vật lý') || nfcLower.includes('quang học')) result = 'Physics & Optics Lab' + suffix
-    else if (nfcLower.includes('cơ khí') || nfcLower.includes('in 3d')) result = 'Mechanical & 3D Printing Lab' + suffix
+    else if (nfcLower.includes('robot') || nfcLower.includes('tự động hóa'))
+      result = 'Robotics & Automation Lab' + suffix
+    else if (nfcLower.includes('ai') || nfcLower.includes('khoa học dữ liệu'))
+      result = 'AI & Data Science Lab' + suffix
+    else if (nfcLower.includes('iot') || nfcLower.includes('nhúng'))
+      result = 'IoT & Embedded Systems Lab' + suffix
+    else if (nfcLower.includes('vật lý') || nfcLower.includes('quang học'))
+      result = 'Physics & Optics Lab' + suffix
+    else if (nfcLower.includes('cơ khí') || nfcLower.includes('in 3d'))
+      result = 'Mechanical & 3D Printing Lab' + suffix
     else if (nfcLower.includes('an toàn thông tin')) result = 'Information Security Lab' + suffix
   }
 

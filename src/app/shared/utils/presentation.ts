@@ -26,9 +26,9 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
     'Computer Science': { vi: 'Khoa học máy tính', en: 'Computer Science' },
     'Electrical Engineering': { vi: 'Kỹ thuật điện', en: 'Electrical Engineering' },
     'Mechanical Engineering': { vi: 'Kỹ thuật cơ khí', en: 'Mechanical Engineering' },
-    'Biotechnology': { vi: 'Công nghệ sinh học', en: 'Biotechnology' },
-    'Physics': { vi: 'Vật lý', en: 'Physics' },
-    'Chemistry': { vi: 'Hóa học', en: 'Chemistry' },
+    Biotechnology: { vi: 'Công nghệ sinh học', en: 'Biotechnology' },
+    Physics: { vi: 'Vật lý', en: 'Physics' },
+    Chemistry: { vi: 'Hóa học', en: 'Chemistry' },
   },
 
   booking: {
@@ -156,7 +156,11 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
   },
 }
 
-export function labelOf(domain: string, value: ApiEnum | null | undefined, lang?: 'vi' | 'en'): string {
+export function labelOf(
+  domain: string,
+  value: ApiEnum | null | undefined,
+  lang?: 'vi' | 'en',
+): string {
   if (value === null || value === undefined || value === '') return '—'
   const key = String(value)
   const entry = maps[domain]?.[key]
@@ -173,19 +177,65 @@ export function labelOf(domain: string, value: ApiEnum | null | undefined, lang?
 export function toneOf(domain: string, value: ApiEnum | null | undefined): string {
   const key = String(value ?? '')
   const tones: Record<string, Record<string, string>> = {
-    user: { '1': 'emerald', '2': 'rose', '3': 'amber', '4': 'rose', Active: 'emerald', Inactive: 'rose', Restricted: 'amber', Locked: 'rose' },
+    user: {
+      '1': 'emerald',
+      '2': 'rose',
+      '3': 'amber',
+      '4': 'rose',
+      Active: 'emerald',
+      Inactive: 'rose',
+      Restricted: 'amber',
+      Locked: 'rose',
+    },
     department: { '1': 'emerald', '2': 'rose', Active: 'emerald', Inactive: 'rose' },
-    booking: { Pending: 'amber', Approved: 'emerald', Rejected: 'rose', Cancelled: 'rose', Completed: 'emerald', NoShow: 'rose' },
-    lab: { '1': 'emerald', '2': 'indigo', '3': 'rose', '4': 'rose', Available: 'emerald', Unavailable: 'rose', Maintenance: 'indigo', Inactive: 'rose' },
-    equipment: { '1': 'emerald', '2': 'indigo', '3': 'indigo', '4': 'rose', '5': 'rose', Available: 'emerald', InUse: 'indigo', Maintenance: 'indigo', Broken: 'rose', Retired: 'rose' },
-    maintenance: { Scheduled: 'amber', InProgress: 'indigo', Completed: 'emerald', Cancelled: 'rose' },
-    waitlist: { Waiting: 'amber', Notified: 'indigo', Booked: 'emerald', Cancelled: 'rose', Expired: 'rose' },
+    booking: {
+      Pending: 'amber',
+      Approved: 'emerald',
+      Rejected: 'rose',
+      Cancelled: 'rose',
+      Completed: 'emerald',
+      NoShow: 'rose',
+    },
+    lab: {
+      '1': 'emerald',
+      '2': 'indigo',
+      '3': 'rose',
+      '4': 'rose',
+      Available: 'emerald',
+      Unavailable: 'rose',
+      Maintenance: 'indigo',
+      Inactive: 'rose',
+    },
+    equipment: {
+      '1': 'emerald',
+      '2': 'indigo',
+      '3': 'indigo',
+      '4': 'rose',
+      '5': 'rose',
+      Available: 'emerald',
+      InUse: 'indigo',
+      Maintenance: 'indigo',
+      Broken: 'rose',
+      Retired: 'rose',
+    },
+    maintenance: {
+      Scheduled: 'amber',
+      InProgress: 'indigo',
+      Completed: 'emerald',
+      Cancelled: 'rose',
+    },
+    waitlist: {
+      Waiting: 'amber',
+      Notified: 'indigo',
+      Booked: 'emerald',
+      Cancelled: 'rose',
+      Expired: 'rose',
+    },
     violation: { Active: 'rose', Resolved: 'emerald', Cancelled: 'slate' },
     incident: { NotRequired: 'slate', Pending: 'amber', Confirmed: 'rose', Rejected: 'slate' },
   }
   return tones[domain]?.[key] ?? 'slate'
 }
-
 
 export function toIso(localValue: string): string {
   return localValue ? new Date(localValue).toISOString() : ''
@@ -220,7 +270,11 @@ export function toLocalDateTimeInput(value: string | Date): string {
 }
 
 export function formatMoney(value: number): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0)
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value || 0)
 }
 
 export interface CheckInWindowInfo {
@@ -259,35 +313,50 @@ export function getCheckInWindowInfo(startTimeIso: string, endTimeIso: string): 
 // since the list APIs sometimes don't return imageUrls but detail APIs do.
 // Using sessionStorage ensures the cache survives F5 reloads.
 function getCachedImageUrl(key: string): string | null {
-  try { return sessionStorage.getItem(key) } catch { return null }
+  try {
+    return sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
 }
 function setCachedImageUrl(key: string, url: string): void {
-  try { sessionStorage.setItem(key, url) } catch {}
+  try {
+    sessionStorage.setItem(key, url)
+  } catch {}
 }
 
-export function getLabImageUrl(lab?: { labId?: number; roomCode?: string; imageUrl?: string | null } | null): string {
+export function getLabImageUrl(
+  lab?: { labId?: number; roomCode?: string; imageUrl?: string | null } | null,
+): string {
   const cacheKey = lab?.labId ? `lab_img_v2_${lab.labId}` : null
-  
+
   if (lab?.imageUrl && lab.imageUrl.trim().length > 0 && !lab.imageUrl.includes('random')) {
     if (cacheKey) setCachedImageUrl(cacheKey, lab.imageUrl)
     return lab.imageUrl
   }
-  
+
   const cached = cacheKey ? getCachedImageUrl(cacheKey) : null
   if (cached) return cached
 
-
   const code = (lab?.roomCode || '').toUpperCase()
-  if (code.includes('AI')) return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'
-  if (code.includes('CYBER') || code.includes('NET')) return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop'
-  if (code.includes('MECH') || code.includes('ROBOT')) return 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800&auto=format&fit=crop'
-  if (code.includes('IOT') || code.includes('ELEC')) return 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?q=80&w=800&auto=format&fit=crop'
-  if (code.includes('CHEM') || code.includes('BIO')) return 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=800&auto=format&fit=crop'
-  if (code.includes('PHYS')) return 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('AI'))
+    return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('CYBER') || code.includes('NET'))
+    return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('MECH') || code.includes('ROBOT'))
+    return 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('IOT') || code.includes('ELEC'))
+    return 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('CHEM') || code.includes('BIO'))
+    return 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=800&auto=format&fit=crop'
+  if (code.includes('PHYS'))
+    return 'https://images.unsplash.com/photo-1507668077129-56e32842fceb?q=80&w=800&auto=format&fit=crop'
   return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=800&auto=format&fit=crop'
 }
 
-export function getEquipmentImageUrl(item?: { equipmentId?: number; equipmentName?: string; imageUrl?: string | null } | null): string {
+export function getEquipmentImageUrl(
+  item?: { equipmentId?: number; equipmentName?: string; imageUrl?: string | null } | null,
+): string {
   const cacheKey = item?.equipmentId ? `eq_img_v2_${item.equipmentId}` : null
 
   if (item?.imageUrl && item.imageUrl.trim().length > 0 && !item.imageUrl.includes('random')) {
@@ -298,10 +367,12 @@ export function getEquipmentImageUrl(item?: { equipmentId?: number; equipmentNam
   const cached = cacheKey ? getCachedImageUrl(cacheKey) : null
   if (cached) return cached
 
-
   const name = (item?.equipmentName || '').toLowerCase()
-  if (name.includes('quang phổ') || name.includes('ftir')) return 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=800&auto=format&fit=crop'
-  if (name.includes('3d') || name.includes('máy in')) return 'https://images.unsplash.com/photo-1631556097152-c39479bbf9f2?q=80&w=800&auto=format&fit=crop'
-  if (name.includes('kính hiển vi') || name.includes('microscope')) return 'https://images.unsplash.com/photo-1516549655169-df83a0774514?q=80&w=800&auto=format&fit=crop'
+  if (name.includes('quang phổ') || name.includes('ftir'))
+    return 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=800&auto=format&fit=crop'
+  if (name.includes('3d') || name.includes('máy in'))
+    return 'https://images.unsplash.com/photo-1631556097152-c39479bbf9f2?q=80&w=800&auto=format&fit=crop'
+  if (name.includes('kính hiển vi') || name.includes('microscope'))
+    return 'https://images.unsplash.com/photo-1516549655169-df83a0774514?q=80&w=800&auto=format&fit=crop'
   return 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?q=80&w=800&auto=format&fit=crop'
 }

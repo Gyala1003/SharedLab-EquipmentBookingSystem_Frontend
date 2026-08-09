@@ -36,7 +36,10 @@ export class FluentPasswordPolicy {
   }
 
   specialChar(): this {
-    this.rules.push({ key: 'special', test: (v) => /[!@#$%^&*(),.?":{}|<>_\-+=[\]/\\;'~`]/.test(v) })
+    this.rules.push({
+      key: 'special',
+      test: (v) => /[!@#$%^&*(),.?":{}|<>_\-+=[\]/\\;'~`]/.test(v),
+    })
     return this
   }
 
@@ -74,7 +77,10 @@ export function passwordMatchValidator(passwordKey: string, confirmKey: string):
     if (!passwordControl || !confirmControl) return null
 
     if (confirmControl.value && confirmControl.value !== passwordControl.value) {
-      confirmControl.setErrors({ ...confirmControl.errors, passwordMismatch: true }, { emitEvent: false })
+      confirmControl.setErrors(
+        { ...confirmControl.errors, passwordMismatch: true },
+        { emitEvent: false },
+      )
     } else if (confirmControl.hasError('passwordMismatch')) {
       const { passwordMismatch: _removed, ...rest } = confirmControl.errors ?? {}
       confirmControl.setErrors(Object.keys(rest).length ? rest : null, { emitEvent: false })

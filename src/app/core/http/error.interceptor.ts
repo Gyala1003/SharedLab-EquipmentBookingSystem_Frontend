@@ -1,13 +1,25 @@
 import { HttpBackend, HttpClient, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http'
 import { inject } from '@angular/core'
 import { Router } from '@angular/router'
-import { BehaviorSubject, catchError, filter, finalize, retry, switchMap, take, tap, throwError, timer } from 'rxjs'
+import {
+  BehaviorSubject,
+  catchError,
+  filter,
+  finalize,
+  retry,
+  switchMap,
+  take,
+  tap,
+  throwError,
+  timer,
+} from 'rxjs'
 import { TokenStorage } from '../auth/token-storage'
 import { AuthStore } from '../auth/auth.store'
 import type { AuthTokens } from '../auth/auth.types'
 import { env } from '../config/env'
 import { ApiError } from './api-error'
 import { ErrorStateService } from './error-state.service'
+import { ToastService } from '../../shared/ui/toast.service'
 
 let isRefreshing = false
 const refreshTokenSubject = new BehaviorSubject<string | null>(null)
@@ -17,24 +29,33 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const tokens = inject(TokenStorage)
   const authStore = inject(AuthStore)
   const errorState = inject(ErrorStateService)
+  const toast = inject(ToastService)
   const http = new HttpClient(inject(HttpBackend))
 
   return next(req).pipe(
     retry({
       count: 2,
       delay: (error: any, retryCount: number) => {
-        const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(req.url)
+        const isAuthEndpoint =
+          /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(req.url)
         // Chỉ retry các request an toàn (GET/HEAD) — không retry mutation vì POST/PUT/DELETE
         // không idempotent và có thể tạo trùng dữ liệu nếu BE đã xử lý nhưng response bị mất.
         const isSafeMethod = req.method === 'GET' || req.method === 'HEAD'
-        if (isSafeMethod && !isAuthEndpoint && (error?.status >= 500 || error?.status === 0) && retryCount <= 2) {
+        if (
+          isSafeMethod &&
+          !isAuthEndpoint &&
+          (error?.status >= 500 || error?.status === 0) &&
+          retryCount <= 2
+        ) {
           return timer(retryCount * 350)
         }
         return throwError(() => error)
       },
     }),
     catchError((error: HttpErrorResponse) => {
-      const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(req.url)
+      const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(
+        req.url,
+      )
       const currentToken = tokens.access
       const refreshToken = tokens.refresh
 
@@ -43,9 +64,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         const reqToken = reqAuthHeader?.replace(/^Bearer\s+/i, '')
 
         if (currentToken && reqToken && reqToken !== currentToken) {
-          return next(
-            req.clone({ setHeaders: { Authorization: `Bearer ${currentToken}` } }),
-          )
+          return next(req.clone({ setHeaders: { Authorization: `Bearer ${currentToken}` } }))
         }
 
         if (!refreshToken) {
@@ -58,43 +77,43 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           isRefreshing = true
           refreshTokenSubject.next(null)
 
-          return http
-            .post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, { refreshToken })
-            .pipe(
-              tap((fresh) => {
-                tokens.set(fresh.accessToken, fresh.refreshToken, tokens.isRemembered)
-                refreshTokenSubject.next(fresh.accessToken)
-              }),
-              catchError((refreshError: HttpErrorResponse) => {
-                isRefreshing = false
-                refreshTokenSubject.next(null)
-                if (refreshError.status === 0 || refreshError.status >= 500) {
-                  return throwError(() => normalize(refreshError))
-                }
-                authStore.clear()
-                void router.navigate(['/login'])
+          return http.post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, { refreshToken }).pipe(
+            tap((fresh) => {
+              tokens.set(fresh.accessToken, fresh.refreshToken, tokens.isRemembered)
+              refreshTokenSubject.next(fresh.accessToken)
+            }),
+            catchError((refreshError: HttpErrorResponse) => {
+              isRefreshing = false
+              refreshTokenSubject.next(null)
+              if (refreshError.status === 0 || refreshError.status >= 500) {
                 return throwError(() => normalize(refreshError))
-              }),
-              switchMap((fresh) => {
-                return next(
-                  req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
-                ).pipe(
-                  catchError((retriedErr: HttpErrorResponse) => throwError(() => normalize(retriedErr)))
-                )
-              }),
-              finalize(() => {
-                isRefreshing = false
-              }),
-            )
+              }
+              authStore.clear()
+              void router.navigate(['/login'])
+              return throwError(() => normalize(refreshError))
+            }),
+            switchMap((fresh) => {
+              return next(
+                req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
+              ).pipe(
+                catchError((retriedErr: HttpErrorResponse) =>
+                  throwError(() => normalize(retriedErr)),
+                ),
+              )
+            }),
+            finalize(() => {
+              isRefreshing = false
+            }),
+          )
         } else {
           return refreshTokenSubject.pipe(
             filter((token): token is string => token !== null),
             take(1),
             switchMap((token) => {
-              return next(
-                req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }),
-              ).pipe(
-                catchError((retriedErr: HttpErrorResponse) => throwError(() => normalize(retriedErr)))
+              return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })).pipe(
+                catchError((retriedErr: HttpErrorResponse) =>
+                  throwError(() => normalize(retriedErr)),
+                ),
               )
             }),
           )
@@ -114,10 +133,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (error.status >= 500 || error.status === 0) {
+        const title =
+          error.status === 0
+            ? 'Mất kết nối Server / Lỗi mạng'
+            : `Backend Error (HTTP ${error.status})`
+        const msg =
+          normalizedErr.message || 'Hệ thống Backend gặp sự cố trong quá trình xử lý yêu cầu.'
+        toast.error(`${title}: ${msg}`)
+
         errorState.setError({
           status: error.status || 500,
-          statusText: error.status === 0 ? 'Mất kết nối Server BE / Lỗi mạng' : `Backend Error (HTTP ${error.status})`,
-          message: normalizedErr.message || 'Hệ thống Backend gặp sự cố trong quá trình xử lý yêu cầu.',
+          statusText: title,
+          message: msg,
           url: req.url,
           timestamp: new Date(),
           details: normalizedErr.fieldErrors,
@@ -129,20 +156,31 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       // they are business-logic errors that individual feature components handle themselves
       // by reading ApiError.status and ApiError.details from the thrown error.
       return throwError(() => normalizedErr)
-
     }),
   )
 }
 
 function normalize(error: HttpErrorResponse): ApiError {
   const body = error.error as
-    | { message?: string; title?: string; detail?: string; error?: string; code?: string; errors?: Record<string, string[]> }
+    | {
+        message?: string
+        title?: string
+        detail?: string
+        error?: string
+        code?: string
+        errors?: Record<string, string[]>
+      }
     | string
     | undefined
   const message =
     typeof body === 'string'
       ? body
-      : body?.detail ?? body?.message ?? body?.error ?? body?.title ?? error.message ?? 'Đã xảy ra lỗi kết nối với Backend.'
+      : (body?.detail ??
+        body?.message ??
+        body?.error ??
+        body?.title ??
+        error.message ??
+        'Đã xảy ra lỗi kết nối với Backend.')
   return new ApiError(
     error.status,
     message,

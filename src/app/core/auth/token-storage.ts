@@ -23,7 +23,10 @@ export class TokenStorage {
   }
 
   get isPersistent(): boolean {
-    return this.isRemembered && Boolean(localStorage.getItem(this.ACCESS) || localStorage.getItem(this.REFRESH))
+    return (
+      this.isRemembered &&
+      Boolean(localStorage.getItem(this.ACCESS) || localStorage.getItem(this.REFRESH))
+    )
   }
 
   set(access: string, refresh?: string, persistent: boolean = this.isRemembered): void {

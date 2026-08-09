@@ -45,11 +45,13 @@ export interface SelectOption {
         [class.ring-blue-500/20]="isOpen()"
         (click)="toggleOpen()"
       >
-        <span class="truncate min-w-0 flex-1" [class.text-slate-400]="selectedOption() === null">
+        <span class="min-w-0 flex-1 truncate" [class.text-slate-400]="selectedOption() === null">
           @if (selectedOption(); as opt) {
             <span class="font-medium text-slate-800">{{ opt.label | t }}</span>
             @if (opt.code) {
-              <span class="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200/60">
+              <span
+                class="ml-1.5 rounded border border-blue-200/60 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700"
+              >
                 {{ opt.code }}
               </span>
             }
@@ -68,11 +70,13 @@ export interface SelectOption {
       <!-- Dropdown Popover -->
       @if (isOpen()) {
         <div
-          class="absolute left-0 top-full z-50 mt-1.5 w-full min-w-[240px] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/15 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+          class="animate-in fade-in zoom-in-95 absolute top-full left-0 z-50 mt-1.5 w-full min-w-[240px] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/15 backdrop-blur-xl duration-150"
         >
           <!-- Search input -->
           <div class="relative mb-2">
-            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"
+            >
               <app-icon name="search" [size]="15" />
             </span>
             <input
@@ -80,7 +84,7 @@ export interface SelectOption {
               [ngModel]="searchQuery()"
               (ngModelChange)="searchQuery.set($event)"
               placeholder="{{ searchPlaceholder | t }}"
-              class="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none"
+              class="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 pr-8 pl-9 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none"
               (click)="$event.stopPropagation()"
             />
             @if (searchQuery()) {
@@ -95,7 +99,7 @@ export interface SelectOption {
           </div>
 
           <!-- Options list -->
-          <div class="max-h-60 overflow-y-auto space-y-0.5 [scrollbar-width:thin]">
+          <div class="max-h-60 [scrollbar-width:thin] space-y-0.5 overflow-y-auto">
             @if (allowNull) {
               <button
                 type="button"
@@ -117,7 +121,7 @@ export interface SelectOption {
             @for (opt of filteredOptions(); track opt.value) {
               <button
                 type="button"
-                class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs text-left transition"
+                class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition"
                 [class.bg-blue-50]="isSelected(opt.value)"
                 [class.text-blue-700]="isSelected(opt.value)"
                 [class.font-bold]="isSelected(opt.value)"
@@ -131,9 +135,11 @@ export interface SelectOption {
                     <span class="ml-1 text-[11px] text-slate-400">({{ opt.sublabel | t }})</span>
                   }
                 </div>
-                <div class="flex items-center gap-1.5 shrink-0 ml-2">
+                <div class="ml-2 flex shrink-0 items-center gap-1.5">
                   @if (opt.code) {
-                    <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 border border-slate-200">
+                    <span
+                      class="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500"
+                    >
                       {{ opt.code }}
                     </span>
                   }

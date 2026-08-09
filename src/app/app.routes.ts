@@ -42,12 +42,14 @@ export const routes: Routes = [
       {
         path: 'forgot-password',
         title: 'Quên mật khẩu',
-        loadComponent: () => import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
+        loadComponent: () =>
+          import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage),
       },
       {
         path: 'reset-password',
         title: 'Đặt lại mật khẩu',
-        loadComponent: () => import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
+        loadComponent: () =>
+          import('./features/auth/reset-password.page').then((m) => m.ResetPasswordPage),
       },
     ],
   },

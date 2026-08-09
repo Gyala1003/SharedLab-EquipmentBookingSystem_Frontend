@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
 import { env } from '../config/env'
-import { findTranslation, translateDynamicLocation } from './translate.pipe'
+import { clearTranslationCache, findTranslation, translateDynamicLocation } from './translate.pipe'
 import { translations } from './translations'
 
 export type SupportedLocale = 'vi' | 'en'
@@ -18,6 +18,7 @@ export class LanguageStore {
   }
 
   setLang(l: SupportedLocale): void {
+    clearTranslationCache()
     if (this.lang() === l) return
     this.lang.set(l)
     this.apply(l)
@@ -48,7 +49,7 @@ export class LanguageStore {
     try {
       localStorage.setItem(this.key, l)
       localStorage.setItem('app.locale', l)
-    } catch { }
+    } catch {}
     document.documentElement.lang = l
     if (this.translate) {
       this.translate.use(l)
@@ -57,12 +58,11 @@ export class LanguageStore {
 
   private resolveInitialLang(): SupportedLocale {
     try {
-      const stored = (localStorage.getItem('app.lang') || localStorage.getItem('app.locale')) as SupportedLocale
+      const stored = (localStorage.getItem('app.lang') ||
+        localStorage.getItem('app.locale')) as SupportedLocale
       if (stored === 'vi' || stored === 'en') return stored
-    } catch { }
+    } catch {}
     const defaultLoc = (env.defaultLocale as SupportedLocale) || 'vi'
     return defaultLoc === 'vi' || defaultLoc === 'en' ? defaultLoc : 'vi'
   }
 }
-
-

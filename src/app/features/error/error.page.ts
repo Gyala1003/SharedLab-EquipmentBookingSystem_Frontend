@@ -13,15 +13,21 @@ import { IconComponent } from '../../shared/ui/icon'
   imports: [RouterLink, IconComponent],
   template: `
     <section class="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
-      <div class="w-full max-w-xl rounded-[28px] border border-rose-200 bg-white p-6 shadow-2xl shadow-rose-950/5 sm:p-8">
+      <div
+        class="w-full max-w-xl rounded-[28px] border border-rose-200 bg-white p-6 shadow-2xl shadow-rose-950/5 sm:p-8"
+      >
         <!-- Icon & Status -->
         <div class="flex items-center gap-4 border-b border-slate-100 pb-5">
-          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 shadow-sm">
+          <div
+            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 shadow-sm"
+          >
             <app-icon name="alert" [size]="28" />
           </div>
           <div>
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-800">
-              <span class="h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+            <span
+              class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-800"
+            >
+              <span class="h-2 w-2 animate-ping rounded-full bg-rose-500"></span>
               Error
             </span>
             <h1 class="mt-1 text-2xl font-black tracking-tight text-slate-950">Lỗi kết nối</h1>
@@ -30,26 +36,34 @@ import { IconComponent } from '../../shared/ui/icon'
 
         <!-- Main Error Body -->
         <div class="mt-6">
-          <div class="rounded-2xl border border-rose-200/80 bg-gradient-to-br from-rose-50/80 to-amber-50/50 p-5">
-            <p class="text-sm font-extrabold text-rose-950 leading-6 whitespace-pre-line">
+          <div
+            class="rounded-2xl border border-rose-200/80 bg-gradient-to-br from-rose-50/80 to-amber-50/50 p-5"
+          >
+            <p class="text-sm leading-6 font-extrabold whitespace-pre-line text-rose-950">
               {{ cleanErrorMessage }}
             </p>
           </div>
         </div>
 
         <!-- Instructions -->
-        <div class="mt-6 rounded-2xl bg-blue-50/70 border border-blue-150 p-4 text-xs leading-5 text-blue-900">
-          <p class="font-black text-blue-950 flex items-center gap-1.5 mb-1">
+        <div
+          class="border-blue-150 mt-6 rounded-2xl border bg-blue-50/70 p-4 text-xs leading-5 text-blue-900"
+        >
+          <p class="mb-1 flex items-center gap-1.5 font-black text-blue-950">
             <app-icon name="sparkles" [size]="15" class="text-blue-600" />
             Hướng dẫn xử lý an toàn:
           </p>
           <p>
-            Ứng dụng của bạn <strong>không bị sập</strong>. Bạn chỉ cần nhấn nút <strong>"Quay lại trang trước"</strong> bên dưới để trở về màn hình làm việc trước đó, gửi phản hồi cho BE và tiếp tục sử dụng bình thường.
+            Ứng dụng của bạn <strong>không bị sập</strong>. Bạn chỉ cần nhấn nút
+            <strong>"Quay lại trang trước"</strong> bên dưới để trở về màn hình làm việc trước đó,
+            gửi phản hồi cho BE và tiếp tục sử dụng bình thường.
           </p>
         </div>
 
         <!-- Action Buttons -->
-        <div class="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
+        <div
+          class="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5"
+        >
           <button
             type="button"
             (click)="goBack()"
@@ -62,14 +76,14 @@ import { IconComponent } from '../../shared/ui/icon'
             <button
               type="button"
               (click)="reload()"
-              class="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm"
+              class="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
               <app-icon name="refresh" [size]="16" /> Thử lại
             </button>
 
             <a
               routerLink="/app/dashboard"
-              class="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm"
+              class="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
               <app-icon name="home" [size]="16" /> Trang chủ
             </a>

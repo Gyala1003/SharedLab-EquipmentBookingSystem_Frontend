@@ -11,7 +11,11 @@ import type {
 } from '../../core/api/api.models'
 import { SystemService } from '../../core/api/system.service'
 
-import type { BookingDetailResponse, CalendarEventResponse, UsageLogResponse } from '../../core/api/system.models'
+import type {
+  BookingDetailResponse,
+  CalendarEventResponse,
+  UsageLogResponse,
+} from '../../core/api/system.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
 import { LanguageStore } from '../../core/i18n/language.store'
@@ -61,12 +65,11 @@ interface ScheduleSlotEvent {
           <p class="mt-1 text-sm font-medium text-slate-500">{{ 'home.sub' | t }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-
           <a
             routerLink="/app/bookings/new"
             class="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 px-5 text-xs font-black text-white shadow-lg shadow-indigo-500/25 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-indigo-500/35"
           >
-            <span class="text-base font-bold leading-none">+</span>
+            <span class="text-base leading-none font-bold">+</span>
             {{ 'home.quickBooking' | t }}
           </a>
         </div>
@@ -77,7 +80,7 @@ interface ScheduleSlotEvent {
       } @else {
         <!-- Section: Lịch đặt của tôi (My Booking Calendar / Schedule Grid) -->
         <article class="card-surface overflow-hidden p-5 sm:p-6">
-          <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4">
+          <header class="flex flex-col gap-4 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-3">
               <div
                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"
@@ -141,13 +144,13 @@ interface ScheduleSlotEvent {
 
           <!-- Calendar Table / Schedule Grid -->
           <div
-            class="mt-2 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-inner [scrollbar-width:thin]"
+            class="mt-2 [scrollbar-width:thin] overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-inner"
           >
             <table class="w-full table-fixed border-collapse text-left text-xs">
               <thead>
                 <tr class="bg-[#1d4ed8] text-white">
                   <th
-                    class="w-28 border-r border-blue-500/30 px-3 py-3 font-extrabold whitespace-nowrap text-center"
+                    class="w-28 border-r border-blue-500/30 px-3 py-3 text-center font-extrabold whitespace-nowrap"
                   >
                     {{ 'home.timeSlot' | t }}
                   </th>
@@ -165,7 +168,7 @@ interface ScheduleSlotEvent {
                 <!-- Slot 1: 08:00 - 12:00 -->
                 <tr class="h-24 hover:bg-slate-50/50">
                   <td
-                    class="border-r border-slate-100 px-3 py-3 text-center text-[11px] font-black text-slate-600 whitespace-nowrap bg-slate-50/80"
+                    class="border-r border-slate-100 bg-slate-50/80 px-3 py-3 text-center text-[11px] font-black whitespace-nowrap text-slate-600"
                   >
                     08:00 - 12:00
                   </td>
@@ -175,26 +178,26 @@ interface ScheduleSlotEvent {
                     >
                       @for (evt of getSlotEvents(cIdx, 0); track evt.roomName + evt.timeStr) {
                         <div
-                          class="rounded-xl border p-2 text-[10px] shadow-sm transition hover:scale-[1.02] cursor-pointer space-y-0.5"
+                          class="cursor-pointer space-y-0.5 rounded-xl border p-2 text-[10px] shadow-sm transition hover:scale-[1.02]"
                           [ngClass]="{
                             'border-emerald-300 bg-emerald-50 text-emerald-950':
                               evt.tone === 'emerald',
                             'border-amber-300 bg-amber-50 text-amber-950': evt.tone === 'amber',
                             'border-cyan-300 bg-cyan-50 text-cyan-950': evt.tone === 'cyan',
-                            'border-indigo-300 bg-indigo-50 text-indigo-950':
-                              evt.tone === 'indigo',
-                            'border-purple-300 bg-purple-50 text-purple-950':
-                              evt.tone === 'purple',
+                            'border-indigo-300 bg-indigo-50 text-indigo-950': evt.tone === 'indigo',
+                            'border-purple-300 bg-purple-50 text-purple-950': evt.tone === 'purple',
                           }"
                           (click)="onScheduleEventClick(evt)"
                         >
-                          <p class="truncate font-black text-[11px] text-slate-900 leading-tight">
+                          <p class="truncate text-[11px] leading-tight font-black text-slate-900">
                             {{ evt.roomName | t }}
                           </p>
-                          <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
+                          <p
+                            class="truncate text-[10px] leading-tight font-bold text-indigo-900/90"
+                          >
                             {{ formatEventTitle(evt.title) }}
                           </p>
-                          <p class="text-[9px] font-semibold opacity-75 leading-tight">
+                          <p class="text-[9px] leading-tight font-semibold opacity-75">
                             {{ evt.timeStr }}
                           </p>
                         </div>
@@ -206,7 +209,7 @@ interface ScheduleSlotEvent {
                 <!-- Slot 2: 13:00 - 17:00 -->
                 <tr class="h-24 hover:bg-slate-50/50">
                   <td
-                    class="border-r border-slate-100 px-3 py-3 text-center text-[11px] font-black text-slate-600 whitespace-nowrap bg-slate-50/80"
+                    class="border-r border-slate-100 bg-slate-50/80 px-3 py-3 text-center text-[11px] font-black whitespace-nowrap text-slate-600"
                   >
                     13:00 - 17:00
                   </td>
@@ -216,26 +219,26 @@ interface ScheduleSlotEvent {
                     >
                       @for (evt of getSlotEvents(cIdx, 1); track evt.roomName + evt.timeStr) {
                         <div
-                          class="rounded-xl border p-2 text-[10px] shadow-sm transition hover:scale-[1.02] cursor-pointer space-y-0.5"
+                          class="cursor-pointer space-y-0.5 rounded-xl border p-2 text-[10px] shadow-sm transition hover:scale-[1.02]"
                           [ngClass]="{
                             'border-emerald-300 bg-emerald-50 text-emerald-950':
                               evt.tone === 'emerald',
                             'border-amber-300 bg-amber-50 text-amber-950': evt.tone === 'amber',
                             'border-cyan-300 bg-cyan-50 text-cyan-950': evt.tone === 'cyan',
-                            'border-indigo-300 bg-indigo-50 text-indigo-950':
-                              evt.tone === 'indigo',
-                            'border-purple-300 bg-purple-50 text-purple-950':
-                              evt.tone === 'purple',
+                            'border-indigo-300 bg-indigo-50 text-indigo-950': evt.tone === 'indigo',
+                            'border-purple-300 bg-purple-50 text-purple-950': evt.tone === 'purple',
                           }"
                           (click)="onScheduleEventClick(evt)"
                         >
-                          <p class="truncate font-black text-[11px] text-slate-900 leading-tight">
+                          <p class="truncate text-[11px] leading-tight font-black text-slate-900">
                             {{ evt.roomName | t }}
                           </p>
-                          <p class="truncate font-bold text-[10px] text-indigo-900/90 leading-tight">
+                          <p
+                            class="truncate text-[10px] leading-tight font-bold text-indigo-900/90"
+                          >
                             {{ formatEventTitle(evt.title) }}
                           </p>
-                          <p class="text-[9px] font-semibold opacity-75 leading-tight">
+                          <p class="text-[9px] leading-tight font-semibold opacity-75">
                             {{ evt.timeStr }}
                           </p>
                         </div>
@@ -258,8 +261,10 @@ interface ScheduleSlotEvent {
             </a>
 
             <!-- Legend items -->
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-bold text-slate-600">
-              <span class="text-slate-400 font-medium">{{ 'home.colorLegend' | t }}</span>
+            <div
+              class="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-bold text-slate-600"
+            >
+              <span class="font-medium text-slate-400">{{ 'home.colorLegend' | t }}</span>
               <span class="inline-flex items-center gap-1.5">
                 <span class="h-3 w-3 rounded-md bg-emerald-500"></span>
                 {{ 'home.legendMyBooking' | t }}
@@ -308,7 +313,11 @@ interface ScheduleSlotEvent {
       <!-- Modal Xem chi tiết Booking từ Lịch -->
       <app-modal
         [open]="detailOpen()"
-        [title]="detailBooking() ? 'Booking #BK-' + detailBooking()!.bookingId.toString().padStart(5, '0') : ('bookings.detailTitle' | t)"
+        [title]="
+          detailBooking()
+            ? 'Booking #BK-' + detailBooking()!.bookingId.toString().padStart(5, '0')
+            : ('bookings.detailTitle' | t)
+        "
         subtitle="{{ 'bookings.detailSubtitle' | t }}"
         (close)="closeBookingDetail()"
       >
@@ -317,42 +326,67 @@ interface ScheduleSlotEvent {
             <div class="skeleton h-8 rounded-xl"></div>
             <div class="skeleton h-32 rounded-xl"></div>
             <div class="pt-2 text-center">
-              <button type="button" class="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition shadow-sm" (click)="cancelLoadingAndShowError()">
-                <app-icon name="alert" [size]="14" class="text-amber-600" /> Dừng chờ & Báo lỗi Backend
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-800 shadow-sm transition hover:bg-amber-100"
+                (click)="cancelLoadingAndShowError()"
+              >
+                <app-icon name="alert" [size]="14" class="text-amber-600" /> Dừng chờ & Báo lỗi
+                Backend
               </button>
             </div>
           </div>
         } @else if (detailAccessDenied()) {
-          <div class="rounded-2xl border border-amber-200 bg-amber-50/90 p-6 text-center space-y-4 shadow-sm">
-            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner">
+          <div
+            class="space-y-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-6 text-center shadow-sm"
+          >
+            <div
+              class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner"
+            >
               <app-icon name="shield" [size]="28" />
             </div>
             <div>
-              <span class="inline-flex items-center gap-1 rounded-full bg-amber-200/80 px-3 py-0.5 text-[11px] font-black text-amber-900">
+              <span
+                class="inline-flex items-center gap-1 rounded-full bg-amber-200/80 px-3 py-0.5 text-[11px] font-black text-amber-900"
+              >
                 Phát hiện ngoại lệ Backend (BE Exception)
               </span>
-              <h3 class="mt-1 font-black text-slate-950 text-lg">Không có quyền xem chi tiết</h3>
+              <h3 class="mt-1 text-lg font-black text-slate-950">Không có quyền xem chi tiết</h3>
             </div>
-            
-            <div class="rounded-xl bg-white/90 p-4 border border-amber-200 text-left text-xs text-slate-800 space-y-1.5 shadow-sm">
-              <span class="font-black text-amber-900 flex items-center gap-1.5">
+
+            <div
+              class="space-y-1.5 rounded-xl border border-amber-200 bg-white/90 p-4 text-left text-xs text-slate-800 shadow-sm"
+            >
+              <span class="flex items-center gap-1.5 font-black text-amber-900">
                 <app-icon name="alert" [size]="15" class="text-amber-600" />
                 Ghi chú thông báo ngoại lệ từ Backend:
               </span>
-              <p class="whitespace-pre-line leading-relaxed font-bold text-amber-950 bg-amber-100/60 p-2.5 rounded-lg border border-amber-200/60 font-mono text-xs">
+              <p
+                class="rounded-lg border border-amber-200/60 bg-amber-100/60 p-2.5 font-mono text-xs leading-relaxed font-bold whitespace-pre-line text-amber-950"
+              >
                 {{ detailErrorMessage() || 'Bạn không có quyền xem booking này.' }}
               </p>
             </div>
 
-            <p class="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
-              Hệ thống đã nhận diện được ngoại lệ từ BE. Bạn có thể nhấn <strong>"Gửi báo lỗi về Backend"</strong> để cập nhật Data hoặc nhấn <strong>"Quay lại trang"</strong> để mở khóa ứng dụng và tiếp tục công việc.
+            <p class="mx-auto max-w-md text-xs leading-relaxed text-slate-500">
+              Hệ thống đã nhận diện được ngoại lệ từ BE. Bạn có thể nhấn
+              <strong>"Gửi báo lỗi về Backend"</strong> để cập nhật Data hoặc nhấn
+              <strong>"Quay lại trang"</strong> để mở khóa ứng dụng và tiếp tục công việc.
             </p>
 
-            <div class="pt-2 flex flex-wrap justify-center gap-2">
-              <button type="button" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 transition" (click)="sendErrorReportToBE()">
+            <div class="flex flex-wrap justify-center gap-2 pt-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700"
+                (click)="sendErrorReportToBE()"
+              >
                 <app-icon name="send" [size]="15" /> Gửi báo lỗi đến Data (BE)
               </button>
-              <button type="button" class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-50 transition shadow-sm" (click)="closeBookingDetail()">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+                (click)="closeBookingDetail()"
+              >
                 <app-icon name="arrow-left" [size]="15" /> Quay lại trang tiếp tục
               </button>
             </div>
@@ -363,7 +397,9 @@ interface ScheduleSlotEvent {
             <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 text-xs sm:grid-cols-2">
               <div>
                 <span class="text-slate-400">{{ 'common.status' | t }}:</span>
-                <div class="mt-1"><app-status-badge [value]="detail.status" domain="booking" /></div>
+                <div class="mt-1">
+                  <app-status-badge [value]="detail.status" domain="booking" />
+                </div>
               </div>
               <div>
                 <span class="text-slate-400">{{ 'bookings.priorityLevel' | t }}:</span>
@@ -371,21 +407,31 @@ interface ScheduleSlotEvent {
               </div>
               <div>
                 <span class="text-slate-400">{{ 'bookings.startTime' | t }}:</span>
-                <p class="mt-1 font-bold text-slate-800">{{ detail.startTime | date: 'HH:mm dd/MM/yyyy' }}</p>
+                <p class="mt-1 font-bold text-slate-800">
+                  {{ detail.startTime | date: 'HH:mm dd/MM/yyyy' }}
+                </p>
               </div>
               <div>
                 <span class="text-slate-400">{{ 'bookings.endTime' | t }}:</span>
-                <p class="mt-1 font-bold text-slate-800">{{ detail.endTime | date: 'HH:mm dd/MM/yyyy' }}</p>
+                <p class="mt-1 font-bold text-slate-800">
+                  {{ detail.endTime | date: 'HH:mm dd/MM/yyyy' }}
+                </p>
               </div>
               <div class="sm:col-span-2">
                 <span class="text-slate-400">{{ 'bookings.purposeDesc' | t }}:</span>
-                <p class="mt-1 font-bold text-slate-800">{{ labelOf('purpose', detail.purposeType, languageStore.lang()) }}</p>
+                <p class="mt-1 font-bold text-slate-800">
+                  {{ labelOf('purpose', detail.purposeType, languageStore.lang()) }}
+                </p>
                 @if (detail.purposeDescription) {
-                  <p class="mt-1 text-slate-600 whitespace-pre-line">{{ detail.purposeDescription }}</p>
+                  <p class="mt-1 whitespace-pre-line text-slate-600">
+                    {{ detail.purposeDescription }}
+                  </p>
                 }
               </div>
               @if (detail.rejectionReason) {
-                <div class="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800">
+                <div
+                  class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-800 sm:col-span-2"
+                >
                   <p class="font-bold">{{ 'bookings.rejectionReason' | t }}:</p>
                   <p class="mt-1">{{ detail.rejectionReason }}</p>
                 </div>
@@ -394,17 +440,35 @@ interface ScheduleSlotEvent {
 
             <!-- Danh sách tài nguyên -->
             <div>
-              <p class="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">{{ 'bookings.registeredResources' | t }}</p>
+              <p class="mb-2 text-xs font-black tracking-wider text-slate-400 uppercase">
+                {{ 'bookings.registeredResources' | t }}
+              </p>
               <div class="space-y-2">
                 @for (item of detail.items; track item.bookingItemId) {
-                  <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 text-xs">
+                  <div
+                    class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 text-xs"
+                  >
                     <div class="flex items-center gap-3">
-                      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
-                        <app-icon [name]="item.resourceType === 'LabRoom' ? 'building' : 'microscope'" [size]="16" />
+                      <span
+                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600"
+                      >
+                        <app-icon
+                          [name]="item.resourceType === 'LabRoom' ? 'building' : 'microscope'"
+                          [size]="16"
+                        />
                       </span>
                       <div>
-                        <p class="font-black text-slate-900">{{ (item.labName || item.equipmentName || ('Tài nguyên #' + item.bookingItemId)) | t }}</p>
-                        <p class="text-[10px] text-slate-400">{{ labelOf('resource', item.resourceType, languageStore.lang()) }} {{ item.note ? ' · ' + item.note : '' }}</p>
+                        <p class="font-black text-slate-900">
+                          {{
+                            item.labName ||
+                              item.equipmentName ||
+                              'Tài nguyên #' + item.bookingItemId | t
+                          }}
+                        </p>
+                        <p class="text-[10px] text-slate-400">
+                          {{ labelOf('resource', item.resourceType, languageStore.lang()) }}
+                          {{ item.note ? ' · ' + item.note : '' }}
+                        </p>
                       </div>
                     </div>
 
@@ -414,7 +478,7 @@ interface ScheduleSlotEvent {
                         @if (!logFor(item.bookingItemId)) {
                           <button
                             type="button"
-                            class="btn-primary py-1 px-3 text-xs"
+                            class="btn-primary px-3 py-1 text-xs"
                             [disabled]="!canCheckInNow(detail)"
                             (click)="checkInItem(item.bookingItemId)"
                           >
@@ -424,13 +488,16 @@ interface ScheduleSlotEvent {
                           @if (!log.actualCheckout) {
                             <button
                               type="button"
-                              class="btn-primary py-1 px-3 text-xs bg-rose-600 hover:bg-rose-700"
+                              class="btn-primary bg-rose-600 px-3 py-1 text-xs hover:bg-rose-700"
                               (click)="checkOutLog(log.logId)"
                             >
                               <app-icon name="logout" [size]="14" /> Check-out
                             </button>
                           } @else {
-                            <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">{{ 'bookings.checkedOut' | t }}</span>
+                            <span
+                              class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700"
+                              >{{ 'bookings.checkedOut' | t }}</span
+                            >
                           }
                         }
                       }
@@ -441,13 +508,21 @@ interface ScheduleSlotEvent {
             </div>
 
             <!-- Nút liên kết đến trang chi tiết đầy đủ -->
-            <div class="flex justify-between items-center border-t border-slate-100 pt-4">
-              <a [routerLink]="['/app/bookings', detail.bookingId]" class="btn-secondary text-xs" (click)="detailOpen.set(false)">
+            <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+              <a
+                [routerLink]="['/app/bookings', detail.bookingId]"
+                class="btn-secondary text-xs"
+                (click)="detailOpen.set(false)"
+              >
                 <app-icon name="arrow-right" [size]="15" /> {{ 'bookings.openFullDetail' | t }}
               </a>
 
               @if (detail.status === 'Pending' || detail.status === 'Approved') {
-                <button type="button" class="btn-secondary btn-danger text-xs" (click)="confirmCancel(detail)">
+                <button
+                  type="button"
+                  class="btn-secondary btn-danger text-xs"
+                  (click)="confirmCancel(detail)"
+                >
                   <app-icon name="x" [size]="15" /> {{ 'bookings.cancelThisBooking' | t }}
                 </button>
               }
@@ -465,7 +540,7 @@ interface ScheduleSlotEvent {
       >
         @if (selectedEventInfo(); as info) {
           <div class="space-y-4 text-xs">
-            <div class="rounded-2xl bg-slate-50 p-4 space-y-2">
+            <div class="space-y-2 rounded-2xl bg-slate-50 p-4">
               <div class="flex justify-between">
                 <span class="text-slate-400">Địa điểm / Phòng:</span>
                 <span class="font-black text-slate-800">{{ info.roomName }}</span>
@@ -480,7 +555,13 @@ interface ScheduleSlotEvent {
               </div>
             </div>
             <div class="flex justify-end pt-2">
-              <button type="button" class="btn-secondary text-xs" (click)="eventInfoOpen.set(false)">Đóng</button>
+              <button
+                type="button"
+                class="btn-secondary text-xs"
+                (click)="eventInfoOpen.set(false)"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         }
@@ -643,13 +724,15 @@ export class RequesterHomePage implements OnInit {
         .toLocaleString(lang === 'en' ? 'en-US' : 'vi-VN', { month: 'short' })
         .toUpperCase(),
       dayStr: new Date(b.startTime).getDate().toString().padStart(2, '0'),
-      title: this.purposeLabel(b.purposeType) || (lang === 'en' ? 'Research Project' : 'Dự án nghiên cứu'),
+      title:
+        this.purposeLabel(b.purposeType) ||
+        (lang === 'en' ? 'Research Project' : 'Dự án nghiên cứu'),
       timeStr: `${new Date(b.startTime).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(b.endTime).toLocaleTimeString(lang === 'en' ? 'en-US' : 'vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date(b.startTime).toLocaleDateString(lang === 'en' ? 'en-US' : 'vi-VN')}`,
     }))
   })
 
-  protected readonly pendingBookings = computed(() =>
-    this.bookings().filter((item) => item.status === 'Pending').length,
+  protected readonly pendingBookings = computed(
+    () => this.bookings().filter((item) => item.status === 'Pending').length,
   )
 
   protected readonly activeWaitlists = computed(() =>
@@ -667,7 +750,7 @@ export class RequesterHomePage implements OnInit {
     if (typeof status === 'string') return status
     return (
       ({ 1: 'Active', 2: 'Inactive', 3: 'Restricted', 4: 'Locked' } as Record<number, string>)[
-      status ?? 1
+        status ?? 1
       ] ?? 'Active'
     )
   })
@@ -676,8 +759,8 @@ export class RequesterHomePage implements OnInit {
     Math.max(
       0,
       100 -
-      this.violationSummary().penaltyPoints * 5 -
-      this.violationSummary().activeViolationCount * 5,
+        this.violationSummary().penaltyPoints * 5 -
+        this.violationSummary().activeViolationCount * 5,
     ),
   )
 
@@ -835,9 +918,12 @@ export class RequesterHomePage implements OnInit {
     const focus = this.calendarFocus()
     const from = new Date(focus.getFullYear(), focus.getMonth(), 1).toISOString()
     const to = new Date(focus.getFullYear(), focus.getMonth() + 1, 1).toISOString()
-    this.api.calendar(from, to).pipe(catchError(() => of([]))).subscribe((events) => {
-      this.calendarEvents.set(events)
-    })
+    this.api
+      .calendar(from, to)
+      .pipe(catchError(() => of([])))
+      .subscribe((events) => {
+        this.calendarEvents.set(events)
+      })
   }
 
   protected getSlotEvents(colIndex: number, rowIndex: number): ScheduleSlotEvent[] {
@@ -874,7 +960,9 @@ export class RequesterHomePage implements OnInit {
           const isEn = this.languageStore.lang() === 'en'
           const roomName = matchedEv?.resources?.length
             ? matchedEv.resources[0].resourceName
-            : (isEn ? `Lab Room (Booking #${b.bookingId})` : `Phòng Lab (Booking #${b.bookingId})`)
+            : isEn
+              ? `Lab Room (Booking #${b.bookingId})`
+              : `Phòng Lab (Booking #${b.bookingId})`
 
           events.push({
             roomName,
@@ -912,11 +1000,17 @@ export class RequesterHomePage implements OnInit {
             const isEn = this.languageStore.lang() === 'en'
             const roomName = ev.resources?.length
               ? ev.resources[0].resourceName
-              : (isEn ? 'Lab Room' : 'Phòng Lab')
+              : isEn
+                ? 'Lab Room'
+                : 'Phòng Lab'
 
             events.push({
               roomName,
-              title: isMaintenance ? (isEn ? `Maintenance: ${ev.title}` : `Bảo trì: ${ev.title}`) : ev.title,
+              title: isMaintenance
+                ? isEn
+                  ? `Maintenance: ${ev.title}`
+                  : `Bảo trì: ${ev.title}`
+                : ev.title,
               timeStr,
               dateKey: targetDateKey,
               rowIndex,
@@ -1058,7 +1152,10 @@ export class RequesterHomePage implements OnInit {
       .pipe(catchError(() => EMPTY))
       .subscribe({
         next: () => {
-          this.toast.success('Đã gửi thông tin báo lỗi về Backend (Data)!', 'Bạn có thể tiếp tục thao tác bình thường.')
+          this.toast.success(
+            'Đã gửi thông tin báo lỗi về Backend (Data)!',
+            'Bạn có thể tiếp tục thao tác bình thường.',
+          )
         },
         error: () => {
           this.toast.info('Đã hoàn tất phản hồi về Backend.', 'Ứng dụng đã sẵn sàng tiếp tục.')
@@ -1098,7 +1195,10 @@ export class RequesterHomePage implements OnInit {
   protected checkUserRestricted(): boolean {
     const status = this.store.user()?.status
     if (status === 'Restricted' || status === 3) {
-      this.toast.error('Tài khoản đang bị hạn chế', 'Tài khoản của bạn đang ở trạng thái Bị hạn chế do vi phạm điểm phạt. Không thể Check-in / Check-out.')
+      this.toast.error(
+        'Tài khoản đang bị hạn chế',
+        'Tài khoản của bạn đang ở trạng thái Bị hạn chế do vi phạm điểm phạt. Không thể Check-in / Check-out.',
+      )
       return true
     }
     return false
@@ -1114,7 +1214,11 @@ export class RequesterHomePage implements OnInit {
         }
       },
       error: (err: any) => {
-        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-in'
+        const msg =
+          err?.error?.message ||
+          (typeof err?.error === 'string' ? err.error : null) ||
+          err?.message ||
+          'Không thể check-in'
         this.toast.error('Không thể check-in', msg)
       },
     })
@@ -1122,7 +1226,12 @@ export class RequesterHomePage implements OnInit {
 
   protected checkOutLog(logId: number): void {
     if (this.checkUserRestricted()) return
-    if (!confirm('Xác nhận trả phòng / check-out? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)')) return
+    if (
+      !confirm(
+        'Xác nhận trả phòng / check-out? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)',
+      )
+    )
+      return
     this.api.checkOut(logId).subscribe({
       next: () => {
         this.toast.success('Check-out thành công', 'Phiên sử dụng đã kết thúc.')
@@ -1131,7 +1240,11 @@ export class RequesterHomePage implements OnInit {
         }
       },
       error: (err: any) => {
-        const msg = err?.error?.message || (typeof err?.error === 'string' ? err.error : null) || err?.message || 'Không thể check-out'
+        const msg =
+          err?.error?.message ||
+          (typeof err?.error === 'string' ? err.error : null) ||
+          err?.message ||
+          'Không thể check-out'
         this.toast.error('Không thể check-out', msg)
       },
     })

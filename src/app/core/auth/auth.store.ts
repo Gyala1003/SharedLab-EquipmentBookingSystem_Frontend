@@ -89,7 +89,9 @@ export class AuthStore {
 
   /** Strict match: normalize whitespace/underscore only, respect BE enum values exactly. */
   private matchRole(target: UserRole): boolean {
-    const raw = this.role().trim().replace(/[\s_]+/g, '')
+    const raw = this.role()
+      .trim()
+      .replace(/[\s_]+/g, '')
     const tgt = target.trim().replace(/[\s_]+/g, '')
     return raw.toLowerCase() === tgt.toLowerCase()
   }
@@ -120,7 +122,9 @@ export class AuthStore {
       this.clearStorage()
       return null
     }
-    const raw = sessionStorage.getItem(USER_KEY) ?? (this.tokens.isRemembered ? localStorage.getItem(USER_KEY) : null)
+    const raw =
+      sessionStorage.getItem(USER_KEY) ??
+      (this.tokens.isRemembered ? localStorage.getItem(USER_KEY) : null)
     if (!raw || raw === 'undefined' || raw === 'null') {
       this.clearStorage()
       return null

@@ -34,7 +34,10 @@ export const landingGuard: CanActivateFn = () => {
 }
 
 export function landingPath(role: string): string {
-  const normalized = role?.trim().replace(/[\s_]+/g, '').toLowerCase()
+  const normalized = role
+    ?.trim()
+    .replace(/[\s_]+/g, '')
+    .toLowerCase()
   if (normalized === ROLE.Admin.toLowerCase()) return '/app/dashboard'
   if (normalized === ROLE.LabManager.toLowerCase()) return '/app/calendar'
   return '/app/home'

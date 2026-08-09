@@ -18,48 +18,108 @@ import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-pending-bookings-page',
-  imports: [DatePipe, FormsModule, RouterLink, PageHeaderComponent, IconComponent, ModalComponent, DataStateComponent, TranslatePipe],
+  imports: [
+    DatePipe,
+    FormsModule,
+    RouterLink,
+    PageHeaderComponent,
+    IconComponent,
+    ModalComponent,
+    DataStateComponent,
+    TranslatePipe,
+  ],
   template: `
     <section class="space-y-6">
-      <app-page-header [title]="'pendingBookings.title' | t" [subtitle]="'pendingBookings.subtitle' | t">
-        <a routerLink="/app/management/bookings" class="btn-secondary"><app-icon name="list" [size]="17" /> {{ 'nav.manageBookings' | t }}</a>
+      <app-page-header
+        [title]="'pendingBookings.title' | t"
+        [subtitle]="'pendingBookings.subtitle' | t"
+      >
+        <a routerLink="/app/management/bookings" class="btn-secondary"
+          ><app-icon name="list" [size]="17" /> {{ 'nav.manageBookings' | t }}</a
+        >
       </app-page-header>
-      <div class="rounded-[26px] border border-violet-200 bg-gradient-to-r from-violet-50 to-cyan-50 p-5">
+      <div
+        class="rounded-[26px] border border-violet-200 bg-gradient-to-r from-violet-50 to-cyan-50 p-5"
+      >
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm"><app-icon name="sparkles" [size]="22" /></div>
-          <div class="flex-1">
-            <p class="font-black text-slate-900">{{ 'pendingBookings.priorityPrincipleTitle' | t }}</p>
-            <p class="mt-1 text-sm leading-6 text-slate-600">{{ 'pendingBookings.priorityPrincipleDesc' | t }}</p>
+          <div
+            class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm"
+          >
+            <app-icon name="sparkles" [size]="22" />
           </div>
-          <span class="rounded-2xl bg-white px-4 py-3 text-2xl font-black text-violet-700 shadow-sm">{{ items().length }}</span>
+          <div class="flex-1">
+            <p class="font-black text-slate-900">
+              {{ 'pendingBookings.priorityPrincipleTitle' | t }}
+            </p>
+            <p class="mt-1 text-sm leading-6 text-slate-600">
+              {{ 'pendingBookings.priorityPrincipleDesc' | t }}
+            </p>
+          </div>
+          <span
+            class="rounded-2xl bg-white px-4 py-3 text-2xl font-black text-violet-700 shadow-sm"
+            >{{ items().length }}</span
+          >
         </div>
       </div>
       @if (loading()) {
         <div class="card-surface p-6"><div class="skeleton h-96 rounded-2xl"></div></div>
       } @else if (items().length === 0) {
-        <app-data-state [title]="'pendingBookings.noPendingTitle' | t" [message]="'pendingBookings.noPendingSub' | t" icon="check" />
+        <app-data-state
+          [title]="'pendingBookings.noPendingTitle' | t"
+          [message]="'pendingBookings.noPendingSub' | t"
+          icon="check"
+        />
       } @else {
         <div class="space-y-4">
           @for (item of items(); track item.bookingId; let rank = $index) {
             <article class="card-surface p-5 transition hover:-translate-y-1 sm:p-6">
               <div class="flex flex-col gap-5 lg:flex-row lg:items-center">
-                <div class="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl" [class.bg-violet-600]="rank === 0" [class.text-white]="rank === 0" [class.bg-slate-100]="rank !== 0" [class.text-slate-600]="rank !== 0">
+                <div
+                  class="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl"
+                  [class.bg-violet-600]="rank === 0"
+                  [class.text-white]="rank === 0"
+                  [class.bg-slate-100]="rank !== 0"
+                  [class.text-slate-600]="rank !== 0"
+                >
                   <span class="text-[9px] font-black uppercase">#{{ rank + 1 }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex flex-wrap items-center gap-2">
-                    <a [routerLink]="['/app/bookings', item.bookingId]" class="text-lg font-black text-slate-950 hover:text-violet-700">Booking #{{ item.bookingId }}</a>
-                    <span class="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-black text-violet-700">P{{ item.priorityLevel ?? '—' }}</span>
+                    <a
+                      [routerLink]="['/app/bookings', item.bookingId]"
+                      class="text-lg font-black text-slate-950 hover:text-violet-700"
+                      >Booking #{{ item.bookingId }}</a
+                    >
+                    <span
+                      class="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-black text-violet-700"
+                      >P{{ item.priorityLevel ?? '—' }}</span
+                    >
                   </div>
-                  <p class="mt-2 text-sm font-bold text-slate-600">{{ labelOf('purpose', item.purposeType, languageStore.lang()) }}{{ item.userName ? ' · ' + item.userName : '' }}</p>
-                  <p class="mt-2 flex items-center gap-2 text-xs text-slate-400"><app-icon name="clock" [size]="15" /> {{ item.startTime | date: 'HH:mm dd/MM/yyyy' }} – {{ item.endTime | date: 'HH:mm dd/MM/yyyy' }}</p>
-                  <p class="mt-1 text-xs text-slate-400">{{ item.createdAt | date: 'HH:mm:ss dd/MM/yyyy' }}</p>
+                  <p class="mt-2 text-sm font-bold text-slate-600">
+                    {{ labelOf('purpose', item.purposeType, languageStore.lang()) }} · User #{{
+                      item.userId
+                    }}
+                  </p>
+                  <p class="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                    <app-icon name="clock" [size]="15" />
+                    {{ item.startTime | date: 'HH:mm dd/MM/yyyy' }} –
+                    {{ item.endTime | date: 'HH:mm dd/MM/yyyy' }}
+                  </p>
+                  <p class="mt-1 text-xs text-slate-400">
+                    {{ item.createdAt | date: 'HH:mm:ss dd/MM/yyyy' }}
+                  </p>
                 </div>
                 <div class="flex shrink-0 gap-2">
-                  <a [routerLink]="['/app/bookings', item.bookingId]" class="btn-secondary">{{ 'common.details' | t }}</a>
+                  <a [routerLink]="['/app/bookings', item.bookingId]" class="btn-secondary">{{
+                    'common.details' | t
+                  }}</a>
                   @if (store.isManager()) {
-                    <button class="btn-secondary btn-danger" (click)="openReject(item)"><app-icon name="x" [size]="16" /> {{ 'pendingBookings.reject' | t }}</button>
-                    <button class="btn-primary" (click)="approve(item)"><app-icon name="check" [size]="16" /> {{ 'pendingBookings.approve' | t }}</button>
+                    <button class="btn-secondary btn-danger" (click)="openReject(item)">
+                      <app-icon name="x" [size]="16" /> {{ 'pendingBookings.reject' | t }}
+                    </button>
+                    <button class="btn-primary" (click)="approve(item)">
+                      <app-icon name="check" [size]="16" /> {{ 'pendingBookings.approve' | t }}
+                    </button>
                   }
                 </div>
               </div>
@@ -67,12 +127,25 @@ import { labelOf } from '../../shared/utils/presentation'
           }
         </div>
       }
-      <app-modal [open]="rejectOpen()" [title]="'pendingBookings.reject' | t" [subtitle]="selected() ? 'Booking #' + selected()!.bookingId : ''" (close)="rejectOpen.set(false)">
+      <app-modal
+        [open]="rejectOpen()"
+        [title]="'pendingBookings.reject' | t"
+        [subtitle]="selected() ? 'Booking #' + selected()!.bookingId : ''"
+        (close)="rejectOpen.set(false)"
+      >
         <label class="field-label">Lý do từ chối *</label>
-        <textarea class="textarea-shell" [(ngModel)]="reason" placeholder="Nêu rõ lý do để người đặt điều chỉnh..."></textarea>
+        <textarea
+          class="textarea-shell"
+          [(ngModel)]="reason"
+          placeholder="Nêu rõ lý do để người đặt điều chỉnh..."
+        ></textarea>
         <div class="mt-5 flex justify-end gap-2">
-          <button class="btn-secondary" (click)="rejectOpen.set(false)">{{ 'common.cancel' | t }}</button>
-          <button class="btn-primary" [disabled]="!reason.trim()" (click)="reject()">{{ 'common.apply' | t }}</button>
+          <button class="btn-secondary" (click)="rejectOpen.set(false)">
+            {{ 'common.cancel' | t }}
+          </button>
+          <button class="btn-primary" [disabled]="!reason.trim()" (click)="reject()">
+            {{ 'common.apply' | t }}
+          </button>
         </div>
       </app-modal>
     </section>
@@ -101,7 +174,11 @@ export class PendingBookingsPage implements OnInit {
         this.toast.success('Đã duyệt booking')
         this.load()
       },
-      error: () => this.toast.error('Không thể duyệt booking', 'Slot có thể vừa phát sinh xung đột hoặc booking không còn Pending.'),
+      error: () =>
+        this.toast.error(
+          'Không thể duyệt booking',
+          'Slot có thể vừa phát sinh xung đột hoặc booking không còn Pending.',
+        ),
     })
   }
 
@@ -128,16 +205,23 @@ export class PendingBookingsPage implements OnInit {
     this.loading.set(true)
     forkJoin({
       pending: this.api.pendingBookings(),
-      usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>())))
+      usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>()))),
     }).subscribe({
       next: ({ pending, usersMap }) => {
         usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
 
         const enriched = pending.map((b) => ({
           ...b,
-          userName: usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null
+          userName:
+            usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null,
         }))
-        this.items.set([...enriched].sort((a, b) => (a.priorityLevel ?? 999) - (b.priorityLevel ?? 999) || +new Date(a.createdAt) - +new Date(b.createdAt)))
+        this.items.set(
+          [...enriched].sort(
+            (a, b) =>
+              (a.priorityLevel ?? 999) - (b.priorityLevel ?? 999) ||
+              +new Date(a.createdAt) - +new Date(b.createdAt),
+          ),
+        )
         this.loading.set(false)
 
         const sampleBookingsToResolve: BookingResponse[] = []
@@ -151,26 +235,31 @@ export class PendingBookingsPage implements OnInit {
 
         if (sampleBookingsToResolve.length > 0) {
           const detailReqs = sampleBookingsToResolve.map((b) =>
-            this.api.booking(b.bookingId).pipe(catchError(() => of(null)))
+            this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
           )
-          from(detailReqs).pipe(mergeMap(req => req, 3), toArray()).subscribe((details) => {
-            let updated = false
-            const current = [...this.items()]
-            for (const d of details) {
-              if (d && d.userId && d.userName) {
-                this.api.setCachedUserName(d.userId, d.userName)
-                for (const item of current) {
-                  if (item.userId === d.userId && !item.userName) {
-                    item.userName = d.userName
-                    updated = true
+          from(detailReqs)
+            .pipe(
+              mergeMap((req) => req, 3),
+              toArray(),
+            )
+            .subscribe((details) => {
+              let updated = false
+              const current = [...this.items()]
+              for (const d of details) {
+                if (d && d.userId && d.userName) {
+                  this.api.setCachedUserName(d.userId, d.userName)
+                  for (const item of current) {
+                    if (item.userId === d.userId && !item.userName) {
+                      item.userName = d.userName
+                      updated = true
+                    }
                   }
                 }
               }
-            }
-            if (updated) {
-              this.items.set([...current])
-            }
-          })
+              if (updated) {
+                this.items.set([...current])
+              }
+            })
         }
       },
       error: () => {

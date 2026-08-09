@@ -23,12 +23,16 @@ function getDefaultConfig(): SystemMaintenanceConfig {
     enabled: false,
     title: 'Nâng cấp & Bảo trì hệ thống',
     titleEn: 'System Maintenance & Upgrade',
-    subtitle: 'SharedLab Workspace đang thực hiện nâng cấp hạ tầng & bảo trì cơ sở dữ liệu định kỳ.',
-    subtitleEn: 'SharedLab Workspace is undergoing scheduled infrastructure upgrades and database maintenance.',
+    subtitle:
+      'SharedLab Workspace đang thực hiện nâng cấp hạ tầng & bảo trì cơ sở dữ liệu định kỳ.',
+    subtitleEn:
+      'SharedLab Workspace is undergoing scheduled infrastructure upgrades and database maintenance.',
     startTime: now.toISOString(),
     endTime: end.toISOString(),
-    description: 'Mọi thao tác mượn phòng, mượn thiết bị và gửi yêu cầu tạm thời bị gián đoạn để đảm bảo an toàn dữ liệu hệ thống. Quý người dùng vui lòng quay lại sau khi khoảng thời gian bảo trì kết thúc.',
-    descriptionEn: 'All room bookings, equipment requests, and management actions are temporarily suspended to ensure system data integrity. Please try again after the maintenance window ends.',
+    description:
+      'Mọi thao tác mượn phòng, mượn thiết bị và gửi yêu cầu tạm thời bị gián đoạn để đảm bảo an toàn dữ liệu hệ thống. Quý người dùng vui lòng quay lại sau khi khoảng thời gian bảo trì kết thúc.',
+    descriptionEn:
+      'All room bookings, equipment requests, and management actions are temporarily suspended to ensure system data integrity. Please try again after the maintenance window ends.',
     createdAt: now.toISOString(),
     createdBy: 'System Admin',
   }
@@ -101,8 +105,12 @@ export class SystemMaintenanceStore {
       titleEn: payload?.titleEn || 'System Maintenance & Upgrade',
       startTime: payload?.startTime || now.toISOString(),
       endTime: payload?.endTime || end.toISOString(),
-      description: payload?.description || 'Mọi thao tác mượn phòng, mượn thiết bị và gửi yêu cầu tạm thời bị gián đoạn. Quý người dùng vui lòng quay lại sau.',
-      descriptionEn: payload?.descriptionEn || 'All room bookings, equipment requests, and management actions are temporarily suspended. Please try again after maintenance completes.',
+      description:
+        payload?.description ||
+        'Mọi thao tác mượn phòng, mượn thiết bị và gửi yêu cầu tạm thời bị gián đoạn. Quý người dùng vui lòng quay lại sau.',
+      descriptionEn:
+        payload?.descriptionEn ||
+        'All room bookings, equipment requests, and management actions are temporarily suspended. Please try again after maintenance completes.',
       createdAt: now.toISOString(),
       createdBy: payload?.createdBy || 'System Admin',
     })

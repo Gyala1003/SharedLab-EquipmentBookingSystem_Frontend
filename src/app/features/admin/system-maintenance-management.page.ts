@@ -26,7 +26,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 
       <!-- Status Hero Banner -->
       <article
-        class="card-surface overflow-hidden border p-6 transition shadow-sm"
+        class="card-surface overflow-hidden border p-6 shadow-sm transition"
         [class]="
           config().enabled
             ? 'border-amber-200 bg-gradient-to-r from-amber-50/70 via-white to-amber-50/30'
@@ -50,10 +50,10 @@ import { ToastService } from '../../shared/ui/toast.service'
               <div class="flex items-center gap-2">
                 <span
                   class="h-2.5 w-2.5 rounded-full"
-                  [class]="config().enabled ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'"
+                  [class]="config().enabled ? 'animate-ping bg-amber-500' : 'bg-emerald-500'"
                 ></span>
                 <strong
-                  class="text-xs font-black uppercase tracking-wider"
+                  class="text-xs font-black tracking-wider uppercase"
                   [class]="config().enabled ? 'text-amber-800' : 'text-emerald-800'"
                 >
                   {{
@@ -65,11 +65,7 @@ import { ToastService } from '../../shared/ui/toast.service'
               </div>
 
               <h2 class="mt-1 text-xl font-black text-slate-950">
-                {{
-                  config().enabled
-                    ? config().title
-                    : ('systemMaintenance.normalOperation' | t)
-                }}
+                {{ config().enabled ? config().title : ('systemMaintenance.normalOperation' | t) }}
               </h2>
 
               <p class="mt-1 text-xs font-medium text-slate-500">
@@ -88,8 +84,8 @@ import { ToastService } from '../../shared/ui/toast.service'
             class="inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl px-6 text-xs font-bold text-white shadow-md transition"
             [class]="
               config().enabled
-                ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
-                : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+                ? 'bg-rose-600 shadow-rose-600/20 hover:bg-rose-700'
+                : 'bg-amber-600 shadow-amber-600/20 hover:bg-amber-700'
             "
             (click)="toggleMaintenanceMode()"
           >
@@ -107,9 +103,8 @@ import { ToastService } from '../../shared/ui/toast.service'
 
       <!-- Main Form & Quick Presets -->
       <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
-        
         <!-- Form: Tạo / Cấu hình lịch bảo trì -->
-        <article class="card-surface p-6 sm:p-8 space-y-6">
+        <article class="card-surface space-y-6 p-6 sm:p-8">
           <div class="border-b border-slate-100 pb-4">
             <h3 class="text-lg font-black text-slate-950">
               {{ 'systemMaintenance.formHeader' | t }}
@@ -196,7 +191,9 @@ import { ToastService } from '../../shared/ui/toast.service'
             </div>
 
             <!-- Enable Switch Checkbox -->
-            <div class="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 border border-slate-100">
+            <div
+              class="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4"
+            >
               <input
                 type="checkbox"
                 id="enableSchedule"
@@ -204,13 +201,13 @@ import { ToastService } from '../../shared/ui/toast.service'
                 [(ngModel)]="formEnable"
                 name="formEnable"
               />
-              <label for="enableSchedule" class="text-xs font-bold text-slate-800 cursor-pointer">
+              <label for="enableSchedule" class="cursor-pointer text-xs font-bold text-slate-800">
                 {{ 'systemMaintenance.activateImmediately' | t }}
               </label>
             </div>
 
             <!-- Submit Button -->
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <div class="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
               <button
                 type="submit"
                 class="btn-primary inline-flex h-11 items-center gap-2 px-6 shadow-md"
@@ -224,10 +221,9 @@ import { ToastService } from '../../shared/ui/toast.service'
 
         <!-- Sidebar: Quick Presets & Guidance -->
         <div class="space-y-6">
-          
           <!-- Quick Presets -->
-          <article class="card-surface p-6 space-y-4">
-            <h4 class="text-sm font-black text-slate-900 flex items-center gap-2">
+          <article class="card-surface space-y-4 p-6">
+            <h4 class="flex items-center gap-2 text-sm font-black text-slate-900">
               <app-icon name="zap" [size]="16" class="text-amber-500" />
               <span>{{ 'systemMaintenance.presetsTitle' | t }}</span>
             </h4>
@@ -239,7 +235,7 @@ import { ToastService } from '../../shared/ui/toast.service'
             <div class="space-y-2">
               <button
                 type="button"
-                class="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-bold text-slate-700 transition hover:border-cyan-400 hover:bg-cyan-50/50"
+                class="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-bold text-slate-700 transition hover:border-cyan-400 hover:bg-cyan-50/50"
                 (click)="applyPreset(1)"
               >
                 <span>+1 {{ 'systemMaintenance.hourEmergency' | t }}</span>
@@ -248,7 +244,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 
               <button
                 type="button"
-                class="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-bold text-slate-700 transition hover:border-cyan-400 hover:bg-cyan-50/50"
+                class="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-bold text-slate-700 transition hover:border-cyan-400 hover:bg-cyan-50/50"
                 (click)="applyPreset(4)"
               >
                 <span>+4 {{ 'systemMaintenance.hoursScheduled' | t }}</span>
@@ -257,7 +253,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 
               <button
                 type="button"
-                class="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-bold text-slate-700 transition hover:border-cyan-400 hover:bg-cyan-50/50"
+                class="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-bold text-slate-700 transition hover:border-cyan-400 hover:bg-cyan-50/50"
                 (click)="applyOvernightPreset()"
               >
                 <span>{{ 'systemMaintenance.overnightPreset' | t }}</span>
@@ -267,20 +263,18 @@ import { ToastService } from '../../shared/ui/toast.service'
           </article>
 
           <!-- System Guidance Card -->
-          <article class="card-surface p-6 bg-slate-900 text-slate-200 space-y-3">
-            <h4 class="text-sm font-black text-white flex items-center gap-2">
+          <article class="card-surface space-y-3 bg-slate-900 p-6 text-slate-200">
+            <h4 class="flex items-center gap-2 text-sm font-black text-white">
               <app-icon name="shield" [size]="16" class="text-cyan-400" />
               <span>{{ 'systemMaintenance.adminRulesTitle' | t }}</span>
             </h4>
-            <ul class="list-disc pl-4 text-xs space-y-2 text-slate-400 leading-relaxed">
+            <ul class="list-disc space-y-2 pl-4 text-xs leading-relaxed text-slate-400">
               <li>{{ 'systemMaintenance.adminRule1' | t }}</li>
               <li>{{ 'systemMaintenance.adminRule2' | t }}</li>
               <li>{{ 'systemMaintenance.adminRule3' | t }}</li>
             </ul>
           </article>
-
         </div>
-
       </div>
     </section>
   `,

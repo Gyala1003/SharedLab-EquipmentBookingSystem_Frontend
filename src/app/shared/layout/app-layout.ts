@@ -67,7 +67,7 @@ interface NavGroup {
         >
           <a
             [routerLink]="homeLink()"
-            class="group flex items-center gap-3 min-w-0 flex-1 transition hover:opacity-85 cursor-pointer"
+            class="group flex min-w-0 flex-1 cursor-pointer items-center gap-3 transition hover:opacity-85"
             (click)="mobileOpen.set(false)"
             title="{{ 'nav.items.home' | t }}"
           >
@@ -80,7 +80,9 @@ interface NavGroup {
               <p class="text-[10px] font-black tracking-[0.24em] text-blue-700 uppercase">
                 {{ 'app.name' | t }}
               </p>
-              <p class="mt-0.5 truncate text-sm font-black text-slate-900">{{ 'app.tagline' | t }}</p>
+              <p class="mt-0.5 truncate text-sm font-black text-slate-900">
+                {{ 'app.tagline' | t }}
+              </p>
             </div>
           </a>
           <button
@@ -251,17 +253,42 @@ export class AppLayoutComponent implements OnInit {
       labelKey: 'nav.groups.overview',
       items: [
         { labelKey: 'nav.items.home', icon: 'home', route: '/app/home', roles: ['Requester'] },
-        { labelKey: 'nav.items.dashboard', icon: 'dashboard', route: '/app/dashboard', roles: ['Admin'] },
-        { labelKey: 'nav.items.calendar', icon: 'calendar', route: '/app/calendar', roles: ['LabManager', 'Admin'] },
+        {
+          labelKey: 'nav.items.dashboard',
+          icon: 'dashboard',
+          route: '/app/dashboard',
+          roles: ['Admin'],
+        },
+        {
+          labelKey: 'nav.items.calendar',
+          icon: 'calendar',
+          route: '/app/calendar',
+          roles: ['LabManager', 'Admin'],
+        },
       ],
     },
     {
       labelKey: 'nav.groups.personal',
       roles: ['Requester'],
       items: [
-        { labelKey: 'nav.items.myBookings', icon: 'calendar', route: '/app/bookings/my', roles: ['Requester'] },
-        { labelKey: 'nav.items.myWaitlist', icon: 'clock', route: '/app/waitlists/my', roles: ['Requester'] },
-        { labelKey: 'nav.items.violations', icon: 'shield', route: '/app/violations/my', roles: ['Requester'] },
+        {
+          labelKey: 'nav.items.myBookings',
+          icon: 'calendar',
+          route: '/app/bookings/my',
+          roles: ['Requester'],
+        },
+        {
+          labelKey: 'nav.items.myWaitlist',
+          icon: 'clock',
+          route: '/app/waitlists/my',
+          roles: ['Requester'],
+        },
+        {
+          labelKey: 'nav.items.violations',
+          icon: 'shield',
+          route: '/app/violations/my',
+          roles: ['Requester'],
+        },
       ],
     },
     {
@@ -316,7 +343,12 @@ export class AppLayoutComponent implements OnInit {
       items: [
         { labelKey: 'nav.items.users', icon: 'users', route: '/app/admin/users' },
         { labelKey: 'nav.items.departments', icon: 'building', route: '/app/admin/departments' },
-        { labelKey: 'nav.items.systemMaintenance', icon: 'wrench', route: '/app/admin/system-maintenance' },
+        { labelKey: 'nav.items.auditLogs', icon: 'history', route: '/app/admin/audit-logs' },
+        {
+          labelKey: 'nav.items.systemMaintenance',
+          icon: 'wrench',
+          route: '/app/admin/system-maintenance',
+        },
       ],
     },
   ]
@@ -359,7 +391,7 @@ export class AppLayoutComponent implements OnInit {
       .unreadCount(user.userId)
       .pipe(
         delay(2000),
-        catchError(() => of({ userId: user.userId, unreadCount: 0 }))
+        catchError(() => of({ userId: user.userId, unreadCount: 0 })),
       )
       .subscribe((response) => this.badge.set(response.unreadCount))
     if (this.store.isRequester()) this.detectPendingCheckout(user.userId)
@@ -394,8 +426,11 @@ export class AppLayoutComponent implements OnInit {
           .sort((a, b) => +new Date(b.endTime) - +new Date(a.endTime))
           .slice(0, 3)
         if (!candidates.length) return
-        forkJoin(candidates.map((b) => this.api.usageLogsByBooking(b.bookingId).pipe(catchError(() => of([])))))
-          .subscribe((logsList) => {
+        forkJoin(
+          candidates.map((b) =>
+            this.api.usageLogsByBooking(b.bookingId).pipe(catchError(() => of([]))),
+          ),
+        ).subscribe((logsList) => {
           for (let i = 0; i < candidates.length; i++) {
             const booking = candidates[i]
             const pendingLog = logsList[i].find((log) => log.actualCheckin && !log.actualCheckout)
@@ -410,9 +445,8 @@ export class AppLayoutComponent implements OnInit {
             this.pendingCheckoutOpen.set(true)
             break
           }
-        },
-      )
-    })
+        })
+      })
   }
 
   protected snoozePendingCheckout(): void {
