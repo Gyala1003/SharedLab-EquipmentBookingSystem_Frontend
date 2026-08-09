@@ -147,8 +147,7 @@ import { getFirstDayOfMonth, getLastDayOfMonth, labelOf, toDateInput } from '../
 
                     <!-- Người đặt -->
                     <td>
-                      <p class="font-black text-slate-900 text-xs">{{ item.userName || ('User #' + item.userId) }}</p>
-                      <p class="mt-0.5 text-[10px] font-bold text-slate-400">ID: #{{ item.userId }}</p>
+                      <p class="font-black text-slate-900 text-xs">{{ item.userName || 'Người dùng' }}</p>
                     </td>
 
                     <!-- Mục đích sử dụng -->

@@ -94,7 +94,6 @@ import { labelOf } from '../../shared/utils/presentation'
               <thead>
                 <tr>
                   <th>{{ 'manageViolations.title' | t }}</th>
-                  <th>{{ 'nav.users' | t }}</th>
                   <th>Booking</th>
                   <th>{{ 'manageViolations.violationType' | t }}</th>
                   <th>{{ 'manageViolations.points' | t }}</th>
@@ -107,7 +106,6 @@ import { labelOf } from '../../shared/utils/presentation'
                 @for (item of filtered(); track item.violationId) {
                   <tr>
                     <td class="font-black text-slate-900">#VP-{{ item.violationId }}</td>
-                    <td><span class="font-black text-violet-700">User #{{ item.userId }}</span></td>
                     <td><a [routerLink]="['/app/bookings', item.bookingId]" class="font-black text-indigo-700 hover:underline">#BK-{{ item.bookingId }}</a></td>
                     <td>{{ labelOf('violationType', item.violationType, languageStore.lang()) }}</td>
                     <td><span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-black text-rose-700">+{{ item.penaltyPointsAdded }}</span></td>
@@ -144,7 +142,7 @@ import { labelOf } from '../../shared/utils/presentation'
               <select class="input-shell" (change)="onSelectBooking($event)">
                 <option value="">-- Chọn một Booking để tự động điền --</option>
                 @for (b of bookings(); track b.bookingId) {
-                  <option [value]="b.bookingId">#BK-{{ b.bookingId }} · User #{{ b.userId }} · {{ b.startTime | date: 'dd/MM HH:mm' }} → {{ b.endTime | date: 'HH:mm' }} ({{ b.status }})</option>
+                  <option [value]="b.bookingId">#BK-{{ b.bookingId }} · {{ b.userName || 'Người dùng' }} · {{ b.startTime | date: 'dd/MM HH:mm' }} → {{ b.endTime | date: 'HH:mm' }} ({{ b.status }})</option>
                 }
               </select>
               <p class="mt-1.5 text-xs text-slate-400">Chọn booking để tự động điền Booking ID và User ID bên dưới.</p>
@@ -299,7 +297,7 @@ export class ViolationsManagementPage implements OnInit {
       if (b) {
         this.form.bookingId = b.bookingId
         this.form.userId = b.userId
-        this.selectedBookingInfo.set(`Đã chọn Booking #BK-${b.bookingId} — User #${b.userId}`)
+        this.selectedBookingInfo.set(`Đã chọn Booking #BK-${b.bookingId} — ${b.userName || 'Người dùng'}`)
       }
     } else {
       this.form.bookingId = null

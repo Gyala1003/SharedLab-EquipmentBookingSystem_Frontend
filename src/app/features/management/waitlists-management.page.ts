@@ -93,7 +93,6 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
                 <tr>
                   <th>{{ 'common.position' | t }}</th>
                   <th>{{ 'common.waitlist' | t }}</th>
-                  <th>{{ 'nav.items.users' | t }}</th>
                   <th>{{ 'common.resource' | t }}</th>
                   <th>{{ 'common.timeSlot' | t }}</th>
                   <th>{{ 'common.notifications' | t }}</th>
@@ -106,7 +105,6 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
                   <tr>
                     <td><span class="flex h-10 min-w-10 items-center justify-center rounded-2xl bg-violet-50 px-3 font-black text-violet-700">#{{ item.queuePosition }}</span></td>
                     <td class="font-black text-slate-900">#WL-{{ item.waitlistId }}</td>
-                    <td>User #{{ item.userId }}</td>
                     <td><p class="font-bold text-slate-800">{{ resourceName(item) }}</p></td>
                     <td><p class="font-bold text-slate-700">{{ item.requestedStart | date: 'HH:mm dd/MM' }}</p><p class="mt-1 text-xs text-slate-400">{{ item.requestedEnd | date: 'HH:mm dd/MM' }}</p></td>
                     <td>{{ item.notifiedAt ? (item.notifiedAt | date: 'HH:mm dd/MM/yyyy') : '—' }}</td>

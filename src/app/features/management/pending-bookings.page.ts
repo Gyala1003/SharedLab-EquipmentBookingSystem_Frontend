@@ -51,7 +51,7 @@ import { labelOf } from '../../shared/utils/presentation'
                     <a [routerLink]="['/app/bookings', item.bookingId]" class="text-lg font-black text-slate-950 hover:text-violet-700">Booking #{{ item.bookingId }}</a>
                     <span class="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-black text-violet-700">P{{ item.priorityLevel ?? '—' }}</span>
                   </div>
-                  <p class="mt-2 text-sm font-bold text-slate-600">{{ labelOf('purpose', item.purposeType, languageStore.lang()) }} · User #{{ item.userId }}</p>
+                  <p class="mt-2 text-sm font-bold text-slate-600">{{ labelOf('purpose', item.purposeType, languageStore.lang()) }}{{ item.userName ? ' · ' + item.userName : '' }}</p>
                   <p class="mt-2 flex items-center gap-2 text-xs text-slate-400"><app-icon name="clock" [size]="15" /> {{ item.startTime | date: 'HH:mm dd/MM/yyyy' }} – {{ item.endTime | date: 'HH:mm dd/MM/yyyy' }}</p>
                   <p class="mt-1 text-xs text-slate-400">{{ item.createdAt | date: 'HH:mm:ss dd/MM/yyyy' }}</p>
                 </div>
