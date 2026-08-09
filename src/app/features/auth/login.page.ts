@@ -73,12 +73,9 @@ export class LoginPage {
     this.showSuccess.set(false)
 
     const identifier = this.form.controls.email.getRawValue().trim()
-    const isEmail = identifier.includes('@')
     const payload: LoginPayload = {
-      // Send only the relevant field so BE contract is respected.
-      // If identifier contains '@', treat as email; otherwise as username.
-      email: isEmail ? identifier : undefined,
-      username: !isEmail ? identifier : undefined,
+      email: identifier,
+      username: identifier,
       password: this.form.controls.password.getRawValue(),
     }
 

@@ -197,6 +197,10 @@ export class LabsPage implements OnInit {
       next: (result) => {
         let filtered = result.items || []
 
+        if (!this.store.isAdmin()) {
+          filtered = filtered.filter(l => l.status !== 'Inactive' && l.status !== '4' && String(l.status).toLowerCase() !== 'inactive')
+        }
+
         if (this.keyword && this.keyword.trim().length > 0) {
           const kw = this.keyword.toLowerCase().trim()
           filtered = filtered.filter(l =>
