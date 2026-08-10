@@ -213,7 +213,7 @@ import {
                         #BK-{{ item.bookingId.toString().padStart(5, '0') }}
                       </button>
                       <p class="mt-1 text-[10px] font-semibold text-slate-400">
-                        Tạo: {{ item.createdAt | date: 'dd/MM/yyyy' }}
+                        {{ 'common.created' | t }}{{ item.createdAt | date: 'dd/MM/yyyy' }}
                       </p>
                     </td>
 

@@ -162,7 +162,6 @@ import { labelOf } from '../../shared/utils/presentation'
                   <th>{{ 'nav.users' | t }}</th>
                   <th>{{ 'users.role' | t }}</th>
                   <th>{{ 'departments.title' | t }}</th>
-                  <th>{{ 'users.penaltyPoints' | t }}</th>
                   <th>{{ 'common.status' | t }}</th>
                   <th>{{ 'users.restrictionUntil' | t }}</th>
                   <th></th>
@@ -193,14 +192,6 @@ import { labelOf } from '../../shared/utils/presentation'
                       >
                     </td>
                     <td>{{ user.departmentName }}</td>
-                    <td>
-                      <span
-                        class="font-black"
-                        [class.text-rose-600]="user.penaltyPoints > 0"
-                        [class.text-slate-700]="user.penaltyPoints === 0"
-                        >{{ user.penaltyPoints }}</span
-                      >
-                    </td>
                     <td><app-status-badge [value]="user.status" domain="user" /></td>
                     <td>
                       {{

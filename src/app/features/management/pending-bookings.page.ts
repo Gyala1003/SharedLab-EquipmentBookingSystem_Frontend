@@ -83,31 +83,64 @@ import { labelOf } from '../../shared/utils/presentation'
                 >
                   <span class="text-[9px] font-black uppercase">#{{ rank + 1 }}</span>
                 </div>
-                <div class="min-w-0 flex-1">
+                <div class="min-w-0 flex-1 space-y-2.5">
                   <div class="flex flex-wrap items-center gap-2">
                     <a
                       [routerLink]="['/app/bookings', item.bookingId]"
-                      class="text-lg font-black text-slate-950 hover:text-violet-700"
+                      class="text-lg font-black text-slate-950 transition hover:text-violet-700"
                       >Booking #{{ item.bookingId }}</a
                     >
                     <span
-                      class="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-black text-violet-700"
+                      class="rounded-full bg-violet-100/90 px-2.5 py-0.5 text-xs font-black text-violet-800"
                       >P{{ item.priorityLevel ?? '—' }}</span
                     >
+                    <span
+                      class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700"
+                      >{{ labelOf('purpose', item.purposeType, languageStore.lang()) }}</span
+                    >
                   </div>
-                  <p class="mt-2 text-sm font-bold text-slate-600">
-                    {{ labelOf('purpose', item.purposeType, languageStore.lang()) }} · User #{{
-                      item.userId
-                    }}
-                  </p>
-                  <p class="mt-2 flex items-center gap-2 text-xs text-slate-400">
-                    <app-icon name="clock" [size]="15" />
-                    {{ item.startTime | date: 'HH:mm dd/MM/yyyy' }} –
-                    {{ item.endTime | date: 'HH:mm dd/MM/yyyy' }}
-                  </p>
-                  <p class="mt-1 text-xs text-slate-400">
-                    {{ item.createdAt | date: 'HH:mm:ss dd/MM/yyyy' }}
-                  </p>
+
+                  <!-- Clear Booker Identity & Resource Details -->
+                  <div class="flex flex-wrap items-center gap-2.5 text-xs">
+                    <!-- Booker Name & User ID -->
+                    <div
+                      class="inline-flex items-center gap-2 rounded-xl border border-violet-100 bg-violet-50/90 px-3 py-1.5 font-extrabold text-violet-950"
+                    >
+                      <app-icon name="user" [size]="15" class="text-violet-600" />
+                      <span>{{ 'pendingBookings.booker' | t }}:</span>
+                      <span class="font-black text-slate-900">{{
+                        item.userName || 'User #' + item.userId
+                      }}</span>
+                      <span
+                        class="rounded-md bg-white px-1.5 py-0.5 font-mono text-[11px] font-bold text-slate-500 shadow-2xs"
+                      >
+                        #{{ item.userId }}
+                      </span>
+                    </div>
+
+                    <!-- Resource Summary -->
+                    @if (item.resourceSummary) {
+                      <div
+                        class="inline-flex items-center gap-2 rounded-xl border border-cyan-100 bg-cyan-50/90 px-3 py-1.5 font-semibold text-cyan-950"
+                      >
+                        <app-icon name="box" [size]="15" class="text-cyan-600" />
+                        <span class="font-black text-slate-900">{{ item.resourceSummary }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Time details -->
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                    <span class="flex items-center gap-1.5 font-medium text-slate-700">
+                      <app-icon name="clock" [size]="14" class="text-slate-400" />
+                      {{ item.startTime | date: 'HH:mm dd/MM/yyyy' }} –
+                      {{ item.endTime | date: 'HH:mm dd/MM/yyyy' }}
+                    </span>
+                    <span class="flex items-center gap-1 text-slate-400">
+                      <span>Tạo lúc:</span>
+                      {{ item.createdAt | date: 'HH:mm:ss dd/MM/yyyy' }}
+                    </span>
+                  </div>
                 </div>
                 <div class="flex shrink-0 gap-2">
                   <a [routerLink]="['/app/bookings', item.bookingId]" class="btn-secondary">{{
@@ -156,7 +189,7 @@ export class PendingBookingsPage implements OnInit {
   private readonly toast = inject(ToastService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
-  protected readonly items = signal<BookingResponse[]>([])
+  protected readonly items = signal<(BookingResponse & { resourceSummary?: string | null })[]>([])
   protected readonly loading = signal(true)
   protected readonly rejectOpen = signal(false)
   protected readonly selected = signal<BookingResponse | null>(null)
@@ -224,17 +257,9 @@ export class PendingBookingsPage implements OnInit {
         )
         this.loading.set(false)
 
-        const sampleBookingsToResolve: BookingResponse[] = []
-        const seenUserIds = new Set<number>()
-        for (const b of enriched) {
-          if (!b.userName && !seenUserIds.has(b.userId)) {
-            seenUserIds.add(b.userId)
-            sampleBookingsToResolve.push(b)
-          }
-        }
-
-        if (sampleBookingsToResolve.length > 0) {
-          const detailReqs = sampleBookingsToResolve.map((b) =>
+        const bookingsToResolve = [...enriched]
+        if (bookingsToResolve.length > 0) {
+          const detailReqs = bookingsToResolve.map((b) =>
             this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
           )
           from(detailReqs)
@@ -244,12 +269,35 @@ export class PendingBookingsPage implements OnInit {
             )
             .subscribe((details) => {
               let updated = false
-              const current = [...this.items()]
+              const current = [
+                ...this.items(),
+              ] as (BookingResponse & { resourceSummary?: string | null })[]
               for (const d of details) {
-                if (d && d.userId && d.userName) {
-                  this.api.setCachedUserName(d.userId, d.userName)
+                if (d && d.bookingId) {
+                  if (d.userId && d.userName) {
+                    this.api.setCachedUserName(d.userId, d.userName)
+                  }
+                  const summary =
+                    d.items
+                      ?.map((i) =>
+                        i.equipmentName
+                          ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
+                          : i.labName,
+                      )
+                      .filter(Boolean)
+                      .join(' · ') || null
+
                   for (const item of current) {
-                    if (item.userId === d.userId && !item.userName) {
+                    if (item.bookingId === d.bookingId) {
+                      if (d.userName) item.userName = d.userName
+                      if (summary) item.resourceSummary = summary
+                      updated = true
+                    } else if (
+                      d.userId &&
+                      item.userId === d.userId &&
+                      !item.userName &&
+                      d.userName
+                    ) {
                       item.userName = d.userName
                       updated = true
                     }

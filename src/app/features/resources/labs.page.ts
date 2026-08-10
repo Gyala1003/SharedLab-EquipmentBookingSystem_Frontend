@@ -152,11 +152,26 @@ interface LabForm {
                     [src]="getLabImage(lab)"
                     [alt]="lab.labName"
                     class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    [class.grayscale]="lab.status === 'Inactive' || lab.status === '4' || lab.status === 'inactive'"
                   />
                 }
                 <div
                   class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"
                 ></div>
+
+                @if (lab.status === 'Inactive' || lab.status === '4' || lab.status === 'inactive') {
+                  <div class="pointer-events-none absolute inset-0 bg-rose-950/50 backdrop-blur-[1px]"></div>
+                  <svg class="pointer-events-none absolute inset-0 h-full w-full stroke-rose-500/85" stroke-width="4" stroke-linecap="round">
+                    <line x1="0" y1="0" x2="100%" y2="100%" />
+                    <line x1="100%" y1="0" x2="0" y2="100%" />
+                  </svg>
+                  <div class="pointer-events-none absolute inset-0 flex items-center justify-center pb-8">
+                    <div class="flex items-center gap-2 rounded-full border-2 border-rose-500 bg-rose-600/90 px-4 py-1.5 font-black text-xs text-white uppercase tracking-widest shadow-xl shadow-rose-950/50 backdrop-blur-md">
+                      <app-icon name="ban" [size]="16" />
+                      <span>INACTIVE</span>
+                    </div>
+                  </div>
+                }
 
                 <div
                   class="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-slate-950/85 to-transparent p-5 pt-14"
@@ -227,11 +242,19 @@ interface LabForm {
                 <tr>
                   <td>
                     <div class="flex items-center gap-3">
-                      <img
-                        [src]="getLabImage(lab)"
-                        [alt]="lab.labName"
-                        class="h-10 w-10 shrink-0 rounded-xl object-cover"
-                      />
+                      <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl">
+                        <img
+                          [src]="getLabImage(lab)"
+                          [alt]="lab.labName"
+                          class="h-full w-full object-cover"
+                          [class.grayscale]="lab.status === 'Inactive' || lab.status === '4'"
+                        />
+                        @if (lab.status === 'Inactive' || lab.status === '4') {
+                          <div class="absolute inset-0 bg-rose-950/70 flex items-center justify-center text-rose-400">
+                            <app-icon name="ban" [size]="16" />
+                          </div>
+                        }
+                      </div>
                       <div>
                         <p class="font-black text-slate-900">{{ lab.labName | t }}</p>
                         <p class="mt-0.5 text-xs text-slate-400">{{ lab.roomCode }}</p>
@@ -286,23 +309,23 @@ interface LabForm {
       <!-- Modal Tạo phòng -->
       <app-modal
         [open]="createOpen()"
-        title="Thêm phòng thí nghiệm"
-        subtitle="Thông tin được gửi trực tiếp tới POST /api/LabRooms."
+        [title]="'labs.createTitle' | t"
+        [subtitle]="'labs.createSubtitle' | t"
         (close)="createOpen.set(false)"
       >
         <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="create()" ngNativeValidate>
           <div>
-            <label class="field-label">Tên phòng *</label
+            <label class="field-label">{{ 'labs.roomName' | t }} *</label
             ><input
               class="input-shell"
               required
               [(ngModel)]="form.labName"
               name="labName"
-              placeholder="Phòng Nghiên cứu AI"
+              [placeholder]="'labs.roomNamePlaceholder' | t"
             />
           </div>
           <div>
-            <label class="field-label">Mã phòng *</label
+            <label class="field-label">{{ 'labs.roomCode' | t }} *</label
             ><input
               class="input-shell"
               required
@@ -312,17 +335,17 @@ interface LabForm {
             />
           </div>
           <div>
-            <label class="field-label">Vị trí *</label
+            <label class="field-label">{{ 'labs.location' | t }} *</label
             ><input
               class="input-shell"
               required
               [(ngModel)]="form.location"
               name="location"
-              placeholder="Tầng 4, nhà A"
+              [placeholder]="'labs.locationPlaceholder' | t"
             />
           </div>
           <div>
-            <label class="field-label">Sức chứa *</label
+            <label class="field-label">{{ 'labs.capacity' | t }} *</label
             ><input
               class="input-shell"
               type="number"
@@ -335,7 +358,7 @@ interface LabForm {
           <div class="sm:col-span-2">
             <label class="field-label">LabManager *</label
             ><select class="input-shell" required [(ngModel)]="form.managerId" name="managerId">
-              <option [ngValue]="null">Chọn người quản lý</option>
+              <option [ngValue]="null">{{ 'labs.selectManager' | t }}</option>
               @for (manager of managers(); track manager.userId) {
                 <option [ngValue]="manager.userId">
                   {{ manager.fullName }} · {{ manager.email }}
@@ -344,16 +367,16 @@ interface LabForm {
             </select>
           </div>
           <div class="sm:col-span-2">
-            <label class="field-label">Mô tả</label
+            <label class="field-label">{{ 'common.description' | t }}</label
             ><textarea
               class="textarea-shell"
               [(ngModel)]="form.description"
               name="description"
-              placeholder="Mô tả ngắn về không gian và mục đích sử dụng..."
+              [placeholder]="'labs.descPlaceholder' | t"
             ></textarea>
           </div>
           <div class="sm:col-span-2">
-            <label class="field-label">URL ảnh</label
+            <label class="field-label">{{ 'common.imageUrl' | t }}</label
             ><input
               class="input-shell"
               [(ngModel)]="form.imageUrl"
@@ -362,7 +385,7 @@ interface LabForm {
             />
           </div>
           <div class="sm:col-span-2">
-            <label class="field-label">Hướng dẫn sử dụng</label
+            <label class="field-label">{{ 'common.usageGuideline' | t }}</label
             ><textarea
               class="textarea-shell"
               [(ngModel)]="form.usageGuideline"
@@ -370,9 +393,11 @@ interface LabForm {
             ></textarea>
           </div>
           <div class="mt-2 flex justify-end gap-2 sm:col-span-2">
-            <button type="button" class="btn-secondary" (click)="createOpen.set(false)">Hủy</button
+            <button type="button" class="btn-secondary" (click)="createOpen.set(false)">
+              {{ 'common.cancel' | t }}
+            </button
             ><button class="btn-primary" [disabled]="saving()">
-              {{ saving() ? 'Đang lưu...' : 'Tạo phòng lab' }}
+              {{ saving() ? ('common.saving' | t) : ('labs.create' | t) }}
             </button>
           </div>
         </form>
@@ -418,9 +443,9 @@ interface LabForm {
             />
           </div>
           <div>
-            <label class="field-label">{{ 'common.manager' | t }}</label
+            <label class="field-label">Manager</label
             ><select class="input-shell" [(ngModel)]="editManagerId" name="eManagerId">
-              <option [ngValue]="null">{{ 'common.none' | t }}</option>
+              <option [ngValue]="null">{{ (editingLab() && 'managerName' in editingLab()! ? $any(editingLab()).managerName : null) || ('lab.unassigned' | t) }}</option>
               @for (manager of managers(); track manager.userId) {
                 <option [ngValue]="manager.userId">{{ manager.fullName }}</option>
               }
