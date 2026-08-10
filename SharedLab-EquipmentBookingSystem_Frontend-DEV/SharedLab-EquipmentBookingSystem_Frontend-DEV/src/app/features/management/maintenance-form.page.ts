@@ -1,10 +1,12 @@
 import { NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { catchError, forkJoin, of } from 'rxjs'
+import { catchError, forkJoin, map, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type { EquipmentResponse, LabRoomResponse } from '../../core/api/system.models'
+import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { ToastService } from '../../shared/ui/toast.service'
@@ -64,61 +66,85 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe'
         </div>
         @if (resourceType === 'lab') {
           <div class="mt-5">
-            <label class="field-label">{{ 'maintenanceForm.labRoom' | t }} *</label
-            ><select class="input-shell" required [(ngModel)]="labId" name="labId">
+            <label class="field-label">{{ 'maintenanceForm.labRoom' | t }} *</label>
+            <select class="input-shell" required [(ngModel)]="labId" name="labId">
               <option [ngValue]="null">{{ 'maintenanceForm.selectLab' | t }}</option>
               @for (lab of labs(); track lab.labId) {
-                <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option>
+                <option [ngValue]="lab.labId">{{ (lab.labName | t) }} · {{ lab.roomCode }}</option>
               }
             </select>
           </div>
         } @else {
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="field-label">{{ 'maintenanceForm.equipmentLab' | t }}</label
-              ><select
+              <label class="field-label">{{ 'maintenanceForm.equipmentLab' | t }}</label>
+              <select
                 class="input-shell"
-                [(ngModel)]="equipmentLabId"
+                [ngModel]="equipmentLabId"
+                (ngModelChange)="onLabChange($event)"
                 name="equipmentLabId"
-                (ngModelChange)="equipmentId = null"
               >
-                <option [ngValue]="null">{{ 'maintenanceForm.allLabs' | t }}</option>
+                <option [ngValue]="null">
+                  {{ (store.isManager() && !store.isAdmin() ? 'maintenanceForm.allManagedLabs' : 'maintenanceForm.allLabs') | t }}
+                </option>
                 @for (lab of labs(); track lab.labId) {
-                  <option [ngValue]="lab.labId">{{ lab.labName }}</option>
+                  <option [ngValue]="lab.labId">{{ (lab.labName | t) }}</option>
                 }
               </select>
+              <p class="mt-1.5 text-xs font-medium text-slate-400">
+                {{ 'maintenanceForm.filterLabHint' | t }}
+              </p>
             </div>
             <div>
-              <label class="field-label">{{ 'maintenanceForm.equipment' | t }} *</label
-              ><select class="input-shell" required [(ngModel)]="equipmentId" name="equipmentId">
+              <label class="field-label">{{ 'maintenanceForm.equipment' | t }} *</label>
+              <select
+                class="input-shell"
+                required
+                [ngModel]="equipmentId"
+                (ngModelChange)="onEquipmentChange($event)"
+                name="equipmentId"
+              >
                 <option [ngValue]="null">{{ 'maintenanceForm.selectEquipment' | t }}</option>
                 @for (eq of equipmentOptions(); track eq.equipmentId) {
-                  <option [ngValue]="eq.equipmentId">{{ eq.equipmentName }}</option>
+                  <option [ngValue]="eq.equipmentId">
+                    {{ (eq.equipmentName | t) }}{{ labNameFor(eq.labId) }}
+                  </option>
                 }
               </select>
+              <p class="mt-1.5 text-xs font-medium text-slate-400">
+                {{ 'maintenanceForm.autoAssignLabHint' | t }}
+              </p>
             </div>
           </div>
         }
         <div class="mt-5 grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="field-label">{{ 'maintenanceForm.startTime' | t }} *</label
-            ><input
+            <label class="field-label">{{ 'maintenanceForm.startTime' | t }} *</label>
+            <input
               class="input-shell"
               type="datetime-local"
               required
+              [min]="minStartTime"
               [(ngModel)]="startTime"
               name="startTime"
             />
+            <p class="mt-1.5 text-xs font-medium text-slate-400">
+              {{ 'maintenanceForm.startTimeHint' | t }}
+            </p>
           </div>
           <div>
-            <label class="field-label">{{ 'maintenanceForm.endTime' | t }} *</label
-            ><input
+            <label class="field-label">{{ 'maintenanceForm.endTime' | t }} *</label>
+            <input
               class="input-shell"
               type="datetime-local"
               required
+              [min]="minEndTime"
               [(ngModel)]="endTime"
               name="endTime"
             />
+            <p class="mt-1.5 text-xs font-medium text-slate-400">
+              {{ 'maintenanceForm.endTimeHint' | t }}
+            </p>
           </div>
           <div>
             <label class="field-label">{{ 'maintenanceForm.cost' | t }}</label
@@ -201,6 +227,9 @@ export class MaintenanceFormPage implements OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
+  private readonly cdr = inject(ChangeDetectorRef)
+  protected readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly equipments = signal<EquipmentResponse[]>([])
   protected readonly saving = signal(false)
@@ -209,14 +238,24 @@ export class MaintenanceFormPage implements OnInit {
   protected labId: number | null = null
   protected equipmentLabId: number | null = null
   protected equipmentId: number | null = null
-  protected startTime = toLocalDateTimeInput(new Date(Date.now() + 24 * 60 * 60_000))
-  protected endTime = toLocalDateTimeInput(new Date(Date.now() + 26 * 60 * 60_000))
+  protected startTime = toLocalDateTimeInput(new Date(Date.now() + 60_000))
+  protected endTime = toLocalDateTimeInput(new Date(Date.now() + (2 * 60 + 1) * 60_000))
   protected cost = 0
   protected notes = ''
   protected recurrenceType = 0
   protected recurrenceInterval = 1
   protected recurrenceEndDate = ''
   private id = 0
+
+  protected get minStartTime(): string {
+    return toLocalDateTimeInput(new Date(Date.now() + 60_000))
+  }
+
+  protected get minEndTime(): string {
+    const start = this.startTime ? new Date(this.startTime) : new Date()
+    return toLocalDateTimeInput(new Date(start.getTime() + 30 * 60 * 1000))
+  }
+
   protected readonly equipmentOptions = computed(() =>
     this.equipmentLabId
       ? this.equipments().filter((x) => x.labId === this.equipmentLabId)
@@ -231,13 +270,32 @@ export class MaintenanceFormPage implements OnInit {
   ngOnInit(): void {
     this.id = Number(this.route.snapshot.paramMap.get('id'))
     this.editing.set(Boolean(this.id))
+
+    const user = this.store.user()
+    const isManagerOnly = this.store.isManager() && !this.store.isAdmin() && user?.userId
+
+    const labs$ = isManagerOnly
+      ? this.api.searchLabs({ managerId: user.userId, pageSize: 100 }).pipe(
+          map((res) => res.items || []),
+          catchError(() => this.api.labs()),
+        )
+      : this.api.labs().pipe(catchError(() => of([])))
+
     forkJoin({
-      labs: this.api.labs().pipe(catchError(() => of([]))),
+      labs: labs$,
       equipments: this.api.equipments().pipe(catchError(() => of([]))),
     }).subscribe(
       ({ labs, equipments }) => {
-        this.labs.set(labs as any)
-        this.equipments.set(equipments as any)
+        let allowedLabs = labs as LabRoomResponse[]
+        let allowedEquipments = equipments as EquipmentResponse[]
+
+        if (isManagerOnly) {
+          const allowedLabIds = new Set(allowedLabs.map((l) => l.labId))
+          allowedEquipments = allowedEquipments.filter((eq) => allowedLabIds.has(eq.labId))
+        }
+
+        this.labs.set(allowedLabs)
+        this.equipments.set(allowedEquipments)
         if (!this.id) {
           const query = this.route.snapshot.queryParamMap
           const labId = Number(query.get('labId'))
@@ -246,11 +304,12 @@ export class MaintenanceFormPage implements OnInit {
             this.resourceType = 'equipment'
             this.equipmentId = equipmentId
             this.equipmentLabId =
-              (equipments as any[])?.find((item: any) => item.equipmentId === equipmentId)?.labId ?? null
+              (allowedEquipments as any[])?.find((item: any) => item.equipmentId === equipmentId)?.labId ?? null
           } else if (labId > 0) {
             this.resourceType = 'lab'
             this.labId = labId
           }
+          this.cdr.markForCheck()
           return
         }
         this.api.maintenance(this.id).subscribe({
@@ -259,21 +318,26 @@ export class MaintenanceFormPage implements OnInit {
             this.labId = item.labId
             this.equipmentId = item.equipmentId
             this.equipmentLabId =
-              (equipments as any[])?.find((equipment: any) => equipment.equipmentId === item.equipmentId)?.labId ??
-              null
+              (allowedEquipments as any[])?.find((equipment: any) => equipment.equipmentId === item.equipmentId)?.labId ??
+              (item.labId ? item.labId : null)
             this.startTime = toLocalDateTimeInput(item.startTime)
             this.endTime = toLocalDateTimeInput(item.endTime)
             this.cost = item.maintenanceCost
             this.notes = item.notes ?? ''
-            this.recurrenceType = ['None', 'Daily', 'Weekly', 'Monthly'].indexOf(
-              item.recurrenceType,
-            )
-            this.recurrenceInterval = item.recurrenceInterval
+            const recIdx = ['None', 'Daily', 'Weekly', 'Monthly'].indexOf(item.recurrenceType)
+            this.recurrenceType = recIdx >= 0 ? recIdx : 0
+            this.recurrenceInterval = item.recurrenceInterval || 1
             this.recurrenceEndDate = item.recurrenceEndDate
               ? toLocalDateTimeInput(item.recurrenceEndDate)
               : ''
+
+            this.cdr.markForCheck()
+            this.cdr.detectChanges()
           },
-          error: () => this.toast.error('Không tải được lịch bảo trì'),
+          error: () => {
+            this.toast.error(this.languageStore.t('maintenanceForm.loadError'))
+            this.cdr.markForCheck()
+          },
         })
       },
     )
@@ -284,17 +348,62 @@ export class MaintenanceFormPage implements OnInit {
       this.equipmentId = null
       this.equipmentLabId = null
     } else this.labId = null
+    this.cdr.markForCheck()
   }
+
+  protected onLabChange(newLabId: number | null): void {
+    this.equipmentLabId = newLabId
+    if (this.equipmentId) {
+      const selectedEq = this.equipments().find((e) => e.equipmentId === this.equipmentId)
+      if (newLabId && selectedEq && selectedEq.labId !== newLabId) {
+        this.equipmentId = null
+      }
+    }
+    this.cdr.markForCheck()
+  }
+
+  protected onEquipmentChange(newEquipmentId: number | null): void {
+    this.equipmentId = newEquipmentId
+    if (newEquipmentId) {
+      const selectedEq = this.equipments().find((e) => e.equipmentId === newEquipmentId)
+      if (selectedEq && selectedEq.labId) {
+        this.equipmentLabId = selectedEq.labId
+      }
+    }
+    this.cdr.markForCheck()
+  }
+
+  protected labNameFor(labId: number): string {
+    const lab = this.labs().find((l) => l.labId === labId)
+    if (!lab) return ''
+    const translatedLab = this.languageStore.t(lab.labName)
+    const prefix = this.languageStore.isEn() ? 'Lab: ' : 'Phòng: '
+    return ` (${prefix}${translatedLab})`
+  }
+
   protected submit(): void {
     if (
       (this.resourceType === 'lab' && !this.labId) ||
       (this.resourceType === 'equipment' && !this.equipmentId)
     ) {
-      this.toast.info('Hãy chọn tài nguyên')
+      this.toast.info(this.languageStore.t('maintenanceForm.selectResourceError'))
       return
     }
-    if (new Date(this.startTime) >= new Date(this.endTime)) {
-      this.toast.info('Thời gian không hợp lệ')
+
+    const startMs = new Date(this.startTime).getTime()
+    const endMs = new Date(this.endTime).getTime()
+    const nowMs = Date.now()
+
+    // 1. Start time must be at least 1 minute after current time (with 10s buffer for fast submit)
+    if (startMs < nowMs + 50_000) {
+      this.toast.error(this.languageStore.t('maintenanceForm.pastTimeError'))
+      return
+    }
+
+    // 2. End time must be at least 30 minutes after start time
+    const minEndMs = startMs + 30 * 60 * 1000
+    if (endMs < minEndMs) {
+      this.toast.error(this.languageStore.t('maintenanceForm.minDurationError'))
       return
     }
 
@@ -313,15 +422,22 @@ export class MaintenanceFormPage implements OnInit {
 
     const completed = (maintenanceId: number, showReminder = false): void => {
       this.saving.set(false)
-      this.toast.success(this.editing() ? 'Đã cập nhật lịch bảo trì' : 'Đã tạo lịch bảo trì')
+      this.toast.success(
+        this.editing()
+          ? this.languageStore.t('maintenanceForm.updateSuccess')
+          : this.languageStore.t('maintenanceForm.createSuccess'),
+      )
       if (showReminder) {
-        this.toast.info('Hệ thống sẽ gửi email nhắc 15 phút trước và tự chuyển sang "InProgress" khi đến giờ.')
+        this.toast.info(this.languageStore.t('maintenanceForm.reminderNotice'))
       }
       void this.router.navigate(['/app/management/maintenances', maintenanceId])
     }
     const failed = (): void => {
       this.saving.set(false)
-      this.toast.error('Không thể lưu lịch bảo trì', 'Kiểm tra xung đột và phạm vi quyền quản lý.')
+      this.toast.error(
+        this.languageStore.t('maintenanceForm.saveErrorTitle'),
+        this.languageStore.t('maintenanceForm.saveErrorSub'),
+      )
     }
 
     this.saving.set(true)

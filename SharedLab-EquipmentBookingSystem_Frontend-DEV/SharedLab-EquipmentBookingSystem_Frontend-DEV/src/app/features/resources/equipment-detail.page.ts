@@ -539,8 +539,14 @@ export class EquipmentDetailPage implements OnInit {
         },
       })
   }
-  protected remove(): void {
-    if (!confirm('Ngừng sử dụng thiết bị này?')) return
+  protected async remove(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Ngừng sử dụng thiết bị',
+      message: 'Bạn có chắc chắn muốn ngừng sử dụng thiết bị này?',
+      variant: 'danger',
+      confirmText: 'Ngừng sử dụng',
+    })
+    if (!confirmed) return
     this.api.deleteEquipment(this.id).subscribe({
       next: () => {
         this.toast.success('Đã ngừng sử dụng thiết bị')

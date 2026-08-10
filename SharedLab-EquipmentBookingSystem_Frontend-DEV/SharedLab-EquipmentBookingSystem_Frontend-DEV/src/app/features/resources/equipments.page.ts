@@ -19,6 +19,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { SearchableSelectComponent, type SelectOption } from '../../shared/ui/searchable-select'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { getEquipmentImageUrl } from '../../shared/utils/presentation'
 
 @Component({
@@ -47,7 +48,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
         }
       </app-page-header>
 
-      <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_auto]">
+      <div class="filter-bar md:grid-cols-3 xl:grid-cols-[2fr_1fr_1fr]">
         <div>
           <label class="field-label">{{ 'common.search' | t }}</label>
           <div class="relative">
@@ -56,7 +57,8 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
             ><input
               class="input-shell pl-11"
               [(ngModel)]="keyword"
-              (keyup.enter)="load()"
+              (ngModelChange)="applyFilters()"
+              (keyup.enter)="applyFilters()"
               placeholder="{{ 'equipments.searchPlaceholder' | t }}"
             />
           </div>
@@ -68,12 +70,12 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
             [(ngModel)]="labId"
             placeholder="{{ 'calendar.allLabs' | t }}"
             searchPlaceholder="Tìm tên, mã phòng..."
-            (selectionChange)="load()"
+            (selectionChange)="applyFilters()"
           />
         </div>
         <div>
           <label class="field-label">{{ 'common.status' | t }}</label
-          ><select class="input-shell" [(ngModel)]="status">
+          ><select class="input-shell" [(ngModel)]="status" (ngModelChange)="applyFilters()">
             <option value="">{{ 'common.all' | t }}</option>
             <option [value]="1">{{ 'equipments.ready' | t }}</option>
             <option [value]="2">{{ 'equipments.inUse' | t }}</option>
@@ -81,12 +83,6 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
             <option [value]="4">{{ 'equipments.broken' | t }}</option>
             <option [value]="5">{{ 'equipments.retired' | t }}</option>
           </select>
-        </div>
-        <div>
-          <label class="field-label pointer-events-none hidden opacity-0 xl:block">&nbsp;</label
-          ><button class="btn-primary h-12 w-full" (click)="load()">
-            <app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}
-          </button>
         </div>
       </div>
 
@@ -215,22 +211,25 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
       }
 
       @if (totalPages() > 1) {
-        <div class="flex justify-center gap-2">
-          <button
-            class="btn-secondary"
-            [disabled]="page() <= 1"
-            (click)="page.set(page() - 1); load()"
-          >
-            {{ 'common.prev' | t }}</button
-          ><span class="rounded-xl bg-white px-4 py-3 text-xs font-black"
-            >{{ page() }}/{{ totalPages() }}</span
-          ><button
-            class="btn-secondary"
-            [disabled]="page() >= totalPages()"
-            (click)="page.set(page() + 1); load()"
-          >
-            {{ 'common.next' | t }}
-          </button>
+        <div
+          class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-sm"
+        >
+          <p class="px-2 text-xs font-bold text-slate-400">
+            Hiển thị {{ items().length }} / {{ totalCount() }} thiết bị
+          </p>
+          <div class="flex items-center gap-2">
+            <button class="btn-secondary" [disabled]="page() <= 1" (click)="changePage(page() - 1)">
+              <app-icon name="chevron-left" [size]="16" /> {{ 'common.prev' | t }}</button
+            ><span class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-600"
+              >{{ page() }} / {{ totalPages() }}</span
+            ><button
+              class="btn-secondary"
+              [disabled]="page() >= totalPages()"
+              (click)="changePage(page() + 1)"
+            >
+              {{ 'common.next' | t }} <app-icon name="chevron-right" [size]="16" />
+            </button>
+          </div>
         </div>
       }
 
@@ -384,6 +383,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
 export class EquipmentsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   private readonly cdr = inject(ChangeDetectorRef)
   protected readonly store = inject(AuthStore)
   protected readonly labs = signal<LabRoomResponse[]>([])
@@ -395,6 +395,7 @@ export class EquipmentsPage implements OnInit {
   protected readonly editingItem = signal<EquipmentResponse | null>(null)
   protected readonly page = signal(1)
   protected readonly totalPages = signal(1)
+  protected readonly totalCount = signal(0)
   protected keyword = ''
   protected labId: number | null = null
   protected status: string | number = ''
@@ -451,69 +452,57 @@ export class EquipmentsPage implements OnInit {
     return getEquipmentImageUrl(item)
   }
 
+  protected applyFilters(): void {
+    this.page.set(1)
+    this.load()
+  }
+
+  protected changePage(page: number): void {
+    if (page < 1 || page > this.totalPages()) return
+    this.page.set(page)
+    this.load()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   protected load(): void {
     this.loading.set(true)
-    // Backend search API has broken filter logic.
-    // Fetch all equipments using searchEquipments with pageSize=100 (backend max limit) and filter on frontend.
-    this.api.searchEquipments({ pageNumber: 1, pageSize: 100 }).subscribe({
-      next: (result) => {
-        let filtered = result.items || []
+    this.api
+      .searchEquipments({
+        keyword: this.keyword.trim() || undefined,
+        labId: this.labId ?? undefined,
+        status: this.status || undefined,
+        pageNumber: this.page(),
+        pageSize: 16,
+      })
+      .subscribe({
+        next: (result) => {
+          let items = result.items || []
 
-        if (!this.store.isAdmin()) {
-          filtered = filtered.filter(
-            (e) =>
-              e.status !== 'Inactive' &&
-              e.status !== 'Retired' &&
-              e.status !== '5' &&
-              String(e.status).toLowerCase() !== 'inactive' &&
-              String(e.status).toLowerCase() !== 'retired',
-          )
-        }
-
-        if (this.keyword && this.keyword.trim().length > 0) {
-          const kw = this.keyword.toLowerCase().trim()
-          filtered = filtered.filter(
-            (e) => e.equipmentName && e.equipmentName.toLowerCase().includes(kw),
-          )
-        }
-
-        if (this.labId) {
-          filtered = filtered.filter((e) => e.labId === this.labId)
-        }
-
-        if (this.status) {
-          const statusStr = String(this.status)
-          let targetStatus = ''
-          if (statusStr === '1') targetStatus = 'Available'
-          else if (statusStr === '2') targetStatus = 'In Use'
-          else if (statusStr === '3') targetStatus = 'Under Maintenance'
-          else if (statusStr === '4') targetStatus = 'Broken'
-          else if (statusStr === '5') targetStatus = 'Retired'
-
-          if (targetStatus) {
-            filtered = filtered.filter((e) => e.status === targetStatus)
+          if (!this.store.isAdmin()) {
+            items = items.filter(
+              (e) =>
+                e.status !== 'Inactive' &&
+                e.status !== 'Retired' &&
+                e.status !== '5' &&
+                String(e.status).toLowerCase() !== 'inactive' &&
+                String(e.status).toLowerCase() !== 'retired',
+            )
           }
-        }
 
-        const pageSize = 16
-        this.totalPages.set(Math.ceil(filtered.length / pageSize) || 1)
+          this.totalPages.set(result.totalPages || 1)
+          this.totalCount.set(result.totalCount ?? items.length)
 
-        if (this.page() > this.totalPages()) this.page.set(this.totalPages())
-        if (this.page() < 1) this.page.set(1)
+          const pagedItems = items.map((e) => ({ ...e, _detailLoaded: false }))
+          this.items.set(pagedItems)
+          this.loading.set(false)
 
-        const pagedItems = filtered
-          .slice((this.page() - 1) * pageSize, this.page() * pageSize)
-          .map((e) => ({ ...e, _detailLoaded: false }))
-        this.items.set(pagedItems)
-        this.loading.set(false)
-
-        this.enrichWithDetails(pagedItems)
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được danh sách thiết bị')
-      },
-    })
+          this.enrichWithDetails(pagedItems)
+        },
+        error: () => {
+          this.loading.set(false)
+          this.toast.error('Không tải được danh sách thiết bị')
+        },
+      })
   }
 
   private enrichWithDetails(pagedItems: (EquipmentResponse & { _detailLoaded?: boolean })[]): void {
@@ -634,8 +623,14 @@ export class EquipmentsPage implements OnInit {
       })
   }
 
-  protected removeItem(item: EquipmentResponse): void {
-    if (!confirm(`Ngừng sử dụng thiết bị "${item.equipmentName}"?`)) return
+  protected async removeItem(item: EquipmentResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Ngừng sử dụng thiết bị',
+      message: `Ngừng sử dụng thiết bị "${item.equipmentName}"?`,
+      variant: 'danger',
+      confirmText: 'Ngừng sử dụng',
+    })
+    if (!confirmed) return
     this.api.deleteEquipment(item.equipmentId).subscribe({
       next: () => {
         this.toast.success('Đã ngừng sử dụng thiết bị')

@@ -24,6 +24,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf, toDateInput, getCheckInWindowInfo } from '../../shared/utils/presentation'
 
 interface ScheduleSlotEvent {
@@ -575,6 +576,7 @@ export class RequesterHomePage implements OnInit {
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly router = inject(Router)
 
   protected readonly detailOpen = signal(false)
@@ -1224,14 +1226,15 @@ export class RequesterHomePage implements OnInit {
     })
   }
 
-  protected checkOutLog(logId: number): void {
+  protected async checkOutLog(logId: number): Promise<void> {
     if (this.checkUserRestricted()) return
-    if (
-      !confirm(
-        'Xác nhận trả phòng / check-out? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)',
-      )
-    )
-      return
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận Check-out',
+      message: 'Xác nhận trả phòng / check-out? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)',
+      variant: 'warning',
+      confirmText: 'Check-out',
+    })
+    if (!confirmed) return
     this.api.checkOut(logId).subscribe({
       next: () => {
         this.toast.success('Check-out thành công', 'Phiên sử dụng đã kết thúc.')
@@ -1250,8 +1253,14 @@ export class RequesterHomePage implements OnInit {
     })
   }
 
-  protected confirmCancel(booking: BookingDetailResponse): void {
-    if (!confirm('Bạn có chắc chắn muốn hủy booking này?')) return
+  protected async confirmCancel(booking: BookingDetailResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận hủy booking',
+      message: 'Bạn có chắc chắn muốn hủy booking này?',
+      variant: 'danger',
+      confirmText: 'Hủy booking',
+    })
+    if (!confirmed) return
     this.api.cancelBooking(booking.bookingId).subscribe({
       next: () => {
         this.toast.success('Đã hủy booking')

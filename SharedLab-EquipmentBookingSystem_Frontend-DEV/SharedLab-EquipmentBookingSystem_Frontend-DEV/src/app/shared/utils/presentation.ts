@@ -269,10 +269,18 @@ export function toLocalDateTimeInput(value: string | Date): string {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
 }
 
-export function formatMoney(value: number): string {
-  return new Intl.NumberFormat('vi-VN', {
+export function formatMoney(value: number, lang?: 'vi' | 'en'): string {
+  const currentLang =
+    lang ||
+    (typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('app.lang') as 'vi' | 'en')
+      : 'vi') ||
+    'vi'
+  const locale = currentLang === 'en' ? 'en-US' : 'vi-VN'
+  const currency = currentLang === 'en' ? 'USD' : 'VND'
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'VND',
+    currency: currency,
     maximumFractionDigits: 0,
   }).format(value || 0)
 }

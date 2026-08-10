@@ -13,7 +13,9 @@ import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
+import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
@@ -113,10 +115,10 @@ import { labelOf } from '../../shared/utils/presentation'
                   <div class="flex flex-wrap items-center gap-2.5 text-xs">
                     <!-- Booker Name & User ID -->
                     <div
-                      class="inline-flex items-center gap-2 rounded-xl border border-violet-100 bg-violet-50/90 px-3 py-1.5 font-extrabold text-violet-950"
+                      class="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/90 px-3 py-1.5 font-extrabold text-violet-950 shadow-2xs"
                     >
-                      <app-icon name="user" [size]="15" class="text-violet-600" />
-                      <span>{{ 'pendingBookings.booker' | t }}:</span>
+                      <app-icon name="user" [size]="15" class="text-violet-600 shrink-0" />
+                      <span class="text-slate-500 font-semibold">{{ 'pendingBookings.booker' | t }}:</span>
                       <span class="font-black text-slate-900">{{
                         item.userName || 'User #' + item.userId
                       }}</span>
@@ -127,14 +129,43 @@ import { labelOf } from '../../shared/utils/presentation'
                       </span>
                     </div>
 
-                    <!-- Resource Summary -->
-                    @if (item.resourceSummary) {
+                    <!-- Lab Room Name (Phòng Lab Phụ Trách) -->
+                    @if (item.labName) {
                       <div
-                        class="inline-flex items-center gap-2 rounded-xl border border-cyan-100 bg-cyan-50/90 px-3 py-1.5 font-semibold text-cyan-950"
+                        class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/90 px-3 py-1.5 font-bold text-indigo-950 shadow-2xs"
                       >
-                        <app-icon name="box" [size]="15" class="text-cyan-600" />
-                        <span class="font-black text-slate-900">{{ item.resourceSummary }}</span>
+                        <app-icon name="building" [size]="15" class="text-indigo-600 shrink-0" />
+                        <span class="text-indigo-600/80 font-semibold">Phòng:</span>
+                        <span class="font-black text-indigo-950">{{ item.labName }}</span>
                       </div>
+                    }
+
+                    <!-- Equipment Summary (Thiết bị nếu có) -->
+                    @if (item.equipmentSummary) {
+                      <div
+                        class="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50/90 px-3 py-1.5 font-bold text-cyan-950 shadow-2xs"
+                      >
+                        <app-icon name="microscope" [size]="15" class="text-cyan-600 shrink-0" />
+                        <span class="text-cyan-700/80 font-semibold">Thiết bị:</span>
+                        <span class="font-black text-cyan-950">{{ item.equipmentSummary }}</span>
+                      </div>
+                    }
+
+                    <!-- Fallback Resource Summary if labName and equipmentSummary aren't separate -->
+                    @if (!item.labName && !item.equipmentSummary) {
+                      @if (item.resourceSummary) {
+                        <div
+                          class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 font-semibold text-slate-900 shadow-2xs"
+                        >
+                          <app-icon name="box" [size]="15" class="text-slate-500 shrink-0" />
+                          <span class="font-black text-slate-900">{{ item.resourceSummary }}</span>
+                        </div>
+                      } @else {
+                        <div class="inline-flex items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-1 text-[11px] font-medium text-slate-400">
+                          <app-icon name="refresh" [size]="13" class="animate-spin text-slate-400" />
+                          <span>Đang tải thông tin phòng...</span>
+                        </div>
+                      }
                     }
                   </div>
 
@@ -196,9 +227,17 @@ import { labelOf } from '../../shared/utils/presentation'
 export class PendingBookingsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
-  protected readonly items = signal<(BookingResponse & { resourceSummary?: string | null })[]>([])
+  protected readonly items = signal<
+    (BookingResponse & {
+      userName?: string | null
+      labName?: string | null
+      equipmentSummary?: string | null
+      resourceSummary?: string | null
+    })[]
+  >([])
   protected readonly loading = signal(true)
   protected readonly rejectOpen = signal(false)
   protected readonly selected = signal<BookingResponse | null>(null)
@@ -209,8 +248,14 @@ export class PendingBookingsPage implements OnInit {
     this.load()
   }
 
-  protected approve(item: BookingResponse): void {
-    if (!confirm(`Duyệt booking #${item.bookingId}?`)) return
+  protected async approve(item: BookingResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận duyệt booking',
+      message: `Xác nhận duyệt booking #${item.bookingId}?`,
+      variant: 'primary',
+      confirmText: 'Duyệt booking',
+    })
+    if (!confirmed) return
     this.api.approveBooking(item.bookingId).subscribe({
       next: () => {
         this.toast.success('Đã duyệt booking')
@@ -299,12 +344,23 @@ export class PendingBookingsPage implements OnInit {
               let updated = false
               const current = [
                 ...this.items(),
-              ] as (BookingResponse & { resourceSummary?: string | null })[]
+              ] as (BookingResponse & {
+                userName?: string | null
+                labName?: string | null
+                equipmentSummary?: string | null
+                resourceSummary?: string | null
+              })[]
               for (const d of details) {
                 if (d && d.bookingId) {
                   if (d.userId && d.userName) {
                     this.api.setCachedUserName(d.userId, d.userName)
                   }
+                  const labNames = Array.from(
+                    new Set(d.items?.map((i) => i.labName).filter(Boolean)),
+                  ).join(' · ')
+                  const equipmentNames = Array.from(
+                    new Set(d.items?.map((i) => i.equipmentName).filter(Boolean)),
+                  ).join(' · ')
                   const summary =
                     d.items
                       ?.map((i) =>
@@ -318,6 +374,8 @@ export class PendingBookingsPage implements OnInit {
                   for (const item of current) {
                     if (item.bookingId === d.bookingId) {
                       if (d.userName) item.userName = d.userName
+                      if (labNames) item.labName = labNames
+                      if (equipmentNames) item.equipmentSummary = equipmentNames
                       if (summary) item.resourceSummary = summary
                       updated = true
                     } else if (

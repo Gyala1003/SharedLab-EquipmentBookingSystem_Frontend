@@ -15,6 +15,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import {
   getFirstDayOfMonth,
   getLastDayOfMonth,
@@ -193,8 +194,9 @@ import {
                 <tr>
                   <th class="w-[140px]">{{ 'bookings.bookingCode' | t }}</th>
                   <th class="w-[160px]">{{ 'bookings.user' | t }}</th>
+                  <th class="w-[180px]">Phòng Lab / Tài nguyên</th>
                   <th>{{ 'bookings.purpose' | t }}</th>
-                  <th class="w-[200px]">{{ 'bookings.usageTime' | t }}</th>
+                  <th class="w-[180px]">{{ 'bookings.usageTime' | t }}</th>
                   <th class="w-[90px] text-center">{{ 'bookings.priority' | t }}</th>
                   <th class="w-[130px]">{{ 'common.status' | t }}</th>
                   <th class="w-[160px] text-right">{{ 'common.actions' | t }}</th>
@@ -225,6 +227,31 @@ import {
                       <p class="mt-0.5 text-[10px] font-bold text-slate-400">
                         ID: #{{ item.userId }}
                       </p>
+                    </td>
+
+                    <!-- Phòng Lab / Tài nguyên -->
+                    <td>
+                      @if (item.labName) {
+                        <p class="flex items-center gap-1.5 text-xs font-black text-indigo-950">
+                          <app-icon name="building" [size]="14" class="shrink-0 text-indigo-600" />
+                          <span>{{ item.labName }}</span>
+                        </p>
+                      }
+                      @if (item.equipmentSummary) {
+                        <p class="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-cyan-800">
+                          <app-icon name="microscope" [size]="13" class="shrink-0 text-cyan-600" />
+                          <span>{{ item.equipmentSummary }}</span>
+                        </p>
+                      }
+                      @if (!item.labName && !item.equipmentSummary) {
+                        @if (item.resourceSummary) {
+                          <p class="text-xs font-bold text-slate-700">
+                            {{ item.resourceSummary }}
+                          </p>
+                        } @else {
+                          <span class="text-[11px] font-medium text-slate-400 italic">Đang tải...</span>
+                        }
+                      }
                     </td>
 
                     <!-- Mục đích sử dụng -->
@@ -590,9 +617,17 @@ import {
 export class BookingsManagementPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
-  protected readonly items = signal<BookingResponse[]>([])
+  protected readonly items = signal<
+    (BookingResponse & {
+      userName?: string | null
+      labName?: string | null
+      equipmentSummary?: string | null
+      resourceSummary?: string | null
+    })[]
+  >([])
   protected readonly loading = signal(true)
   protected readonly actioning = signal(false)
   protected readonly rejectOpen = signal(false)
@@ -661,6 +696,8 @@ export class BookingsManagementPage implements OnInit {
           const bookingIdStr = String(item.bookingId)
           const userIdStr = String(item.userId)
           const userName = (item.userName || '').toLowerCase()
+          const labStr = (item.labName || '').toLowerCase()
+          const equipStr = (item.equipmentSummary || '').toLowerCase()
           const purposeStr = labelOf(
             'purpose',
             item.purposeType,
@@ -672,6 +709,8 @@ export class BookingsManagementPage implements OnInit {
             bookingIdStr.includes(needle) ||
             userIdStr.includes(needle) ||
             userName.includes(needle) ||
+            labStr.includes(needle) ||
+            equipStr.includes(needle) ||
             purposeStr.includes(needle) ||
             statusStr.includes(needle)
           if (!matched) return false
@@ -770,17 +809,9 @@ export class BookingsManagementPage implements OnInit {
         this.items.set(enriched)
         this.loading.set(false)
 
-        const sampleBookingsToResolve: BookingResponse[] = []
-        const seenUserIds = new Set<number>()
-        for (const b of enriched) {
-          if (!b.userName && !seenUserIds.has(b.userId)) {
-            seenUserIds.add(b.userId)
-            sampleBookingsToResolve.push(b)
-          }
-        }
-
-        if (sampleBookingsToResolve.length > 0) {
-          const detailReqs = sampleBookingsToResolve.map((b) =>
+        const bookingsToResolve = [...enriched]
+        if (bookingsToResolve.length > 0) {
+          const detailReqs = bookingsToResolve.map((b) =>
             this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
           )
           from(detailReqs)
@@ -790,12 +821,45 @@ export class BookingsManagementPage implements OnInit {
             )
             .subscribe((details) => {
               let updated = false
-              const current = [...this.items()]
+              const current = [...this.items()] as (BookingResponse & {
+                labName?: string | null
+                equipmentSummary?: string | null
+                resourceSummary?: string | null
+              })[]
               for (const d of details) {
-                if (d && d.userId && d.userName) {
-                  this.api.setCachedUserName(d.userId, d.userName)
+                if (d && d.bookingId) {
+                  if (d.userId && d.userName) {
+                    this.api.setCachedUserName(d.userId, d.userName)
+                  }
+                  const labNames = Array.from(
+                    new Set(d.items?.map((i) => i.labName).filter(Boolean)),
+                  ).join(' · ')
+                  const equipmentNames = Array.from(
+                    new Set(d.items?.map((i) => i.equipmentName).filter(Boolean)),
+                  ).join(' · ')
+                  const summary =
+                    d.items
+                      ?.map((i) =>
+                        i.equipmentName
+                          ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
+                          : i.labName,
+                      )
+                      .filter(Boolean)
+                      .join(' · ') || null
+
                   for (const item of current) {
-                    if (item.userId === d.userId && !item.userName) {
+                    if (item.bookingId === d.bookingId) {
+                      if (d.userName) item.userName = d.userName
+                      if (labNames) item.labName = labNames
+                      if (equipmentNames) item.equipmentSummary = equipmentNames
+                      if (summary) item.resourceSummary = summary
+                      updated = true
+                    } else if (
+                      d.userId &&
+                      item.userId === d.userId &&
+                      !item.userName &&
+                      d.userName
+                    ) {
                       item.userName = d.userName
                       updated = true
                     }
@@ -935,17 +999,26 @@ export class BookingsManagementPage implements OnInit {
     })
   }
 
-  protected quickAction(
+  protected async quickAction(
     item: BookingResponse,
     actionType: 'approve' | 'complete' | 'no-show' | 'cancel',
-  ): void {
+  ): Promise<void> {
     const labels: Record<string, string> = {
       approve: 'duyệt',
       complete: 'hoàn thành',
       'no-show': 'NoShow',
       cancel: 'hủy',
     }
-    if (!confirm(`Xác nhận ${labels[actionType]} booking #${item.bookingId}?`)) return
+    const isDanger = actionType === 'cancel' || actionType === 'no-show'
+    const isWarning = actionType === 'approve'
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận thao tác',
+      message: `Xác nhận ${labels[actionType]} booking #${item.bookingId}?`,
+      confirmText: 'Xác nhận',
+      cancelText: 'Hủy bỏ',
+      variant: isDanger ? 'danger' : isWarning ? 'warning' : 'primary',
+    })
+    if (!confirmed) return
     this.actioning.set(true)
     const req =
       actionType === 'approve'

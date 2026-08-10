@@ -16,6 +16,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
@@ -331,6 +332,7 @@ import { labelOf } from '../../shared/utils/presentation'
 export class ViolationsManagementPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly languageStore = inject(LanguageStore)
   protected readonly items = signal<ViolationResponse[]>([])
   protected readonly users = signal<UserManagementResponse[]>([])
@@ -485,8 +487,15 @@ export class ViolationsManagementPage implements OnInit {
       })
   }
 
-  protected action(item: ViolationResponse, action: 'resolve' | 'cancel'): void {
-    if (!confirm(`${action === 'resolve' ? 'Xử lý' : 'Hủy'} vi phạm #${item.violationId}?`)) return
+  protected async action(item: ViolationResponse, action: 'resolve' | 'cancel'): Promise<void> {
+    const actLabel = action === 'resolve' ? 'Xử lý' : 'Hủy'
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận vi phạm',
+      message: `Xác nhận ${actLabel.toLowerCase()} vi phạm #${item.violationId}?`,
+      variant: action === 'cancel' ? 'danger' : 'primary',
+      confirmText: actLabel,
+    })
+    if (!confirmed) return
     const req =
       action === 'resolve'
         ? this.api.resolveViolation(item.violationId)

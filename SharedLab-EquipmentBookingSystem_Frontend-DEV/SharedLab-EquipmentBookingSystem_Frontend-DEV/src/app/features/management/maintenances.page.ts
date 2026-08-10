@@ -2,6 +2,7 @@ import { DatePipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
+import { catchError, forkJoin, map, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   EquipmentResponse,
@@ -87,7 +88,7 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-4">
         <div>
           <label class="field-label">{{ 'maintenances.labFilter' | t }}</label>
-          <select class="input-shell" [ngModel]="labId()" (ngModelChange)="labId.set($event)">
+          <select class="input-shell" [ngModel]="labId()" (ngModelChange)="labId.set($event); equipmentId.set(null)">
             <option [ngValue]="null">{{ 'maintenances.allLabs' | t }}</option>
             @for (lab of labs(); track lab.labId) {
               <option [ngValue]="lab.labId">{{ lab.labName | t }}</option>
@@ -99,7 +100,7 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
           <select
             class="input-shell"
             [ngModel]="equipmentId()"
-            (ngModelChange)="equipmentId.set($event)"
+            (ngModelChange)="setFilterEquipment($event)"
           >
             <option [ngValue]="null">{{ 'maintenances.allEquipment' | t }}</option>
             @for (eq of filteredEquipmentOptions(); track eq.equipmentId) {
@@ -271,6 +272,15 @@ export class MaintenancesPage implements OnInit {
   protected readonly filteredEquipmentOptions = computed(() =>
     this.labId() ? this.equipments().filter((x) => x.labId === this.labId()) : this.equipments(),
   )
+  protected setFilterEquipment(eqId: number | null): void {
+    this.equipmentId.set(eqId)
+    if (eqId) {
+      const eq = this.equipments().find((x) => x.equipmentId === eqId)
+      if (eq && eq.labId) {
+        this.labId.set(eq.labId)
+      }
+    }
+  }
   protected readonly filtered = computed(() =>
     this.items()
       .filter(
@@ -323,8 +333,32 @@ export class MaintenancesPage implements OnInit {
   ])
 
   ngOnInit(): void {
-    this.api.labs().subscribe((x) => this.labs.set(x))
-    this.api.equipments().subscribe((x) => this.equipments.set(x))
+    const user = this.store.user()
+    const isManagerOnly = this.store.isManager() && !this.store.isAdmin() && user?.userId
+
+    const labs$ = isManagerOnly
+      ? this.api.searchLabs({ managerId: user.userId, pageSize: 100 }).pipe(
+          map((res) => res.items || []),
+          catchError(() => this.api.labs()),
+        )
+      : this.api.labs().pipe(catchError(() => of([])))
+
+    forkJoin({
+      labs: labs$,
+      equipments: this.api.equipments().pipe(catchError(() => of([]))),
+    }).subscribe(({ labs, equipments }) => {
+      let allowedLabs = labs as LabRoomResponse[]
+      let allowedEquipments = equipments as EquipmentResponse[]
+
+      if (isManagerOnly) {
+        const allowedLabIds = new Set(allowedLabs.map((l) => l.labId))
+        allowedEquipments = allowedEquipments.filter((eq) => allowedLabIds.has(eq.labId))
+      }
+
+      this.labs.set(allowedLabs)
+      this.equipments.set(allowedEquipments)
+    })
+
     this.load()
   }
 

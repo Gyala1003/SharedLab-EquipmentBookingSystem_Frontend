@@ -14,6 +14,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { getLabImageUrl } from '../../shared/utils/presentation'
 
 interface LabForm {
@@ -53,7 +54,7 @@ interface LabForm {
         }
       </app-page-header>
 
-      <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+      <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr]">
         <div>
           <label class="field-label">{{ 'common.search' | t }}</label>
           <div class="relative">
@@ -62,14 +63,15 @@ interface LabForm {
             ><input
               class="input-shell pl-11"
               [(ngModel)]="keyword"
-              (keyup.enter)="load()"
+              (ngModelChange)="applyFilters()"
+              (keyup.enter)="applyFilters()"
               placeholder="{{ 'labs.searchPlaceholder' | t }}"
             />
           </div>
         </div>
         <div>
           <label class="field-label">{{ 'common.status' | t }}</label
-          ><select class="input-shell" [(ngModel)]="status">
+          ><select class="input-shell" [(ngModel)]="status" (ngModelChange)="applyFilters()">
             <option value="">{{ 'common.all' | t }}</option>
             <option [value]="1">{{ 'labs.available' | t }}</option>
             <option [value]="3">{{ 'labs.maintenance' | t }}</option>
@@ -77,7 +79,14 @@ interface LabForm {
         </div>
         <div>
           <label class="field-label">{{ 'labs.minCapacity' | t }}</label
-          ><input class="input-shell" type="number" min="1" [(ngModel)]="minimumCapacity" />
+          ><input
+            class="input-shell"
+            type="number"
+            min="1"
+            [(ngModel)]="minimumCapacity"
+            (ngModelChange)="applyFilters()"
+            (keyup.enter)="applyFilters()"
+          />
         </div>
         <div>
           <label class="field-label">{{ 'labs.viewMode' | t }}</label>
@@ -106,12 +115,6 @@ interface LabForm {
               <app-icon name="list" [size]="17" />
             </button>
           </div>
-        </div>
-        <div>
-          <label class="field-label pointer-events-none hidden opacity-0 xl:block">&nbsp;</label
-          ><button class="btn-primary h-12 w-full" type="button" (click)="load()">
-            <app-icon name="filter" [size]="17" /> {{ 'common.apply' | t }}
-          </button>
         </div>
       </div>
 
@@ -291,18 +294,25 @@ interface LabForm {
       }
 
       @if (totalPages() > 1) {
-        <div class="flex items-center justify-center gap-2">
-          <button class="btn-secondary" [disabled]="page() === 1" (click)="changePage(page() - 1)">
-            {{ 'common.prev' | t }}</button
-          ><span class="rounded-xl bg-white px-4 py-3 text-xs font-black text-slate-600 shadow-sm"
-            >{{ 'common.page' | t }} {{ page() }}/{{ totalPages() }}</span
-          ><button
-            class="btn-secondary"
-            [disabled]="page() === totalPages()"
-            (click)="changePage(page() + 1)"
-          >
-            {{ 'common.next' | t }}
-          </button>
+        <div
+          class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-sm"
+        >
+          <p class="px-2 text-xs font-bold text-slate-400">
+            Hiển thị {{ labs().length }} / {{ totalCount() }} phòng lab
+          </p>
+          <div class="flex items-center gap-2">
+            <button class="btn-secondary" [disabled]="page() <= 1" (click)="changePage(page() - 1)">
+              <app-icon name="chevron-left" [size]="16" /> {{ 'common.prev' | t }}</button
+            ><span class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-600"
+              >{{ page() }} / {{ totalPages() }}</span
+            ><button
+              class="btn-secondary"
+              [disabled]="page() >= totalPages()"
+              (click)="changePage(page() + 1)"
+            >
+              {{ 'common.next' | t }} <app-icon name="chevron-right" [size]="16" />
+            </button>
+          </div>
         </div>
       }
 
@@ -514,6 +524,7 @@ interface LabForm {
 export class LabsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   private readonly cdr = inject(ChangeDetectorRef)
   protected readonly store = inject(AuthStore)
   protected readonly labs = signal<LabRoomResponse[]>([])
@@ -526,6 +537,7 @@ export class LabsPage implements OnInit {
   protected readonly view = signal<'grid' | 'table'>('grid')
   protected readonly page = signal(1)
   protected readonly totalPages = signal(1)
+  protected readonly totalCount = signal(0)
   protected keyword = ''
   protected status: string | number = ''
   protected minimumCapacity: number | null = null
@@ -549,95 +561,74 @@ export class LabsPage implements OnInit {
     return getLabImageUrl(lab)
   }
 
+  protected applyFilters(): void {
+    this.page.set(1)
+    this.load()
+  }
+
   protected load(): void {
     this.loading.set(true)
-    // Backend search API has broken filter logic, and /LabRooms doesn't exist.
-    // Fetch all labs using searchLabs with pageSize=100 (backend max limit) and filter on frontend.
-    this.api.searchLabs({ pageNumber: 1, pageSize: 100 }).subscribe({
-      next: (result) => {
-        let filtered = result.items || []
+    this.api
+      .searchLabs({
+        keyword: this.keyword.trim() || undefined,
+        status: this.status || undefined,
+        minimumCapacity: this.minimumCapacity ?? undefined,
+        pageNumber: this.page(),
+        pageSize: 12,
+      })
+      .subscribe({
+        next: (result) => {
+          let items = result.items || []
 
-        if (!this.store.isAdmin()) {
-          filtered = filtered.filter(
-            (l) =>
-              l.status !== 'Inactive' &&
-              l.status !== '4' &&
-              String(l.status).toLowerCase() !== 'inactive',
-          )
-        }
-
-        if (this.keyword && this.keyword.trim().length > 0) {
-          const kw = this.keyword.toLowerCase().trim()
-          filtered = filtered.filter(
-            (l) =>
-              (l.labName && l.labName.toLowerCase().includes(kw)) ||
-              (l.roomCode && l.roomCode.toLowerCase().includes(kw)) ||
-              (l.location && l.location.toLowerCase().includes(kw)),
-          )
-        }
-
-        if (this.status) {
-          const statusStr = String(this.status)
-          let targetStatus = ''
-          if (statusStr === '1') targetStatus = 'Available'
-          else if (statusStr === '2') targetStatus = 'Maintenance'
-          else if (statusStr === '3') targetStatus = 'Unavailable'
-          else if (statusStr === '4') targetStatus = 'Inactive'
-
-          if (targetStatus) {
-            filtered = filtered.filter((l) => l.status === targetStatus)
-          }
-        }
-
-        if (this.minimumCapacity) {
-          filtered = filtered.filter((l) => l.capacity >= this.minimumCapacity!)
-        }
-
-        const pageSize = 12
-        this.totalPages.set(Math.ceil(filtered.length / pageSize) || 1)
-
-        if (this.page() > this.totalPages()) this.page.set(this.totalPages())
-        if (this.page() < 1) this.page.set(1)
-
-        const pagedItems = filtered
-          .slice((this.page() - 1) * pageSize, this.page() * pageSize)
-          .map((l) => ({ ...l, _detailLoaded: false }))
-        this.labs.set(pagedItems)
-        this.loading.set(false)
-
-        if (pagedItems.length) {
-          from(
-            pagedItems.map((lab, index) =>
-              this.api.lab(lab.labId).pipe(
-                timeout(3000),
-                map((detail: any) => ({ index, url: detail?.imageUrl })),
-                catchError(() => of({ index, url: null })),
-              ),
-            ),
-          )
-            .pipe(
-              mergeMap((req) => req, 3),
-              toArray(),
+          if (!this.store.isAdmin()) {
+            items = items.filter(
+              (l) =>
+                l.status !== 'Inactive' &&
+                l.status !== '4' &&
+                String(l.status).toLowerCase() !== 'inactive',
             )
-            .subscribe((results: any[]) => {
-              const enriched = [...pagedItems]
-              results.forEach((res: any) => {
-                const lab = enriched[res.index]
-                enriched[res.index] = {
-                  ...lab,
-                  imageUrl: res.url || lab.imageUrl,
-                  _detailLoaded: true,
-                }
+          }
+
+          this.totalPages.set(result.totalPages || 1)
+          this.totalCount.set(result.totalCount ?? items.length)
+
+          const pagedItems = items.map((l) => ({ ...l, _detailLoaded: false }))
+          this.labs.set(pagedItems)
+          this.loading.set(false)
+
+          if (pagedItems.length) {
+            from(
+              pagedItems.map((lab, index) =>
+                this.api.lab(lab.labId).pipe(
+                  timeout(3000),
+                  map((detail: any) => ({ index, url: detail?.imageUrl })),
+                  catchError(() => of({ index, url: null })),
+                ),
+              ),
+            )
+              .pipe(
+                mergeMap((req) => req, 3),
+                toArray(),
+              )
+              .subscribe((results: any[]) => {
+                const enriched = [...pagedItems]
+                results.forEach((res: any) => {
+                  const lab = enriched[res.index]
+                  enriched[res.index] = {
+                    ...lab,
+                    imageUrl: res.url || lab.imageUrl,
+                    _detailLoaded: true,
+                  }
+                })
+                this.labs.set(enriched)
               })
-              this.labs.set(enriched)
-            })
-        }
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được danh sách phòng lab')
-      },
-    })
+          }
+        },
+        error: () => {
+          this.loading.set(false)
+          this.toast.error('Không tải được danh sách phòng lab')
+        },
+      })
   }
 
   protected changePage(page: number): void {
@@ -747,8 +738,14 @@ export class LabsPage implements OnInit {
       })
   }
 
-  protected removeLab(lab: LabRoomResponse): void {
-    if (!confirm(`Ngừng sử dụng phòng "${lab.labName}"?`)) return
+  protected async removeLab(lab: LabRoomResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Ngừng sử dụng phòng lab',
+      message: `Ngừng sử dụng phòng "${lab.labName}"?`,
+      variant: 'danger',
+      confirmText: 'Ngừng sử dụng',
+    })
+    if (!confirmed) return
     this.api.deleteLab(lab.labId).subscribe({
       next: () => {
         this.toast.success('Đã ngừng sử dụng phòng lab')
@@ -765,8 +762,14 @@ export class LabsPage implements OnInit {
     })
   }
 
-  protected reactivateLab(lab: LabRoomResponse): void {
-    if (!confirm(`Kích hoạt lại phòng "${lab.labName}"?`)) return
+  protected async reactivateLab(lab: LabRoomResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Kích hoạt lại phòng lab',
+      message: `Kích hoạt lại phòng "${lab.labName}"?`,
+      variant: 'primary',
+      confirmText: 'Kích hoạt lại',
+    })
+    if (!confirmed) return
     this.api.reactivateLab(lab.labId).subscribe({
       next: () => {
         this.toast.success('Đã kích hoạt lại phòng lab')
@@ -783,13 +786,14 @@ export class LabsPage implements OnInit {
     })
   }
 
-  protected permanentDeleteLab(lab: LabRoomResponse): void {
-    if (
-      !confirm(
-        `Xác nhận XÓA VĨNH VIỄN phòng "${lab.labName}" khỏi CSDL? Hành động này không thể hoàn tác!`,
-      )
-    )
-      return
+  protected async permanentDeleteLab(lab: LabRoomResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa vĩnh viễn phòng lab',
+      message: `Xác nhận XÓA VĨNH VIỄN phòng "${lab.labName}" khỏi CSDL? Hành động này không thể hoàn tác!`,
+      variant: 'danger',
+      confirmText: 'Xóa vĩnh viễn',
+    })
+    if (!confirmed) return
     this.api.permanentDeleteLab(lab.labId).subscribe({
       next: () => {
         this.toast.success('Đã xóa vĩnh viễn phòng lab khỏi CSDL')

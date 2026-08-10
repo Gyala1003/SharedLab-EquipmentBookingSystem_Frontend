@@ -672,10 +672,16 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'calendar.today': { vi: 'Hôm nay', en: 'Today' },
   'calendar.eventsInPeriod': { vi: 'sự kiện trong kỳ', en: 'events in period' },
   'calendar.monthView': { vi: 'Tháng', en: 'Month' },
+  'calendar.weekView': { vi: 'Tuần', en: 'Week' },
+  'calendar.dayView': { vi: 'Ngày', en: 'Day' },
   'calendar.listView': { vi: 'Danh sách', en: 'List' },
   'calendar.labFilter': { vi: 'Phòng lab', en: 'Lab Room' },
   'calendar.equipmentFilter': { vi: 'Thiết bị', en: 'Equipment' },
   'calendar.eventTypeFilter': { vi: 'Loại sự kiện', en: 'Event Type' },
+  'calendar.legendTitle': { vi: 'Chú thích màu sắc', en: 'Color Legend' },
+  'calendar.legendBooking': { vi: 'Lịch Đặt Phòng / Thiết Bị (Booking)', en: 'Lab / Equipment Booking' },
+  'calendar.legendMaintenance': { vi: 'Lịch Bảo Trì (Maintenance)', en: 'Maintenance Schedule' },
+  'calendar.legendToday': { vi: 'Ngày Hiện Tại', en: 'Current Date' },
 
   // Notifications Page
   'notifications.badgeText': { vi: 'Cập nhật theo thời gian thực', en: 'Real-time Updates' },
@@ -807,10 +813,30 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'maintenanceForm.selectLab': { vi: 'Chọn phòng lab', en: 'Select lab room' },
   'maintenanceForm.equipmentLab': { vi: 'Phòng chứa thiết bị', en: 'Lab Room with Equipment' },
   'maintenanceForm.allLabs': { vi: 'Tất cả phòng', en: 'All Labs' },
+  'maintenanceForm.allManagedLabs': {
+    vi: 'Tất cả phòng (thuộc quyền quản lý)',
+    en: 'All Managed Labs',
+  },
+  'maintenanceForm.filterLabHint': {
+    vi: 'Chọn phòng lab để lọc các thiết bị thuộc phòng đó.',
+    en: 'Select a lab room to filter equipment in that room.',
+  },
+  'maintenanceForm.autoAssignLabHint': {
+    vi: 'Chọn thiết bị sẽ tự động gán đúng Phòng Lab tương ứng.',
+    en: 'Selecting an equipment will automatically assign its lab room.',
+  },
   'maintenanceForm.equipment': { vi: 'Thiết bị', en: 'Equipment' },
   'maintenanceForm.selectEquipment': { vi: 'Chọn thiết bị', en: 'Select equipment' },
   'maintenanceForm.startTime': { vi: 'Bắt đầu', en: 'Start Time' },
+  'maintenanceForm.startTimeHint': {
+    vi: 'Phải sau hiện tại ít nhất 1 phút.',
+    en: 'Must be at least 1 minute after current time.',
+  },
   'maintenanceForm.endTime': { vi: 'Kết thúc', en: 'End Time' },
+  'maintenanceForm.endTimeHint': {
+    vi: 'Phải sau Start Time ít nhất 30 phút.',
+    en: 'Must be at least 30 minutes after Start Time.',
+  },
   'maintenanceForm.cost': { vi: 'Chi phí bảo trì', en: 'Maintenance Cost' },
   'maintenanceForm.recurrenceType': { vi: 'Loại lặp', en: 'Recurrence Type' },
   'maintenanceForm.none': { vi: 'Không lặp', en: 'No Recurrence' },
@@ -828,17 +854,25 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'maintenanceForm.saving': { vi: 'Đang lưu...', en: 'Saving...' },
   'maintenanceForm.saveChanges': { vi: 'Lưu thay đổi', en: 'Save Changes' },
   'maintenanceForm.checklistTitle': { vi: 'Kiểm tra trước khi lưu', en: 'Checklist Before Saving' },
+  'maintenanceForm.pastTimeError': {
+    vi: 'Thời gian bắt đầu phải sau hiện tại ít nhất 1 phút.',
+    en: 'Start time must be at least 1 minute after current time.',
+  },
+  'maintenanceForm.minDurationError': {
+    vi: 'Thời gian kết thúc phải sau thời gian bắt đầu ít nhất 30 phút.',
+    en: 'End time must be at least 30 minutes after start time.',
+  },
   'maintenanceForm.rule1': {
     vi: 'Chỉ chọn một trong Lab hoặc Equipment.',
     en: 'Select either Lab or Equipment.',
   },
   'maintenanceForm.rule2': {
-    vi: 'Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.',
-    en: 'Start time must be earlier than end time.',
+    vi: 'Thời gian kết thúc phải sau thời gian bắt đầu ít nhất 30 phút.',
+    en: 'End time must be at least 30 minutes after start time.',
   },
   'maintenanceForm.rule3': {
-    vi: 'Lịch mới hoặc lịch sửa phải nằm trong tương lai.',
-    en: 'New or updated schedule must be in the future.',
+    vi: 'Thời gian bắt đầu phải sau hiện tại ít nhất 1 phút.',
+    en: 'Start time must be at least 1 minute after current time.',
   },
   'maintenanceForm.rule4': {
     vi: 'LabManager chỉ chọn được tài nguyên thuộc phạm vi quản lý.',

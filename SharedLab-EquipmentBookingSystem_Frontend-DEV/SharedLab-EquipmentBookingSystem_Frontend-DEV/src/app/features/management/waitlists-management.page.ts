@@ -14,7 +14,8 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
+import { labelOf, toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
 
 @Component({
   selector: 'app-waitlists-management-page',
@@ -240,6 +241,7 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
 export class WaitlistsManagementPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly languageStore = inject(LanguageStore)
   protected readonly items = signal<WaitlistResponse[]>([])
   protected readonly labs = signal<LabRoomResponse[]>([])
@@ -377,8 +379,14 @@ export class WaitlistsManagementPage implements OnInit {
       })
   }
 
-  protected cancel(item: WaitlistResponse): void {
-    if (!confirm(`Hủy waitlist #${item.waitlistId}?`)) return
+  protected async cancel(item: WaitlistResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận hủy hàng chờ',
+      message: `Bạn có chắc chắn muốn hủy waitlist #${item.waitlistId}?`,
+      variant: 'danger',
+      confirmText: 'Hủy hàng chờ',
+    })
+    if (!confirmed) return
     this.api.cancelWaitlist(item.waitlistId).subscribe({
       next: () => {
         this.toast.success('Đã hủy waitlist')
@@ -388,8 +396,14 @@ export class WaitlistsManagementPage implements OnInit {
     })
   }
 
-  protected expire(item: WaitlistResponse): void {
-    if (!confirm(`Cho hết hạn waitlist #${item.waitlistId}?`)) return
+  protected async expire(item: WaitlistResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận cho hết hạn',
+      message: `Cho hết hạn waitlist #${item.waitlistId}?`,
+      variant: 'warning',
+      confirmText: 'Cho hết hạn',
+    })
+    if (!confirmed) return
     this.api.expireWaitlist(item.waitlistId).subscribe({
       next: () => {
         this.toast.success('Đã cho hết hạn')
