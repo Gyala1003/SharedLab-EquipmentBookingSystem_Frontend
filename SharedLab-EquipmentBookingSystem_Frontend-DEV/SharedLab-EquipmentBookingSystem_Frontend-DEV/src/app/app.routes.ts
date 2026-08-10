@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router'
 import { authGuard, guestGuard, landingGuard, roleGuard } from './core/auth/auth.guard'
+import { bookingOwnershipGuard } from './core/auth/booking-ownership.guard'
 import { systemMaintenanceGuard } from './core/auth/maintenance.guard'
 import { AppLayoutComponent } from './shared/layout/app-layout'
 import { PublicLayoutComponent } from './shared/layout/public-layout/public-layout.component'
@@ -162,6 +163,7 @@ export const routes: Routes = [
       },
       {
         path: 'bookings/:bookingId',
+        canActivate: [bookingOwnershipGuard],
         title: 'Chi tiết booking',
         loadComponent: () =>
           import('./features/bookings/booking-detail.page').then((m) => m.BookingDetailPage),

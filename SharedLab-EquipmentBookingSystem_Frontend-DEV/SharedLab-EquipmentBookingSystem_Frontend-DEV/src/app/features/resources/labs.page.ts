@@ -2,7 +2,7 @@ import { NgClass } from '@angular/common'
 import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, forkJoin, of, from } from 'rxjs'
+import { catchError, finalize, forkJoin, of, from } from 'rxjs'
 import { timeout, mergeMap, toArray, map } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { LabRoomResponse, UserManagementResponse } from '../../core/api/system.models'
@@ -576,6 +576,7 @@ export class LabsPage implements OnInit {
         pageNumber: this.page(),
         pageSize: 12,
       })
+      .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (result) => {
           let items = result.items || []
@@ -594,7 +595,6 @@ export class LabsPage implements OnInit {
 
           const pagedItems = items.map((l) => ({ ...l, _detailLoaded: false }))
           this.labs.set(pagedItems)
-          this.loading.set(false)
 
           if (pagedItems.length) {
             from(
@@ -625,7 +625,6 @@ export class LabsPage implements OnInit {
           }
         },
         error: () => {
-          this.loading.set(false)
           this.toast.error('Không tải được danh sách phòng lab')
         },
       })

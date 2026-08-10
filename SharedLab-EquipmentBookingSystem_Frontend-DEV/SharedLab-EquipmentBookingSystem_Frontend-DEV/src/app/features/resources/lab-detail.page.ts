@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { catchError, map, of } from 'rxjs'
+import { catchError, finalize, map, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   CalendarEventResponse,
@@ -616,11 +617,14 @@ export class LabDetailPage implements OnInit {
         : ['/app/bookings', event.sourceId],
     )
   }
+  private readonly destroyRef = inject(DestroyRef)
   private load(): void {
     this.loading.set(true)
     this.api
       .lab(this.id)
       .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
         catchError(() =>
           this.api.searchLabs({ pageNumber: 1, pageSize: 100 }).pipe(
             map((res) => {
@@ -640,7 +644,6 @@ export class LabDetailPage implements OnInit {
       .subscribe({
         next: (lab) => {
           this.lab.set(lab)
-          this.loading.set(false)
 
           const from = new Date()
           const to = new Date()
@@ -650,6 +653,7 @@ export class LabDetailPage implements OnInit {
           this.api
             .equipmentsByLab(this.id)
             .pipe(
+              takeUntilDestroyed(this.destroyRef),
               catchError(() =>
                 this.api.searchEquipments({ labId: this.id, pageSize: 100 }).pipe(
                   map((res) => res.items || []),
@@ -672,28 +676,47 @@ export class LabDetailPage implements OnInit {
               this.tabs[0].count = validEquipments.length
             })
 
-          // Sub-request 2: Maintenances in lab (Admin / Manager only)
-          if (this.store.isManager() || this.store.isAdmin()) {
+          // Sub-request 2: Maintenances in lab (Only for Admin or Assigned LabManager)
+          const user = this.store.user()
+          const isLabManager = this.store.isManager()
+          const isAdmin = this.store.isAdmin()
+          const isAssignedManager =
+            isLabManager &&
+            Boolean(
+              (user?.fullName && lab.managerName === user.fullName) ||
+                (user?.userId && (lab as any).managerId === user.userId),
+            )
+          const canFetchMaintenance = isAdmin || isAssignedManager
+
+          if (canFetchMaintenance) {
             this.api
               .maintenancesByLab(this.id)
-              .pipe(catchError(() => of([])))
+              .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                catchError(() => of([])),
+              )
               .subscribe((maintenances) => {
                 this.maintenances.set(maintenances)
                 this.tabs[2].count = maintenances.length
               })
+          } else {
+            this.maintenances.set([])
+            this.tabs[2].count = 0
           }
 
           // Sub-request 3: Calendar events
           this.api
             .calendar(from.toISOString(), to.toISOString(), this.id)
-            .pipe(catchError(() => of([])))
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() => of([])),
+            )
             .subscribe((events) => {
               this.events.set(events)
               this.tabs[1].count = events.filter((e) => e.eventType === 'Booking').length
             })
         },
         error: () => {
-          this.loading.set(false)
           this.lab.set(null)
         },
       })

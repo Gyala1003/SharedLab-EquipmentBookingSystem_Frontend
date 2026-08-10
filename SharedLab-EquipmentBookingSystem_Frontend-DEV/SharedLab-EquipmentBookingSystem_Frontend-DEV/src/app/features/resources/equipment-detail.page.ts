@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { catchError, map, of } from 'rxjs'
+import { catchError, finalize, map, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   CalendarEventResponse,
@@ -402,12 +403,16 @@ export class EquipmentDetailPage implements OnInit {
   protected form = { labId: 0, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
   private id = 0
 
+  private readonly destroyRef = inject(DestroyRef)
+
   ngOnInit(): void {
     this.id = Number(this.route.snapshot.paramMap.get('equipmentId'))
     this.loading.set(true)
     this.api
       .equipment(this.id)
       .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
         catchError(() =>
           this.api.searchEquipments({ pageSize: 100 }).pipe(
             map((res) => {
@@ -430,20 +435,47 @@ export class EquipmentDetailPage implements OnInit {
             !this.store.isAdmin()
           ) {
             this.accessDenied.set(true)
-            this.loading.set(false)
             return
           }
           this.item.set(item)
-          this.loading.set(false)
 
           const from = new Date()
           const to = new Date()
           to.setDate(to.getDate() + 30)
 
+          const fetchMaintenancesForLab = (labObj: LabRoomDetailResponse | null) => {
+            const user = this.store.user()
+            const isLabManager = this.store.isManager()
+            const isAdmin = this.store.isAdmin()
+            const isAssignedManager =
+              isLabManager &&
+              Boolean(
+                labObj &&
+                  ((user?.fullName && labObj.managerName === user.fullName) ||
+                    (user?.userId && (labObj as any).managerId === user.userId)),
+              )
+            const canFetchMaintenance = isAdmin || isAssignedManager
+
+            if (canFetchMaintenance) {
+              this.api
+                .maintenancesByEquipment(this.id)
+                .pipe(
+                  takeUntilDestroyed(this.destroyRef),
+                  catchError(() => of([])),
+                )
+                .subscribe((maintenances) => {
+                  this.maintenances.set(maintenances)
+                })
+            } else {
+              this.maintenances.set([])
+            }
+          }
+
           if (item.labId > 0) {
             this.api
               .lab(item.labId)
               .pipe(
+                takeUntilDestroyed(this.destroyRef),
                 catchError(() =>
                   this.api.searchLabs({ pageNumber: 1, pageSize: 100 }).pipe(
                     map((res) => {
@@ -463,27 +495,23 @@ export class EquipmentDetailPage implements OnInit {
               )
               .subscribe((lab) => {
                 if (lab) this.lab.set(lab)
+                fetchMaintenancesForLab(lab)
               })
-          }
-
-          if (this.store.isManager() || this.store.isAdmin()) {
-            this.api
-              .maintenancesByEquipment(this.id)
-              .pipe(catchError(() => of([])))
-              .subscribe((maintenances) => {
-                this.maintenances.set(maintenances)
-              })
+          } else {
+            fetchMaintenancesForLab(null)
           }
 
           this.api
             .calendar(from.toISOString(), to.toISOString(), undefined, this.id)
-            .pipe(catchError(() => of([])))
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() => of([])),
+            )
             .subscribe((events) => {
               this.events.set(events)
             })
         },
         error: () => {
-          this.loading.set(false)
           this.item.set(null)
         },
       })

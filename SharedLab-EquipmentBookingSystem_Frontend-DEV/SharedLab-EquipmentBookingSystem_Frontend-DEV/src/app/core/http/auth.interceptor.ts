@@ -8,7 +8,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!token) return next(req)
   // Chỉ gắn Bearer token cho request tới API backend.
   // Không gửi token ra ngoài (i18n assets, Unsplash CDN, domain khác).
-  const isApiRequest = req.url.startsWith(env.apiBaseUrl)
+  const isApiRequest =
+    req.url.startsWith(env.apiBaseUrl) || req.url.includes('/api/') || req.url.startsWith('/api')
   if (!isApiRequest) return next(req)
   return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))
 }

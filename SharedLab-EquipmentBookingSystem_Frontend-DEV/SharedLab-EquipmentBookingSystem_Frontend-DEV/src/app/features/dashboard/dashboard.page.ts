@@ -1,7 +1,9 @@
 import { DecimalPipe } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
+import { finalize } from 'rxjs'
 import type {
   CategoryCountResponse,
   DashboardResponse,
@@ -868,6 +870,8 @@ export class DashboardPage implements OnInit {
     this.load()
   }
 
+  private readonly destroyRef = inject(DestroyRef)
+
   protected load(): void {
     if (!this.fromDate || !this.toDate) return
     if (new Date(this.fromDate) > new Date(this.toDate)) {
@@ -877,19 +881,23 @@ export class DashboardPage implements OnInit {
     this.loading.set(true)
     const from = new Date(`${this.fromDate}T00:00:00`).toISOString()
     const to = new Date(`${this.toDate}T23:59:59`).toISOString()
-    this.workspace.dashboard(from, to).subscribe({
-      next: (response) => {
-        this.dashboard.set(response)
-        this.loading.set(false)
-      },
-      error: (error: unknown) => {
-        this.loading.set(false)
-        this.dashboard.set(EMPTY_DASHBOARD)
-        const message =
-          error instanceof ApiError ? error.message : 'Không thể tải dữ liệu dashboard.'
-        this.toast.error('Tải dashboard thất bại', message)
-      },
-    })
+    this.workspace
+      .dashboard(from, to)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (response) => {
+          this.dashboard.set(response)
+        },
+        error: (error: unknown) => {
+          this.dashboard.set(EMPTY_DASHBOARD)
+          const message =
+            error instanceof ApiError ? error.message : 'Không thể tải dữ liệu dashboard.'
+          this.toast.error('Tải dashboard thất bại', message)
+        },
+      })
   }
 
   protected statusLabel(value: string): string {

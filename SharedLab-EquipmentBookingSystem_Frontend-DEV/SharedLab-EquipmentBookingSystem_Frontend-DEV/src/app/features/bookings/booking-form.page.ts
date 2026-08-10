@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { catchError, forkJoin, of } from 'rxjs'
+import { catchError, finalize, forkJoin, of, Observable } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   BookingItemRequest,
@@ -501,7 +502,14 @@ export interface SlotWithStatus extends TimeSlot {
                       [min]="minDate"
                       [(ngModel)]="bookingDate"
                       (ngModelChange)="onDateChange()"
+                      [disabled]="isLockedByWaitlist()"
                     />
+                    @if (isLockedByWaitlist()) {
+                      <p class="mt-2 flex items-center gap-1.5 text-xs font-bold text-amber-700">
+                        <app-icon name="alert" [size]="13" />
+                        Khung giờ này được giữ theo hàng đợi ưu tiên — không thể thay đổi ngày hoặc slot.
+                      </p>
+                    }
                   </div>
 
                   @if (userMaxLimitReached()) {
@@ -632,13 +640,13 @@ export interface SlotWithStatus extends TimeSlot {
                         class="group relative flex items-center justify-between rounded-2xl border p-4 text-left transition duration-200"
                         [ngClass]="{
                           'cursor-not-allowed border-slate-200 bg-slate-100/70 text-slate-400 opacity-75':
-                            slot.isOccupied,
+                            slot.isOccupied || isLockedByWaitlist(),
                           'border-violet-600 bg-violet-50/90 text-violet-950 shadow-md ring-2 ring-violet-500/20':
                             slot.isSelected && !slot.isOccupied,
                           'border-slate-200 bg-white text-slate-800 shadow-sm hover:border-violet-300 hover:bg-slate-50/80':
-                            !slot.isSelected && !slot.isOccupied,
+                            !slot.isSelected && !slot.isOccupied && !isLockedByWaitlist(),
                         }"
-                        [disabled]="slot.isOccupied"
+                        [disabled]="slot.isOccupied || isLockedByWaitlist()"
                         (click)="selectSlot(slot)"
                       >
                         <div class="flex min-w-0 items-center gap-3.5">
@@ -962,6 +970,7 @@ export class BookingFormPage implements OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
+  private readonly destroyRef = inject(DestroyRef)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   protected readonly labs = signal<LabRoomResponse[]>([])
@@ -975,8 +984,8 @@ export class BookingFormPage implements OnInit {
   protected labNote = ''
 
   protected readonly labId = signal<number | null>(null)
-  protected bookingDate = new Date().toISOString().split('T')[0]
-  protected minDate = new Date().toISOString().split('T')[0]
+  protected bookingDate = toDateInput(new Date())
+  protected minDate = toDateInput(new Date())
   protected readonly selectedSlotIds = signal<number[]>([])
   protected readonly dayEvents = signal<CalendarEventResponse[]>([])
   protected readonly dayEventsLoading = signal(false)
@@ -986,7 +995,20 @@ export class BookingFormPage implements OnInit {
 
   protected purposeType = 1
   protected purposeDescription = ''
-  private sourceWaitlistId: number | null = null
+  protected sourceWaitlistId: number | null = null
+  /** ISO string (UTC) của RequestedStart từ waitlist đang Notified. */
+  protected waitlistStartIso: string | null = null
+  /** ISO string (UTC) của RequestedEnd từ waitlist đang Notified. */
+  protected waitlistEndIso: string | null = null
+
+  /**
+   * True khi form được mở từ màn hình Waitlist Notified.
+   * Khi true, khóa input ngày + slot để đảm bảo giờ submit khớp tuyệt đối
+   * với RequestedStart/RequestedEnd mà backend yêu cầu.
+   */
+  protected readonly isLockedByWaitlist = computed(
+    () => this.sourceWaitlistId !== null,
+  )
 
   protected readonly steps = computed(() => {
     this.languageStore.lang()
@@ -1174,6 +1196,10 @@ export class BookingFormPage implements OnInit {
     const targetEquipmentId = q['equipmentId'] ? Number(q['equipmentId']) : null
     if (q['waitlistId']) this.sourceWaitlistId = Number(q['waitlistId'])
 
+    // Ghi nhớ khung giờ waitlist để pre-fill Step 2 và xác minh khi MarkBooked
+    if (q['start']) this.waitlistStartIso = q['start'] as string
+    if (q['end']) this.waitlistEndIso = q['end'] as string
+
     forkJoin({
       labs: this.api.labs().pipe(catchError(() => of([]))),
       equipments: this.api.equipments().pipe(catchError(() => of([]))),
@@ -1202,6 +1228,41 @@ export class BookingFormPage implements OnInit {
           )
           if (lab) {
             this.selectLab(lab, targetEquipmentId)
+          }
+        }
+
+        // Pre-fill ngày và slot từ waitlist (nếu được mở qua điều hướng từ màn hình Waitlist)
+        if (this.waitlistStartIso) {
+          const startDate = new Date(this.waitlistStartIso)
+          if (!isNaN(startDate.getTime())) {
+            // Set ngày dựa trên múi giờ Việt Nam (+7) để hiển đúng
+            const vnOffset = 7 * 60 * 60 * 1000
+            const vnDate = new Date(startDate.getTime() + vnOffset)
+            this.bookingDate = vnDate.toISOString().slice(0, 10)
+
+            // Pre-select slot khớp với startTimeStr (giờ Việt Nam)
+            const startHHMM = `${String(vnDate.getUTCHours()).padStart(2, '0')}:${String(vnDate.getUTCMinutes()).padStart(2, '0')}`
+            const matchSlot = FIXED_TIME_SLOTS.find((s) => s.startTimeStr === startHHMM)
+            if (matchSlot) {
+              // Nếu có waitlistEndIso, tìm thêm slot kết thúc để chọn nhiều slot liên tiếp
+              if (this.waitlistEndIso) {
+                const endDate = new Date(this.waitlistEndIso)
+                const vnEnd = new Date(endDate.getTime() + vnOffset)
+                const endHHMM = `${String(vnEnd.getUTCHours()).padStart(2, '0')}:${String(vnEnd.getUTCMinutes()).padStart(2, '0')}`
+                const endSlot = FIXED_TIME_SLOTS.find((s) => s.endTimeStr === endHHMM)
+                if (endSlot && endSlot.id >= matchSlot.id) {
+                  // Chọn tất cả slot từ matchSlot đến endSlot
+                  const slotIds = FIXED_TIME_SLOTS
+                    .filter((s) => s.id >= matchSlot.id && s.id <= endSlot.id)
+                    .map((s) => s.id)
+                  this.selectedSlotIds.set(slotIds)
+                } else {
+                  this.selectedSlotIds.set([matchSlot.id])
+                }
+              } else {
+                this.selectedSlotIds.set([matchSlot.id])
+              }
+            }
           }
         }
       },
@@ -1346,88 +1407,109 @@ export class BookingFormPage implements OnInit {
     const user = this.store.user()
     const userId = user?.userId
     const currentLabId = this.labId()
+    const canManageMaintenance = this.store.isAdmin() || this.store.isManager()
+
+    const maintenances$ = canManageMaintenance
+      ? (currentLabId
+          ? this.api.maintenancesByLab(currentLabId)
+          : this.api.maintenances()
+        ).pipe(catchError(() => of([] as any[])))
+      : of([] as any[])
 
     forkJoin({
-      events: this.api.calendar(toIso(fromStr), toIso(toStr), currentLabId ?? undefined),
-      maintenances: currentLabId
-        ? this.api.maintenancesByLab(currentLabId)
-        : this.api.maintenances(),
-      userBookings: userId ? this.api.bookingsByUser(userId) : this.api.bookings(),
-    }).subscribe({
-      next: ({ events, maintenances, userBookings }) => {
-        const selectedEquipmentIds = new Set(
-          this.selected()
-            .map((i) => i.equipmentId)
-            .filter((id): id is number => id !== null),
-        )
-        const relevantEvents = events.filter((ev) => {
-          if (ev.status === 'Cancelled' || ev.status === 'Rejected') return false
-          return ev.resources.some((r) => r.labId === currentLabId)
-        })
-
-        const maintenanceEvents: CalendarEventResponse[] = (maintenances || [])
-          .filter((m) => {
-            if (m.status === 'Cancelled' || m.status === 'Completed') return false
-            if (m.labId && m.labId !== currentLabId) return false
-            if (m.equipmentId && !selectedEquipmentIds.has(m.equipmentId)) return false
-            const mStart = new Date(m.startTime).getTime()
-            const mEnd = new Date(m.endTime).getTime()
-            const dayStart = new Date(fromStr).getTime()
-            const dayEnd = new Date(toStr).getTime()
-            return mStart < dayEnd && mEnd > dayStart
-          })
-          .map((m) => ({
-            sourceId: m.maintenanceId,
-            eventType: 'Maintenance',
-            title: `Lịch bảo trì phòng / thiết bị #${m.maintenanceId}`,
-            startTime: m.startTime,
-            endTime: m.endTime,
-            status: m.status || 'InProgress',
-            blocking: true,
-            userId: null,
-            resources: [
-              {
-                resourceType: m.equipmentId ? 'Equipment' : 'LabRoom',
-                resourceId: m.equipmentId || m.labId || 0,
-                labId: m.labId || 0,
-                equipmentId: m.equipmentId || undefined,
-                resourceName: 'Tài nguyên bảo trì',
-              },
-            ],
-          }))
-
-        const activeUserBookings = (userBookings || []).filter((b) => {
-          if (b.status === 'Cancelled' || b.status === 'Rejected') return false
-          return toDateInput(new Date(b.startTime)) === this.bookingDate
-        })
-        this.userDayActiveBookings.set(activeUserBookings)
-        this.userDayBookingsCount.set(activeUserBookings.length)
-
-        const userPersonalEvents: CalendarEventResponse[] = activeUserBookings
-          .filter((b) => !relevantEvents.some((ev) => ev.sourceId === b.bookingId))
-          .map((b) => ({
-            sourceId: b.bookingId,
-            eventType: 'Booking',
-            title: `Booking #${b.bookingId} - ${this.languageStore.t('bookingForm.step2.personalSchedule')}`,
-            startTime: b.startTime,
-            endTime: b.endTime,
-            status: b.status,
-            blocking: true,
-            userId: b.userId,
-            resources: [],
-          }))
-
-        const combinedEvents = [...relevantEvents, ...maintenanceEvents, ...userPersonalEvents]
-        this.dayEvents.set(combinedEvents)
-        this.dayEventsLoading.set(false)
-      },
-      error: () => {
-        this.dayEventsLoading.set(false)
-        this.dayEvents.set([])
-        this.userDayActiveBookings.set([])
-        this.userDayBookingsCount.set(0)
-      },
+      events: this.api
+        .calendar(toIso(fromStr), toIso(toStr), currentLabId ?? undefined)
+        .pipe(catchError(() => of([] as CalendarEventResponse[]))),
+      maintenances: maintenances$,
+      userBookings: (userId ? this.api.bookingsByUser(userId) : this.api.bookings()).pipe(
+        catchError(() => of([] as BookingResponse[])),
+      ),
     })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.dayEventsLoading.set(false)),
+      )
+      .subscribe({
+        next: ({
+          events,
+          maintenances,
+          userBookings,
+        }: {
+          events: CalendarEventResponse[]
+          maintenances: any[]
+          userBookings: BookingResponse[]
+        }) => {
+          const selectedEquipmentIds = new Set(
+            this.selected()
+              .map((i) => i.equipmentId)
+              .filter((id): id is number => id !== null),
+          )
+          const relevantEvents = events.filter((ev) => {
+            if (ev.status === 'Cancelled' || ev.status === 'Rejected') return false
+            return ev.resources.some((r) => r.labId === currentLabId)
+          })
+
+          const maintenanceEvents: CalendarEventResponse[] = (maintenances || [])
+            .filter((m) => {
+              if (m.status === 'Cancelled' || m.status === 'Completed') return false
+              if (m.labId && m.labId !== currentLabId) return false
+              if (m.equipmentId && !selectedEquipmentIds.has(m.equipmentId)) return false
+              const mStart = new Date(m.startTime).getTime()
+              const mEnd = new Date(m.endTime).getTime()
+              const dayStart = new Date(fromStr).getTime()
+              const dayEnd = new Date(toStr).getTime()
+              return mStart < dayEnd && mEnd > dayStart
+            })
+            .map((m) => ({
+              sourceId: m.maintenanceId,
+              eventType: 'Maintenance',
+              title: `Lịch bảo trì phòng / thiết bị #${m.maintenanceId}`,
+              startTime: m.startTime,
+              endTime: m.endTime,
+              status: m.status || 'InProgress',
+              blocking: true,
+              userId: null,
+              resources: [
+                {
+                  resourceType: m.equipmentId ? 'Equipment' : 'LabRoom',
+                  resourceId: m.equipmentId || m.labId || 0,
+                  labId: m.labId || 0,
+                  equipmentId: m.equipmentId || undefined,
+                  resourceName: 'Tài nguyên bảo trì',
+                },
+              ],
+            }))
+
+          const activeUserBookings = (userBookings || []).filter((b) => {
+            if (b.status === 'Cancelled' || b.status === 'Rejected') return false
+            return toDateInput(new Date(b.startTime)) === this.bookingDate
+          })
+          this.userDayActiveBookings.set(activeUserBookings)
+          this.userDayBookingsCount.set(activeUserBookings.length)
+
+          const userPersonalEvents: CalendarEventResponse[] = activeUserBookings
+            .filter((b) => !relevantEvents.some((ev) => ev.sourceId === b.bookingId))
+            .map((b) => ({
+              sourceId: b.bookingId,
+              eventType: 'Booking',
+              title: `Booking #${b.bookingId} - ${this.languageStore.t('bookingForm.step2.personalSchedule')}`,
+              startTime: b.startTime,
+              endTime: b.endTime,
+              status: b.status,
+              blocking: true,
+              userId: b.userId,
+              resources: [],
+            }))
+
+          const combinedEvents = [...relevantEvents, ...maintenanceEvents, ...userPersonalEvents]
+          this.dayEvents.set(combinedEvents)
+        },
+        error: () => {
+          this.dayEvents.set([])
+          this.userDayActiveBookings.set([])
+          this.userDayBookingsCount.set(0)
+        },
+      })
   }
 
   protected selectSlot(slot: SlotWithStatus): void {
@@ -1521,36 +1603,60 @@ export class BookingFormPage implements OnInit {
       }
 
       this.submitting.set(true)
-      const createRequests$ = ranges.map((range) =>
-        this.api.createBooking({
-          purposeType: this.purposeType,
-          purposeDescription: this.purposeDescription.trim(),
-          startTime: toIso(range.startTime.toISOString()),
-          endTime: toIso(range.endTime.toISOString()),
-          items: this.itemPayload(),
-        }),
-      )
 
-      forkJoin(createRequests$).subscribe({
-        next: (results) => {
-          this.submitting.set(false)
-          if (results.length === 1) {
-            this.toast.success(
-              'Đã gửi yêu cầu booking',
-              `Booking #${results[0].bookingId} đang chờ duyệt.`,
-            )
-            void this.router.navigate(['/app/bookings', results[0].bookingId])
-          } else {
-            this.toast.success(
-              'Đã gửi các yêu cầu booking',
-              `Đã tạo thành công ${results.length} đơn booking riêng biệt cho từng khung giờ.`,
-            )
-            void this.router.navigate(['/app/bookings'])
-          }
-        },
-        error: (err: unknown) => {
-          this.submitting.set(false)
-          // err is already a normalized ApiError from the interceptor
+      // Khi đến từ waitlist Notified: BẮT BUỘC dùng thẳng ISO UTC gốc (waitlistStartIso/
+      // waitlistEndIso) để khớp tuyệt đối với RequestedStart/RequestedEnd mà backend kiểm
+      // tra trong EnsureWaitlistHoldsAllowAsync. Không build lại từ slot để tránh lệch
+      // timezone do new Date("YYYY-MM-DDTHH:mm:00") parse theo local timezone trình duyệt.
+      const useWaitlistTiming =
+        this.sourceWaitlistId !== null && this.waitlistStartIso && this.waitlistEndIso
+
+      const createRequests$: Observable<BookingResponse>[] = useWaitlistTiming
+        ? [
+            this.api.createBooking({
+              purposeType: this.purposeType,
+              purposeDescription: this.purposeDescription.trim(),
+              startTime: this.waitlistStartIso!,
+              endTime: this.waitlistEndIso!,
+              items: this.itemPayload(),
+            }),
+          ]
+        : ranges.map((range) =>
+            this.api.createBooking({
+              purposeType: this.purposeType,
+              purposeDescription: this.purposeDescription.trim(),
+              startTime: toIso(range.startTime.toISOString()),
+              endTime: toIso(range.endTime.toISOString()),
+              items: this.itemPayload(),
+            }),
+          )
+
+      // Reset state waitlist ngay (trước khi subscribe) để tránh double-submit
+      this.sourceWaitlistId = null
+
+      forkJoin(createRequests$)
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.submitting.set(false)),
+        )
+        .subscribe({
+          next: (results: BookingResponse[]) => {
+            if (results.length === 1) {
+              this.toast.success(
+                'Đã gửi yêu cầu booking',
+                `Booking #${results[0].bookingId} đang chờ duyệt.`,
+              )
+              void this.router.navigate(['/app/bookings', results[0].bookingId])
+            } else {
+              this.toast.success(
+                'Đã gửi các yêu cầu booking',
+                `Đã tạo thành công ${results.length} đơn booking riêng biệt cho từng khung giờ.`,
+              )
+              void this.router.navigate(['/app/bookings'])
+            }
+          },
+          error: (err: unknown) => {
+            // err is already a normalized ApiError from the interceptor
           const apiErr = err instanceof ApiError ? err : null
           const isConflict = apiErr?.status === 409
 
@@ -1601,7 +1707,10 @@ export class BookingFormPage implements OnInit {
         searchDays: 7,
         stepMinutes: 30,
       })
-      .pipe(catchError(() => of([])))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError(() => of([])),
+      )
       .subscribe((slots: SuggestedSlotResponse[]) => this.suggestedSlots.set(slots || []))
   }
 

@@ -2,7 +2,7 @@ import { NgClass } from '@angular/common'
 import { ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, forkJoin, of, from } from 'rxjs'
+import { catchError, finalize, forkJoin, of, from } from 'rxjs'
 import { timeout, mergeMap, toArray, map } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type {
@@ -474,6 +474,7 @@ export class EquipmentsPage implements OnInit {
         pageNumber: this.page(),
         pageSize: 16,
       })
+      .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (result) => {
           let items = result.items || []
@@ -494,12 +495,10 @@ export class EquipmentsPage implements OnInit {
 
           const pagedItems = items.map((e) => ({ ...e, _detailLoaded: false }))
           this.items.set(pagedItems)
-          this.loading.set(false)
 
           this.enrichWithDetails(pagedItems)
         },
         error: () => {
-          this.loading.set(false)
           this.toast.error('Không tải được danh sách thiết bị')
         },
       })

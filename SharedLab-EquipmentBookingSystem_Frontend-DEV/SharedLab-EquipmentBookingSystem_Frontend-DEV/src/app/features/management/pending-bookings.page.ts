@@ -1,8 +1,9 @@
 import { DatePipe } from '@angular/common'
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, forkJoin, of, from } from 'rxjs'
+import { catchError, finalize, forkJoin, of, from } from 'rxjs'
 import { mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse } from '../../core/api/system.models'
@@ -307,99 +308,109 @@ export class PendingBookingsPage implements OnInit {
     })
   }
 
+  private readonly destroyRef = inject(DestroyRef)
+
   private load(): void {
+    const isAdmin = this.store.isAdmin()
     this.loading.set(true)
     forkJoin({
       pending: this.api.pendingBookings().pipe(catchError(() => of([]))),
-      usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>()))),
-    }).subscribe({
-      next: ({ pending, usersMap }) => {
-        usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
+      usersMap: isAdmin
+        ? this.api.usersMap().pipe(catchError(() => of(new Map<number, string>())))
+        : of(new Map<number, string>()),
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: ({ pending, usersMap }) => {
+          usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
 
-        const enriched = pending.map((b) => ({
-          ...b,
-          userName:
-            usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null,
-        }))
-        this.items.set(
-          [...enriched].sort(
-            (a, b) =>
-              (a.priorityLevel ?? 999) - (b.priorityLevel ?? 999) ||
-              +new Date(a.createdAt) - +new Date(b.createdAt),
-          ),
-        )
-        this.loading.set(false)
-
-        const bookingsToResolve = [...enriched]
-        if (bookingsToResolve.length > 0) {
-          const detailReqs = bookingsToResolve.map((b) =>
-            this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
+          const enriched = pending.map((b) => ({
+            ...b,
+            userName:
+              usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null,
+          }))
+          this.items.set(
+            [...enriched].sort(
+              (a, b) =>
+                (a.priorityLevel ?? 999) - (b.priorityLevel ?? 999) ||
+                +new Date(a.createdAt) - +new Date(b.createdAt),
+            ),
           )
-          from(detailReqs)
-            .pipe(
-              mergeMap((req) => req, 3),
-              toArray(),
-            )
-            .subscribe((details) => {
-              let updated = false
-              const current = [
-                ...this.items(),
-              ] as (BookingResponse & {
-                userName?: string | null
-                labName?: string | null
-                equipmentSummary?: string | null
-                resourceSummary?: string | null
-              })[]
-              for (const d of details) {
-                if (d && d.bookingId) {
-                  if (d.userId && d.userName) {
-                    this.api.setCachedUserName(d.userId, d.userName)
-                  }
-                  const labNames = Array.from(
-                    new Set(d.items?.map((i) => i.labName).filter(Boolean)),
-                  ).join(' · ')
-                  const equipmentNames = Array.from(
-                    new Set(d.items?.map((i) => i.equipmentName).filter(Boolean)),
-                  ).join(' · ')
-                  const summary =
-                    d.items
-                      ?.map((i) =>
-                        i.equipmentName
-                          ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
-                          : i.labName,
-                      )
-                      .filter(Boolean)
-                      .join(' · ') || null
 
-                  for (const item of current) {
-                    if (item.bookingId === d.bookingId) {
-                      if (d.userName) item.userName = d.userName
-                      if (labNames) item.labName = labNames
-                      if (equipmentNames) item.equipmentSummary = equipmentNames
-                      if (summary) item.resourceSummary = summary
-                      updated = true
-                    } else if (
-                      d.userId &&
-                      item.userId === d.userId &&
-                      !item.userName &&
-                      d.userName
-                    ) {
-                      item.userName = d.userName
-                      updated = true
+          const bookingsToResolve = [...enriched]
+          if (bookingsToResolve.length > 0) {
+            const detailReqs = bookingsToResolve.map((b) =>
+              this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
+            )
+            from(detailReqs)
+              .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                mergeMap((req) => req, 3),
+                toArray(),
+              )
+              .subscribe((details) => {
+                let updated = false
+                const current = [
+                  ...this.items(),
+                ] as (BookingResponse & {
+                  userName?: string | null
+                  labName?: string | null
+                  equipmentSummary?: string | null
+                  resourceSummary?: string | null
+                })[]
+                for (const d of details) {
+                  if (d && d.bookingId) {
+                    if (d.userId && d.userName) {
+                      this.api.setCachedUserName(d.userId, d.userName)
+                    }
+                    const labNames = Array.from(
+                      new Set(d.items?.map((i) => i.labName).filter(Boolean)),
+                    ).join(' · ')
+                    const equipmentNames = Array.from(
+                      new Set(d.items?.map((i) => i.equipmentName).filter(Boolean)),
+                    ).join(' · ')
+                    const summary =
+                      d.items
+                        ?.map((i) =>
+                          i.equipmentName
+                            ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
+                            : i.labName,
+                        )
+                        .filter(Boolean)
+                        .join(' · ') || null
+
+                    for (const item of current) {
+                      if (item.bookingId === d.bookingId) {
+                        if (d.userName) item.userName = d.userName
+                        if (labNames) item.labName = labNames
+                        if (equipmentNames) item.equipmentSummary = equipmentNames
+                        if (summary) item.resourceSummary = summary
+                        updated = true
+                      } else if (
+                        d.userId &&
+                        item.userId === d.userId &&
+                        !item.userName &&
+                        d.userName
+                      ) {
+                        item.userName = d.userName
+                        updated = true
+                      }
                     }
                   }
                 }
-              }
-              if (updated) {
-                this.items.set([...current])
-              }
-            })
-        }
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được hàng đợi')
-      },
-    })
+                if (updated) {
+                  this.items.set([...current])
+                }
+              })
+          }
+        },
+        error: () => {
+          this.items.set([])
+          this.toast.error('Không tải được danh sách chờ duyệt')
+        },
+      })
   }
 }

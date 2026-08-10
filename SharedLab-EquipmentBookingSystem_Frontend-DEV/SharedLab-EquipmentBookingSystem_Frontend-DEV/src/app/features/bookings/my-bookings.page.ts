@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { EMPTY, from, of, timeout } from 'rxjs'
+import { EMPTY, Subscription, finalize, from, of, timeout } from 'rxjs'
 import { catchError, mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type {
@@ -278,7 +279,7 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
                         >
                           <app-icon name="eye" [size]="15" /> {{ 'common.detail' | t }}
                         </button>
-                        @if (booking.status === 'Pending' || booking.status === 'Approved') {
+                        @if ((isOwner(booking) || store.isAdmin()) && (booking.status === 'Pending' || booking.status === 'Approved')) {
                           <button
                             type="button"
                             class="btn-secondary btn-danger px-2.5 py-1.5 text-xs"
@@ -522,7 +523,7 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
                 <app-icon name="arrow-right" [size]="15" /> {{ 'bookings.openFullDetail' | t }}
               </a>
 
-              @if (detail.status === 'Pending' || detail.status === 'Approved') {
+              @if ((isOwner(detail) || store.isAdmin()) && (detail.status === 'Pending' || detail.status === 'Approved')) {
                 <button
                   type="button"
                   class="btn-secondary btn-danger text-xs"
@@ -540,10 +541,12 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
 })
 export class MyBookingsPage implements OnInit {
   private readonly api = inject(SystemService)
-  private readonly store = inject(AuthStore)
+  protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
   private readonly confirmDialog = inject(ConfirmDialogService)
+  private readonly destroyRef = inject(DestroyRef)
+  private dataSub?: Subscription
 
   protected readonly bookings = signal<BookingResponse[]>([])
   protected readonly detailsMap = signal(new Map<number, BookingDetailResponse>())
@@ -559,6 +562,11 @@ export class MyBookingsPage implements OnInit {
   protected readonly detailAccessDenied = signal(false)
   protected readonly detailErrorMessage = signal('')
   protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
+
+  protected isOwner(booking?: BookingResponse | BookingDetailResponse | null): boolean {
+    if (!booking) return false
+    return booking.userId === this.store.user()?.userId
+  }
 
   protected readonly tabs = computed(() => [
     {
@@ -613,12 +621,19 @@ export class MyBookingsPage implements OnInit {
   ])
 
   protected readonly filtered = computed(() => {
+    const currentUserId = this.store.user()?.userId
+    const isAdmin = this.store.isAdmin()
     const needle = this.keyword().trim().toLowerCase()
     const status = this.activeStatus()
     const map = this.detailsMap()
 
     return [...this.bookings()]
       .filter((item) => {
+        // Enforce data ownership: Non-admins strictly see only their own bookings
+        if (!isAdmin && currentUserId && item.userId !== currentUserId) {
+          return false
+        }
+
         const matchesStatus = !status || item.status === status
         if (!matchesStatus) return false
 
@@ -661,18 +676,31 @@ export class MyBookingsPage implements OnInit {
   protected loadData(): void {
     const userId = this.store.user()?.userId
     if (!userId) return
+
+    if (this.dataSub) {
+      this.dataSub.unsubscribe()
+    }
+
     this.loading.set(true)
-    this.api.bookingsByUser(userId).subscribe({
-      next: (items) => {
-        this.bookings.set(items)
-        this.loading.set(false)
-        this.loadDetailsAndLogs(items)
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được danh sách booking của bạn')
-      },
-    })
+    this.dataSub = this.api
+      .bookingsByUser(userId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (items: BookingResponse[]) => {
+          const isAdmin = this.store.isAdmin()
+          const userItems = isAdmin ? items : items.filter((b) => b.userId === userId)
+          this.bookings.set(userItems)
+          this.loadDetailsAndLogs(userItems)
+        },
+        error: (err) => {
+          if (err?.name !== 'AbortError' && err?.status !== 0) {
+            this.toast.error('Không tải được danh sách booking của bạn')
+          }
+        },
+      })
   }
 
   protected setStatus(val: string): void {
@@ -750,17 +778,19 @@ export class MyBookingsPage implements OnInit {
 
     this.api
       .booking(booking.bookingId)
-      .pipe(timeout(10000))
+      .pipe(
+        timeout(10000),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.detailLoading.set(false)),
+      )
       .subscribe({
-        next: (detail) => {
+        next: (detail: BookingDetailResponse) => {
           this.detailBooking.set(detail)
-          this.detailLoading.set(false)
           if (detail) {
             this.detailsMap.update((map) => new Map(map).set(detail.bookingId, detail))
           }
         },
         error: (err: any) => {
-          this.detailLoading.set(false)
           this.detailAccessDenied.set(true)
           const msg =
             err?.message ||

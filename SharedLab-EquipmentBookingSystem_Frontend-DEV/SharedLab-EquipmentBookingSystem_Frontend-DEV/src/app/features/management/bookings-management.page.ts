@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, EMPTY, forkJoin, of, timeout, from } from 'rxjs'
+import { catchError, EMPTY, finalize, forkJoin, of, timeout, from } from 'rxjs'
 import { mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingResponse } from '../../core/api/system.models'
@@ -788,6 +789,8 @@ export class BookingsManagementPage implements OnInit {
     },
   ])
 
+  private readonly destroyRef = inject(DestroyRef)
+
   ngOnInit(): void {
     this.load()
   }
@@ -797,86 +800,91 @@ export class BookingsManagementPage implements OnInit {
     forkJoin({
       bookings: this.api.bookings().pipe(catchError(() => of([]))),
       usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>()))),
-    }).subscribe({
-      next: ({ bookings, usersMap }) => {
-        usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: ({ bookings, usersMap }) => {
+          usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
 
-        const enriched = bookings.map((b) => {
-          const name =
-            usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null
-          return { ...b, userName: name }
-        })
-        this.items.set(enriched)
-        this.loading.set(false)
+          const enriched = bookings.map((b) => {
+            const name =
+              usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null
+            return { ...b, userName: name }
+          })
+          this.items.set(enriched)
 
-        const bookingsToResolve = [...enriched]
-        if (bookingsToResolve.length > 0) {
-          const detailReqs = bookingsToResolve.map((b) =>
-            this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
-          )
-          from(detailReqs)
-            .pipe(
-              mergeMap((req) => req, 3),
-              toArray(),
+          const bookingsToResolve = [...enriched]
+          if (bookingsToResolve.length > 0) {
+            const detailReqs = bookingsToResolve.map((b) =>
+              this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
             )
-            .subscribe((details) => {
-              let updated = false
-              const current = [...this.items()] as (BookingResponse & {
-                labName?: string | null
-                equipmentSummary?: string | null
-                resourceSummary?: string | null
-              })[]
-              for (const d of details) {
-                if (d && d.bookingId) {
-                  if (d.userId && d.userName) {
-                    this.api.setCachedUserName(d.userId, d.userName)
-                  }
-                  const labNames = Array.from(
-                    new Set(d.items?.map((i) => i.labName).filter(Boolean)),
-                  ).join(' · ')
-                  const equipmentNames = Array.from(
-                    new Set(d.items?.map((i) => i.equipmentName).filter(Boolean)),
-                  ).join(' · ')
-                  const summary =
-                    d.items
-                      ?.map((i) =>
-                        i.equipmentName
-                          ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
-                          : i.labName,
-                      )
-                      .filter(Boolean)
-                      .join(' · ') || null
+            from(detailReqs)
+              .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                mergeMap((req) => req, 3),
+                toArray(),
+              )
+              .subscribe((details) => {
+                let updated = false
+                const current = [...this.items()] as (BookingResponse & {
+                  labName?: string | null
+                  equipmentSummary?: string | null
+                  resourceSummary?: string | null
+                })[]
+                for (const d of details) {
+                  if (d && d.bookingId) {
+                    if (d.userId && d.userName) {
+                      this.api.setCachedUserName(d.userId, d.userName)
+                    }
+                    const labNames = Array.from(
+                      new Set(d.items?.map((i) => i.labName).filter(Boolean)),
+                    ).join(' · ')
+                    const equipmentNames = Array.from(
+                      new Set(d.items?.map((i) => i.equipmentName).filter(Boolean)),
+                    ).join(' · ')
+                    const summary =
+                      d.items
+                        ?.map((i) =>
+                          i.equipmentName
+                            ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
+                            : i.labName,
+                        )
+                        .filter(Boolean)
+                        .join(' · ') || null
 
-                  for (const item of current) {
-                    if (item.bookingId === d.bookingId) {
-                      if (d.userName) item.userName = d.userName
-                      if (labNames) item.labName = labNames
-                      if (equipmentNames) item.equipmentSummary = equipmentNames
-                      if (summary) item.resourceSummary = summary
-                      updated = true
-                    } else if (
-                      d.userId &&
-                      item.userId === d.userId &&
-                      !item.userName &&
-                      d.userName
-                    ) {
-                      item.userName = d.userName
-                      updated = true
+                    for (const item of current) {
+                      if (item.bookingId === d.bookingId) {
+                        if (d.userName) item.userName = d.userName
+                        if (labNames) item.labName = labNames
+                        if (equipmentNames) item.equipmentSummary = equipmentNames
+                        if (summary) item.resourceSummary = summary
+                        updated = true
+                      } else if (
+                        d.userId &&
+                        item.userId === d.userId &&
+                        !item.userName &&
+                        d.userName
+                      ) {
+                        item.userName = d.userName
+                        updated = true
+                      }
                     }
                   }
                 }
-              }
-              if (updated) {
-                this.items.set([...current])
-              }
-            })
-        }
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được danh sách booking')
-      },
-    })
+                if (updated) {
+                  this.items.set([...current])
+                }
+              })
+          }
+        },
+        error: () => {
+          this.items.set([])
+          this.toast.error('Không tải được danh sách booking')
+        },
+      })
   }
 
   protected reset(): void {

@@ -22,7 +22,43 @@ import { ErrorStateService } from './error-state.service'
 import { ToastService } from '../../shared/ui/toast.service'
 
 let isRefreshing = false
+let is401ToastShown = false
 const refreshTokenSubject = new BehaviorSubject<string | null>(null)
+
+function handle401ExpiredSession(
+  authStore: AuthStore,
+  toast: ToastService,
+  router: Router,
+  title: string,
+  body: string,
+): void {
+  authStore.clear()
+  if (!is401ToastShown) {
+    is401ToastShown = true
+    toast.error(title, body)
+    setTimeout(() => {
+      is401ToastShown = false
+    }, 4000)
+  }
+  void router.navigate(['/login'])
+}
+
+export function isCanceledRequest(error: any): boolean {
+  if (!error) return false
+  if (error.name === 'AbortError' || error.error?.name === 'AbortError') return true
+  if (error.error instanceof DOMException && error.error.name === 'AbortError') return true
+  if (
+    error.status === 0 &&
+    (error.statusText === 'Unknown Error' ||
+      error.message?.includes('Unknown Error') ||
+      error.message?.includes('abort') ||
+      error.message?.includes('canceled') ||
+      error.message?.includes('cancelled'))
+  ) {
+    return true
+  }
+  return false
+}
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router)
@@ -38,10 +74,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       delay: (error: any, retryCount: number) => {
         const isAuthEndpoint =
           /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(req.url)
-        // Chỉ retry các request an toàn (GET/HEAD) — không retry mutation vì POST/PUT/DELETE
-        // không idempotent và có thể tạo trùng dữ liệu nếu BE đã xử lý nhưng response bị mất.
         const isSafeMethod = req.method === 'GET' || req.method === 'HEAD'
         if (
+          !isCanceledRequest(error) &&
           isSafeMethod &&
           !isAuthEndpoint &&
           (error?.status >= 500 || error?.status === 0) &&
@@ -53,130 +88,139 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       },
     }),
     catchError((error: HttpErrorResponse) => {
+      // 1. If request was actively canceled/aborted on Frontend, suppress all toasts & errorState
+      if (isCanceledRequest(error)) {
+        return throwError(() => normalize(error))
+      }
+
       const isAuthEndpoint = /\/Auth\/(login|refresh|forgot-password|reset-password|logout)$/i.test(
         req.url,
       )
       const currentToken = tokens.access
       const refreshToken = tokens.refresh
 
-      if (error.status === 401 && !isAuthEndpoint) {
-        const reqAuthHeader = req.headers.get('Authorization')
-        const reqToken = reqAuthHeader?.replace(/^Bearer\s+/i, '')
+      // 2. Handle Auth Errors (401 / 403)
+      if ((error.status === 401 || error.status === 403) && !isAuthEndpoint) {
+        if (error.status === 401) {
+          const reqAuthHeader = req.headers.get('Authorization')
+          const reqToken = reqAuthHeader?.replace(/^Bearer\s+/i, '')
 
-        if (currentToken && reqToken && reqToken !== currentToken) {
-          return next(req.clone({ setHeaders: { Authorization: `Bearer ${currentToken}` } }))
-        }
+          if (currentToken && reqToken && reqToken !== currentToken) {
+            return next(req.clone({ setHeaders: { Authorization: `Bearer ${currentToken}` } }))
+          }
 
-        if (!refreshToken) {
-          authStore.clear()
-          void router.navigate(['/login'])
-          return throwError(() => normalize(error))
-        }
+          if (!refreshToken) {
+            handle401ExpiredSession(
+              authStore,
+              toast,
+              router,
+              'Phiên đăng nhập hết hạn',
+              'Vui lòng đăng nhập lại để tiếp tục.',
+            )
+            return throwError(() => normalize(error))
+          }
 
-        if (!isRefreshing) {
-          isRefreshing = true
-          refreshTokenSubject.next(null)
+          if (!isRefreshing) {
+            isRefreshing = true
+            refreshTokenSubject.next(null)
 
-          return http
-            .post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, {
-              accessToken: currentToken || '',
-              refreshToken,
-            })
-            .pipe(
-            tap((fresh) => {
-              tokens.set(fresh.accessToken, fresh.refreshToken, tokens.isRemembered)
-              refreshTokenSubject.next(fresh.accessToken)
-            }),
-            catchError((refreshError: HttpErrorResponse) => {
-              isRefreshing = false
-              refreshTokenSubject.next(null)
-              authStore.clear()
-              toast.error(
-                'Phiên làm việc hết hạn',
-                'Không thể gia hạn phiên đăng nhập. Vui lòng đăng nhập lại.',
+            return http
+              .post<AuthTokens>(`${env.apiBaseUrl}/Auth/refresh`, {
+                accessToken: currentToken || '',
+                refreshToken,
+              })
+              .pipe(
+                tap((fresh) => {
+                  tokens.set(fresh.accessToken, fresh.refreshToken, tokens.isRemembered)
+                  refreshTokenSubject.next(fresh.accessToken)
+                }),
+                catchError((refreshError: HttpErrorResponse) => {
+                  isRefreshing = false
+                  refreshTokenSubject.next(null)
+                  handle401ExpiredSession(
+                    authStore,
+                    toast,
+                    router,
+                    'Phiên làm việc hết hạn',
+                    'Không thể gia hạn phiên đăng nhập. Vui lòng đăng nhập lại.',
+                  )
+                  return throwError(() => normalize(refreshError))
+                }),
+                switchMap((fresh) => {
+                  return next(
+                    req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
+                  ).pipe(
+                    catchError((retriedErr: HttpErrorResponse) =>
+                      throwError(() => normalize(retriedErr)),
+                    ),
+                  )
+                }),
+                finalize(() => {
+                  isRefreshing = false
+                }),
               )
-              void router.navigate(['/login'])
-              return throwError(() => normalize(refreshError))
-            }),
-            switchMap((fresh) => {
-              return next(
-                req.clone({ setHeaders: { Authorization: `Bearer ${fresh.accessToken}` } }),
-              ).pipe(
-                catchError((retriedErr: HttpErrorResponse) =>
-                  throwError(() => normalize(retriedErr)),
-                ),
-              )
-            }),
-            finalize(() => {
-              isRefreshing = false
-            }),
+          } else {
+            return refreshTokenSubject.pipe(
+              filter((token): token is string => token !== null),
+              take(1),
+              switchMap((token) => {
+                return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })).pipe(
+                  catchError((retriedErr: HttpErrorResponse) =>
+                    throwError(() => normalize(retriedErr)),
+                  ),
+                )
+              }),
+            )
+          }
+        } else if (error.status === 403) {
+          // 403 Forbidden: Concise warning toast without destroying user session
+          const normalizedErr = normalize(error)
+          toast.error(
+            'Không có quyền thực hiện',
+            normalizedErr.message || 'Bạn không có quyền thực hiện thao tác này trên tài nguyên đã chọn.',
           )
-        } else {
-          return refreshTokenSubject.pipe(
-            filter((token): token is string => token !== null),
-            take(1),
-            switchMap((token) => {
-              return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })).pipe(
-                catchError((retriedErr: HttpErrorResponse) =>
-                  throwError(() => normalize(retriedErr)),
-                ),
-              )
-            }),
-          )
+          return throwError(() => normalizedErr)
         }
       }
+
       const normalizedErr = normalize(error)
 
-      const isSubRequestOrSilent =
-        req.method === 'GET' &&
-        /\/(Notifications|Maintenances|Users|Policies|PriorityRules|Bookings\/calendar|Waitlists\/user|Violations\/user|LabRooms|Equipments)/i.test(
-          req.url,
+      // 3. 409 Conflict: Trùng lịch đặt phòng/thiết bị
+      if (error.status === 409) {
+        toast.error(
+          'Trùng lịch đặt phòng / thiết bị',
+          'Khung giờ này đã có người đặt, vui lòng chọn khung giờ khác.',
         )
+      }
 
-      if (error.status === 403) {
-        errorState.setError({
-          status: 403,
-          statusText: 'Forbidden / Không có quyền truy cập',
-          message: normalizedErr.message || 'Bạn không có quyền truy cập vào tài nguyên này.',
-          url: req.url,
-          timestamp: new Date(),
-          details: normalizedErr.fieldErrors,
-        })
-        const currentUrl = router.url || ''
-        const isCalendarPage = currentUrl.includes('/calendar')
-        if (isCalendarPage && !currentUrl.includes('/labs/') && !currentUrl.includes('/equipments/')) {
-          void router.navigate(['/403'])
-        } else if (!isSubRequestOrSilent) {
-          toast.error(
-            'Không có quyền truy cập',
-            normalizedErr.message || 'Bạn không có quyền thực hiện thao tác này.',
-          )
+      // 4. 400 Validation Error
+      if (error.status === 400) {
+        let validationMsg = normalizedErr.message || 'Thông tin nhập vào không hợp lệ.'
+        if (normalizedErr.fieldErrors && Object.keys(normalizedErr.fieldErrors).length > 0) {
+          const details = Object.entries(normalizedErr.fieldErrors)
+            .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+            .join(' | ')
+          validationMsg = `${validationMsg} (${details})`
         }
+        toast.error('Lỗi dữ liệu nhập (400)', validationMsg)
       }
 
-      if (error.status >= 500 || error.status === 0) {
-        const title =
-          error.status === 0
-            ? 'Mất kết nối Server / Lỗi mạng'
-            : `Backend Error (HTTP ${error.status})`
-        const msg =
-          normalizedErr.message || 'Hệ thống Backend gặp sự cố trong quá trình xử lý yêu cầu.'
-        toast.error(`${title}: ${msg}`)
-
+      // 5. 500 Server Error
+      if (error.status >= 500) {
+        toast.error('Hệ thống đang bận', 'Hệ thống đang bận, vui lòng thử lại sau.')
         errorState.setError({
-          status: error.status || 500,
-          statusText: title,
-          message: msg,
+          status: error.status,
+          statusText: `Backend Error (HTTP ${error.status})`,
+          message: 'Hệ thống Backend gặp sự cố trong quá trình xử lý yêu cầu.',
           url: req.url,
           timestamp: new Date(),
           details: normalizedErr.fieldErrors,
         })
+      } else if (error.status === 0) {
+        // Real network failure
+        toast.error('Mất kết nối Server', 'Kết nối mạng bị gián đoạn, vui lòng kiểm tra kết nối.')
       }
 
-      // 409 Conflict (PostgreSQL trigger / uniqueness constraint) and
-      // 422 Unprocessable Entity (BE validation) are intentionally NOT set on errorState —
-      // they are business-logic errors that individual feature components handle themselves
-      // by reading ApiError.status and ApiError.details from the thrown error.
       return throwError(() => normalizedErr)
     }),
   )

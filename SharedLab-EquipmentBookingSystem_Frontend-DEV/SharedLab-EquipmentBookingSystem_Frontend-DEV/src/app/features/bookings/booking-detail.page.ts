@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { catchError, EMPTY, forkJoin, of, timeout } from 'rxjs'
+import { catchError, EMPTY, finalize, forkJoin, of, timeout } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   BookingDetailResponse,
@@ -940,6 +941,8 @@ export class BookingDetailPage implements OnInit {
     ])
   }
 
+  private readonly destroyRef = inject(DestroyRef)
+
   private load(): void {
     this.loading.set(true)
     this.accessDenied.set(false)
@@ -949,7 +952,12 @@ export class BookingDetailPage implements OnInit {
       .booking(this.id)
       .pipe(
         timeout(5000),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
         catchError((err: any) => {
+          if (err?.name === 'AbortError' || err?.status === 0) {
+            return of<BookingDetailResponse | null>(null)
+          }
           this.accessDenied.set(true)
           let msg =
             err?.error?.message ||
@@ -969,28 +977,47 @@ export class BookingDetailPage implements OnInit {
           }
 
           this.errorMessage.set(msg)
-          return of(null)
+          return of<BookingDetailResponse | null>(null)
         }),
       )
       .subscribe({
-        next: (booking) => {
+        next: (booking: BookingDetailResponse | null) => {
           if (!booking) {
-            this.loading.set(false)
             return
           }
+
+          // Enforce ownership: Non-admin/manager users MUST be the owner of the booking
+          const currentUserId = this.store.user()?.userId
+          const isOwner = booking.userId === currentUserId
+          const canAccess = isOwner || this.store.isAdmin() || this.store.isManager()
+
+          if (!canAccess) {
+            this.toast.error(
+              'Không có quyền truy cập',
+              'Bạn không có quyền truy cập vào thông tin booking của người khác.',
+            )
+            void this.router.navigate(['/app/bookings/my'])
+            return
+          }
+
           this.booking.set(booking)
-          this.loading.set(false)
 
           this.api
             .usageLogsByBooking(this.id)
-            .pipe(catchError(() => of([])))
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() => of([])),
+            )
             .subscribe((logs) => {
               this.logs.set(logs)
             })
 
           this.api
             .violationsByBooking(this.id)
-            .pipe(catchError(() => of([])))
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() => of([])),
+            )
             .subscribe((violations) => {
               this.violations.set(violations)
             })

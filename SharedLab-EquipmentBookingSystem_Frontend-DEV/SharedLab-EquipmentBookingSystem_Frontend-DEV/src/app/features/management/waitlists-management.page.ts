@@ -1,6 +1,8 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
+import { catchError, finalize, forkJoin, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   EquipmentResponse,
@@ -76,7 +78,7 @@ import { labelOf, toIso, toLocalDateTimeInput } from '../../shared/utils/present
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
         <div>
           <label class="field-label">{{ 'nav.labs' | t }}</label>
-          <select class="input-shell" [(ngModel)]="labId" (ngModelChange)="equipmentId = null">
+          <select class="input-shell" [(ngModel)]="labId" (ngModelChange)="onLabChange($event)">
             <option [ngValue]="null">{{ 'common.all' | t }}</option>
             @for (lab of labs(); track lab.labId) {
               <option [ngValue]="lab.labId">{{ lab.labName }}</option>
@@ -85,7 +87,7 @@ import { labelOf, toIso, toLocalDateTimeInput } from '../../shared/utils/present
         </div>
         <div>
           <label class="field-label">{{ 'nav.equipment' | t }}</label>
-          <select class="input-shell" [(ngModel)]="equipmentId">
+          <select class="input-shell" [(ngModel)]="equipmentId" (ngModelChange)="onEquipmentChange($event)">
             <option [ngValue]="null">{{ 'common.all' | t }}</option>
             @for (eq of equipmentOptions(); track eq.equipmentId) {
               <option [ngValue]="eq.equipmentId">{{ eq.equipmentName }}</option>
@@ -94,17 +96,41 @@ import { labelOf, toIso, toLocalDateTimeInput } from '../../shared/utils/present
         </div>
         <div>
           <label class="field-label">{{ 'common.from' | t }}</label
-          ><input class="input-shell" type="datetime-local" [(ngModel)]="requestedStart" />
+          ><input
+            class="input-shell"
+            type="datetime-local"
+            [(ngModel)]="requestedStart"
+            [class.border-rose-500]="isDateInvalid()"
+          />
         </div>
         <div>
           <label class="field-label">{{ 'common.to' | t }}</label
-          ><input class="input-shell" type="datetime-local" [(ngModel)]="requestedEnd" />
+          ><input
+            class="input-shell"
+            type="datetime-local"
+            [(ngModel)]="requestedEnd"
+            [class.border-rose-500]="isDateInvalid()"
+          />
         </div>
-        <div class="flex items-end">
-          <button class="btn-primary w-full" (click)="loadQueue()">
+        <div class="flex items-end gap-2">
+          <button class="btn-primary w-full" [disabled]="isDateInvalid()" (click)="loadQueue()">
             <app-icon name="filter" [size]="17" /> {{ 'manageWaitlists.filterQueue' | t }}
           </button>
+          <button
+            type="button"
+            class="btn-secondary shrink-0"
+            (click)="resetFilters()"
+            title="Reset bộ lọc"
+          >
+            <app-icon name="rotate-ccw" [size]="17" />
+          </button>
         </div>
+        @if (isDateInvalid()) {
+          <div class="col-span-full mt-1 flex items-center gap-2 rounded-xl bg-rose-50 p-2.5 text-xs font-bold text-rose-600 border border-rose-200">
+            <app-icon name="alert" [size]="16" class="shrink-0 text-rose-600" />
+            <span>Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.</span>
+          </div>
+        }
       </div>
       <article class="card-surface overflow-hidden">
         <header class="flex items-center justify-between border-b border-slate-100 px-5 py-5">
@@ -115,8 +141,8 @@ import { labelOf, toIso, toLocalDateTimeInput } from '../../shared/utils/present
             </p>
           </div>
           <div class="flex gap-2">
-            <button class="btn-secondary" (click)="loadAll()">
-              <app-icon name="refresh" [size]="16" /> {{ 'common.all' | t }}
+            <button class="btn-secondary" (click)="resetFilters()">
+              <app-icon name="rotate-ccw" [size]="16" /> {{ 'common.all' | t }}
             </button>
             <button class="btn-primary" [disabled]="!canNotify()" (click)="notifyNext()">
               <app-icon name="bell" [size]="16" /> {{ 'manageWaitlists.notifyNext' | t }}
@@ -291,6 +317,11 @@ export class WaitlistsManagementPage implements OnInit {
     },
   ])
 
+  protected readonly isDateInvalid = computed(() => {
+    if (!this.requestedStart || !this.requestedEnd) return false
+    return new Date(this.requestedStart).getTime() > new Date(this.requestedEnd).getTime()
+  })
+
   protected readonly equipmentOptions = computed(() =>
     this.labId ? this.equipments().filter((x) => x.labId === this.labId) : this.equipments(),
   )
@@ -300,10 +331,29 @@ export class WaitlistsManagementPage implements OnInit {
       .sort((a, b) => a.queuePosition - b.queuePosition),
   )
 
+  private readonly destroyRef = inject(DestroyRef)
+
   ngOnInit(): void {
-    this.api.labs().subscribe((x) => this.labs.set(x))
-    this.api.equipments().subscribe((x) => this.equipments.set(x))
-    this.loadAll()
+    this.loading.set(true)
+    forkJoin({
+      labs: this.api.labs().pipe(catchError(() => of([]))),
+      equipments: this.api.equipments().pipe(catchError(() => of([]))),
+      waitlists: this.api.waitlists().pipe(catchError(() => of([]))),
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: ({ labs, equipments, waitlists }) => {
+          this.labs.set(labs)
+          this.equipments.set(equipments)
+          this.items.set(waitlists)
+        },
+        error: () => {
+          this.toast.error('Không tải được hàng chờ')
+        },
+      })
   }
 
   protected count(status: string): number {
@@ -319,54 +369,132 @@ export class WaitlistsManagementPage implements OnInit {
     )
   }
 
+  protected onLabChange(val: any): void {
+    const num = val !== null && val !== undefined ? Number(val) : null
+    this.labId = num
+    if (num !== null) {
+      this.equipmentId = null
+    }
+  }
+
+  protected onEquipmentChange(val: any): void {
+    const num = val !== null && val !== undefined ? Number(val) : null
+    this.equipmentId = num
+    if (num !== null) {
+      this.labId = null
+    }
+  }
+
+  protected resetFilters(): void {
+    this.labId = null
+    this.equipmentId = null
+    this.requestedStart = ''
+    this.requestedEnd = ''
+    this.status = ''
+    this.loadAll()
+  }
+
   protected canNotify(): boolean {
     return Boolean((this.labId || this.equipmentId) && this.requestedStart && this.requestedEnd)
   }
 
   protected loadAll(): void {
     this.loading.set(true)
-    this.api.waitlists().subscribe({
-      next: (x) => {
-        this.items.set(x)
-        this.loading.set(false)
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được hàng chờ')
-      },
-    })
+    this.api
+      .waitlists()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (x) => {
+          this.items.set(x)
+        },
+        error: () => {
+          this.toast.error('Không tải được hàng chờ')
+        },
+      })
   }
 
   protected loadQueue(): void {
+    if (this.isDateInvalid()) {
+      this.toast.error('Ngày không hợp lệ', 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.')
+      return
+    }
+
     if (!this.requestedStart || !this.requestedEnd) {
       this.loadAll()
       return
     }
+
+    let targetLabId: number | undefined = undefined
+    let targetEquipmentId: number | undefined = undefined
+
+    if (this.equipmentId) {
+      targetEquipmentId = Number(this.equipmentId)
+      targetLabId = undefined
+    } else if (this.labId) {
+      targetLabId = Number(this.labId)
+      targetEquipmentId = undefined
+    } else {
+      // Both are "All": default to first labId to prevent Backend 400 ArgumentException
+      const firstLab = this.labs()[0]
+      targetLabId = firstLab ? firstLab.labId : 1
+      this.labId = targetLabId
+      targetEquipmentId = undefined
+    }
+
+    // Switch status tab to All so returned queue items (all Waiting) are visible
+    this.status = ''
+
     this.loading.set(true)
     this.api
       .waitlistQueue({
-        labId: this.labId ?? undefined,
-        equipmentId: this.equipmentId ?? undefined,
+        labId: targetLabId,
+        equipmentId: targetEquipmentId,
         requestedStart: toIso(this.requestedStart),
         requestedEnd: toIso(this.requestedEnd),
       })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: (x) => {
           this.items.set(x)
-          this.loading.set(false)
         },
-        error: () => {
-          this.loading.set(false)
-          this.toast.error('Không tải được queue')
+        error: (err: any) => {
+          this.items.set([])
+          const is400 = err?.status === 400 || err?.statusCode === 400
+          if (is400) {
+            this.toast.error(
+              'Lỗi lọc hàng chờ',
+              'Vui lòng chỉ chọn lọc theo Phòng Lab hoặc theo Thiết bị.',
+            )
+          } else {
+            this.toast.error('Không tải được queue')
+          }
         },
       })
   }
 
   protected notifyNext(): void {
+    let targetLabId: number | null = null
+    let targetEquipmentId: number | null = null
+
+    if (this.equipmentId) {
+      targetEquipmentId = this.equipmentId
+    } else if (this.labId) {
+      targetLabId = this.labId
+    } else {
+      const firstLab = this.labs()[0]
+      targetLabId = firstLab ? firstLab.labId : 1
+    }
+
     this.api
       .notifyNextWaitlist({
-        labId: this.labId,
-        equipmentId: this.equipmentId,
+        labId: targetLabId,
+        equipmentId: targetEquipmentId,
         requestedStart: toIso(this.requestedStart),
         requestedEnd: toIso(this.requestedEnd),
       })
