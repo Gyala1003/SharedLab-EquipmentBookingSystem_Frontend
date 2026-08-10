@@ -308,9 +308,12 @@ export class MaintenanceFormPage implements OnInit {
         this.recurrenceType === 0 || !this.recurrenceEndDate ? null : toIso(this.recurrenceEndDate),
     }
 
-    const completed = (maintenanceId: number): void => {
+    const completed = (maintenanceId: number, showReminder = false): void => {
       this.saving.set(false)
       this.toast.success(this.editing() ? 'Đã cập nhật lịch bảo trì' : 'Đã tạo lịch bảo trì')
+      if (showReminder) {
+        this.toast.info('Hệ thống sẽ gửi email nhắc 15 phút trước và tự chuyển sang "InProgress" khi đến giờ.')
+      }
       void this.router.navigate(['/app/management/maintenances', maintenanceId])
     }
     const failed = (): void => {
@@ -327,6 +330,12 @@ export class MaintenanceFormPage implements OnInit {
     }
     this.api
       .createMaintenance(payload)
-      .subscribe({ next: (result) => completed(result.maintenanceId), error: failed })
+      .subscribe({
+        next: (result) => {
+          const isFuture = new Date(this.startTime) > new Date()
+          completed(result.maintenanceId, isFuture)
+        },
+        error: failed,
+      })
   }
 }
