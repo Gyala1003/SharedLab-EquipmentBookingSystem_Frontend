@@ -175,6 +175,11 @@ export const translations: Record<string, { vi: string; en: string }> = {
     vi: 'Tra cứu, theo dõi và quản lý toàn bộ vòng đời yêu cầu booking trong phạm vi quản lý.',
     en: 'Lookup, track, and manage booking lifecycle within management scope.',
   },
+  'manageBookings.invalidDateRange': {
+    vi: 'Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).',
+    en: 'Start date (From) cannot be later than end date (To).',
+  },
+  'manageBookings.filterBy': { vi: 'Lọc theo', en: 'Filter by' },
   'manageBookings.rejectTitle': { vi: 'Từ chối booking', en: 'Reject Booking' },
   'manageBookings.rejectSubtitle': {
     vi: 'Nhập lý do từ chối để người dùng biết.',
@@ -191,6 +196,7 @@ export const translations: Record<string, { vi: string; en: string }> = {
 
   // Bookings list & table
   'bookings.bookingCode': { vi: 'Mã Booking', en: 'Booking Code' },
+  'bookings.labRoomResource': { vi: 'Phòng Lab / Tài nguyên', en: 'Lab Room / Resource' },
   'bookings.mySubtitle': {
     vi: 'Theo dõi toàn bộ yêu cầu, trạng thái duyệt và các lượt sử dụng sắp diễn ra.',
     en: 'Track all requests, approval statuses, and upcoming lab sessions.',

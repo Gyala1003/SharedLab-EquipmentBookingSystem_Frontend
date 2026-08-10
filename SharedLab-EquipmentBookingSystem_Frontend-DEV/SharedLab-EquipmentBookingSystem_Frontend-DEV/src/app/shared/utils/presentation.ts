@@ -34,6 +34,7 @@ const maps: Record<string, Record<string, { vi: string; en: string }>> = {
   booking: {
     Pending: { vi: 'Chờ duyệt', en: 'Pending' },
     Approved: { vi: 'Đã duyệt', en: 'Approved' },
+    LateCheckout: { vi: 'Quá hạn Check-out', en: 'Overdue Checkout' },
     Rejected: { vi: 'Bị từ chối', en: 'Rejected' },
     Cancelled: { vi: 'Đã hủy', en: 'Cancelled' },
     Completed: { vi: 'Hoàn thành', en: 'Completed' },

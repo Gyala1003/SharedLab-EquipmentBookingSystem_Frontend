@@ -142,7 +142,7 @@ import {
               class="col-span-full flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700"
             >
               <app-icon name="alert" [size]="16" />
-              <span>Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).</span>
+              <span>{{ 'manageBookings.invalidDateRange' | t }}</span>
             </div>
           }
         </div>
@@ -172,7 +172,7 @@ import {
               class="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-black text-violet-700 transition hover:bg-violet-100"
               (click)="status.set('')"
             >
-              Lọc theo: {{ status() }} ✕
+              {{ 'manageBookings.filterBy' | t }}: {{ (status() | t) }} ✕
             </button>
           }
         </header>
@@ -194,7 +194,7 @@ import {
                 <tr>
                   <th class="w-[140px]">{{ 'bookings.bookingCode' | t }}</th>
                   <th class="w-[160px]">{{ 'bookings.user' | t }}</th>
-                  <th class="w-[180px]">Phòng Lab / Tài nguyên</th>
+                  <th class="w-[180px]">{{ 'bookings.labRoomResource' | t }}</th>
                   <th>{{ 'bookings.purpose' | t }}</th>
                   <th class="w-[180px]">{{ 'bookings.usageTime' | t }}</th>
                   <th class="w-[90px] text-center">{{ 'bookings.priority' | t }}</th>
@@ -234,22 +234,22 @@ import {
                       @if (item.labName) {
                         <p class="flex items-center gap-1.5 text-xs font-black text-indigo-950">
                           <app-icon name="building" [size]="14" class="shrink-0 text-indigo-600" />
-                          <span>{{ item.labName }}</span>
+                          <span>{{ item.labName | t }}</span>
                         </p>
                       }
                       @if (item.equipmentSummary) {
                         <p class="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-cyan-800">
                           <app-icon name="microscope" [size]="13" class="shrink-0 text-cyan-600" />
-                          <span>{{ item.equipmentSummary }}</span>
+                          <span>{{ item.equipmentSummary | t }}</span>
                         </p>
                       }
                       @if (!item.labName && !item.equipmentSummary) {
                         @if (item.resourceSummary) {
                           <p class="text-xs font-bold text-slate-700">
-                            {{ item.resourceSummary }}
+                            {{ item.resourceSummary | t }}
                           </p>
                         } @else {
-                          <span class="text-[11px] font-medium text-slate-400 italic">Đang tải...</span>
+                          <span class="text-[11px] font-medium text-slate-400 italic">{{ 'common.loading' | t }}</span>
                         }
                       }
                     </td>
@@ -746,7 +746,7 @@ export class BookingsManagementPage implements OnInit {
     },
     {
       status: 'LateCheckout',
-      label: 'Quá hạn Check-out',
+      label: labelOf('booking', 'LateCheckout', this.languageStore.lang()),
       count: this.items().filter(
         (b) => b.status === 'Approved' && Date.now() > +new Date(b.endTime),
       ).length,
