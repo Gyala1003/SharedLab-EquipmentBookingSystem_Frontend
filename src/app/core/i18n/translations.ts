@@ -1017,6 +1017,7 @@ export const translations: Record<string, { vi: string; en: string }> = {
   },
   'pendingBookings.approve': { vi: 'Duyệt', en: 'Approve' },
   'pendingBookings.reject': { vi: 'Từ chối', en: 'Reject' },
+  'pendingBookings.booker': { vi: 'Người đặt', en: 'Booker' },
 
   // Bookings Management Page
   'manageBookings.searchPlaceholder': {
