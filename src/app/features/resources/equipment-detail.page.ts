@@ -43,15 +43,39 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
           <div class="skeleton h-8 w-1/3 rounded"></div>
           <div class="skeleton mt-5 h-72 rounded-3xl"></div>
         </div>
-      } @else if (!item()) {
-        <app-data-state
-          [title]="'equipment.notFoundTitle' | t"
-          [message]="'equipment.notFoundMsg' | t"
-          icon="microscope"
-          ><a routerLink="/app/equipments" class="btn-primary mt-5">{{
-            'lab.backToList' | t
-          }}</a></app-data-state
+      } @else if (accessDenied() || !item()) {
+        <div
+          class="mx-auto my-8 max-w-xl space-y-5 rounded-[28px] border border-amber-200 bg-amber-50/90 p-8 text-center shadow-lg backdrop-blur-sm sm:p-10"
         >
+          <div
+            class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner"
+          >
+            <app-icon name="shield" [size]="32" />
+          </div>
+
+          <div>
+            <span
+              class="inline-block rounded-full bg-amber-200/60 px-3 py-1 text-[11px] font-black tracking-wider text-amber-900 uppercase"
+            >
+              HTTP 403 Forbidden
+            </span>
+            <h3 class="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+              {{ 'common.accessDeniedTitle' | t }}
+            </h3>
+            <p class="mt-2 text-sm text-slate-600">
+              {{ 'common.accessDeniedSubtitle' | t }}
+            </p>
+          </div>
+
+          <div class="flex flex-wrap justify-center gap-3 pt-2">
+            <a
+              routerLink="/app/equipments"
+              class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700"
+            >
+              <app-icon name="arrow-left" [size]="15" /> {{ 'lab.backToList' | t }}
+            </a>
+          </div>
+        </div>
       } @else {
         <app-page-header
           [title]="item()!.equipmentName | t"
@@ -108,7 +132,21 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
                 [src]="getEquipmentImage(item())"
                 [alt]="item()!.equipmentName"
                 class="h-full w-full object-cover"
+                [class.grayscale]="item()!.status === 'Inactive' || item()!.status === 'Retired' || item()!.status === '5'"
               />
+              @if (item()!.status === 'Inactive' || item()!.status === 'Retired' || item()!.status === '5') {
+                <div class="pointer-events-none absolute inset-0 bg-rose-950/60 backdrop-blur-[1px]"></div>
+                <svg class="pointer-events-none absolute inset-0 h-full w-full stroke-rose-500/85" stroke-width="4" stroke-linecap="round">
+                  <line x1="0" y1="0" x2="100%" y2="100%" />
+                  <line x1="100%" y1="0" x2="0" y2="100%" />
+                </svg>
+                <div class="pointer-events-none absolute inset-0 flex items-center justify-center pb-8">
+                  <div class="flex items-center gap-2 rounded-full border-2 border-rose-500 bg-rose-600/90 px-4 py-1.5 font-black text-xs text-white uppercase tracking-widest shadow-xl shadow-rose-950/50 backdrop-blur-md">
+                    <app-icon name="ban" [size]="16" />
+                    <span>INACTIVE</span>
+                  </div>
+                </div>
+              }
               <div class="absolute top-5 left-5">
                 <app-status-badge [value]="item()!.status" domain="equipment" />
               </div>
@@ -356,6 +394,7 @@ export class EquipmentDetailPage implements OnInit {
   protected readonly maintenances = signal<MaintenanceResponse[]>([])
   protected readonly events = signal<CalendarEventResponse[]>([])
   protected readonly loading = signal(true)
+  protected readonly accessDenied = signal(false)
   protected readonly saving = signal(false)
   protected readonly editOpen = signal(false)
   protected form = { labId: 0, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
@@ -365,6 +404,14 @@ export class EquipmentDetailPage implements OnInit {
     this.id = Number(this.route.snapshot.paramMap.get('equipmentId'))
     this.api.equipment(this.id).subscribe({
       next: (item) => {
+        if (
+          (item.status === 'Inactive' || item.status === 'Retired' || item.status === '5') &&
+          !this.store.isAdmin()
+        ) {
+          this.accessDenied.set(true)
+          this.loading.set(false)
+          return
+        }
         this.item.set(item)
         const from = new Date()
         const to = new Date()

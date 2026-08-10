@@ -120,6 +120,11 @@ export interface MaintenanceResponse {
 
 export interface MaintenanceDetailResponse extends MaintenanceResponse {
   createdById: number
+  createdByName?: string
+  createdByFullName?: string
+  createdUserFullName?: string
+  createdUserEmail?: string
+  createdByEmail?: string
   maintenanceCost: number
   notes: string | null
 }
@@ -148,6 +153,11 @@ export interface BookingUsageSessionResponse {
 export interface WaitlistResponse {
   waitlistId: number
   userId: number
+  userName?: string
+  fullName?: string
+  userFullName?: string
+  userEmail?: string
+  email?: string
   labId: number | null
   equipmentId: number | null
   requestedStart: string
@@ -160,6 +170,11 @@ export interface WaitlistResponse {
 export interface ViolationResponse {
   violationId: number
   userId: number
+  userName?: string
+  fullName?: string
+  userFullName?: string
+  userEmail?: string
+  email?: string
   bookingId: number
   violationType: string
   penaltyPointsAdded: number

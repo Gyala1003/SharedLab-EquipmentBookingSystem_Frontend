@@ -152,11 +152,26 @@ interface LabForm {
                     [src]="getLabImage(lab)"
                     [alt]="lab.labName"
                     class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    [class.grayscale]="lab.status === 'Inactive' || lab.status === '4' || lab.status === 'inactive'"
                   />
                 }
                 <div
                   class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"
                 ></div>
+
+                @if (lab.status === 'Inactive' || lab.status === '4' || lab.status === 'inactive') {
+                  <div class="pointer-events-none absolute inset-0 bg-rose-950/50 backdrop-blur-[1px]"></div>
+                  <svg class="pointer-events-none absolute inset-0 h-full w-full stroke-rose-500/85" stroke-width="4" stroke-linecap="round">
+                    <line x1="0" y1="0" x2="100%" y2="100%" />
+                    <line x1="100%" y1="0" x2="0" y2="100%" />
+                  </svg>
+                  <div class="pointer-events-none absolute inset-0 flex items-center justify-center pb-8">
+                    <div class="flex items-center gap-2 rounded-full border-2 border-rose-500 bg-rose-600/90 px-4 py-1.5 font-black text-xs text-white uppercase tracking-widest shadow-xl shadow-rose-950/50 backdrop-blur-md">
+                      <app-icon name="ban" [size]="16" />
+                      <span>INACTIVE</span>
+                    </div>
+                  </div>
+                }
 
                 <div
                   class="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-slate-950/85 to-transparent p-5 pt-14"
@@ -227,11 +242,19 @@ interface LabForm {
                 <tr>
                   <td>
                     <div class="flex items-center gap-3">
-                      <img
-                        [src]="getLabImage(lab)"
-                        [alt]="lab.labName"
-                        class="h-10 w-10 shrink-0 rounded-xl object-cover"
-                      />
+                      <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl">
+                        <img
+                          [src]="getLabImage(lab)"
+                          [alt]="lab.labName"
+                          class="h-full w-full object-cover"
+                          [class.grayscale]="lab.status === 'Inactive' || lab.status === '4'"
+                        />
+                        @if (lab.status === 'Inactive' || lab.status === '4') {
+                          <div class="absolute inset-0 bg-rose-950/70 flex items-center justify-center text-rose-400">
+                            <app-icon name="ban" [size]="16" />
+                          </div>
+                        }
+                      </div>
                       <div>
                         <p class="font-black text-slate-900">{{ lab.labName | t }}</p>
                         <p class="mt-0.5 text-xs text-slate-400">{{ lab.roomCode }}</p>

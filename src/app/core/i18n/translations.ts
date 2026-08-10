@@ -127,6 +127,7 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'common.saveChanges': { vi: 'Lưu thay đổi', en: 'Save changes' },
   'common.editTitle': { vi: 'Chỉnh sửa: ', en: 'Edit: ' },
   'common.manager': { vi: 'Manager', en: 'Manager' },
+  'common.created': { vi: 'Tạo: ', en: 'Created: ' },
 
   'labs.editSubtitle': { vi: 'Cập nhật thông tin phòng lab.', en: 'Update lab room information.' },
   'labs.name': { vi: 'Tên phòng', en: 'Room name' },

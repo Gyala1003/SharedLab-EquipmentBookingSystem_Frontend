@@ -157,7 +157,39 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
                       >
                     </td>
                     <td class="font-black text-slate-900">#WL-{{ item.waitlistId }}</td>
-                    <td>User #{{ item.userId }}</td>
+                    <td>
+                      <div class="flex items-center gap-2.5">
+                        <div
+                          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-xs font-black text-white shadow-2xs"
+                        >
+                          {{
+                            (
+                              item.fullName ||
+                              item.userFullName ||
+                              item.userName ||
+                              'U'
+                            ).charAt(0).toUpperCase()
+                          }}
+                        </div>
+                        <div class="min-w-0">
+                          <p class="truncate font-bold text-slate-900">
+                            {{
+                              item.fullName ||
+                              item.userFullName ||
+                              item.userName ||
+                              'User #' + item.userId
+                            }}
+                          </p>
+                          @if (item.userEmail || item.email) {
+                            <p class="truncate text-[11px] text-slate-400">
+                              {{ item.userEmail || item.email }}
+                            </p>
+                          } @else if (item.fullName || item.userFullName || item.userName) {
+                            <p class="text-[11px] text-slate-400">ID: #{{ item.userId }}</p>
+                          }
+                        </div>
+                      </div>
+                    </td>
                     <td>
                       <p class="font-bold text-slate-800">{{ resourceName(item) }}</p>
                     </td>

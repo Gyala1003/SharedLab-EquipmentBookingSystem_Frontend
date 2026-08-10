@@ -147,7 +147,37 @@ import { labelOf } from '../../shared/utils/presentation'
                   <tr>
                     <td class="font-black text-slate-900">#VP-{{ item.violationId }}</td>
                     <td>
-                      <span class="font-black text-violet-700">User #{{ item.userId }}</span>
+                      <div class="flex items-center gap-2.5">
+                        <div
+                          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-amber-600 text-xs font-black text-white shadow-2xs"
+                        >
+                          {{
+                            (
+                              item.fullName ||
+                              item.userFullName ||
+                              item.userName ||
+                              'U'
+                            ).charAt(0).toUpperCase()
+                          }}
+                        </div>
+                        <div class="min-w-0">
+                          <p class="truncate font-bold text-slate-900">
+                            {{
+                              item.fullName ||
+                              item.userFullName ||
+                              item.userName ||
+                              'User #' + item.userId
+                            }}
+                          </p>
+                          @if (item.userEmail || item.email) {
+                            <p class="truncate text-[11px] text-slate-400">
+                              {{ item.userEmail || item.email }}
+                            </p>
+                          } @else if (item.fullName || item.userFullName || item.userName) {
+                            <p class="text-[11px] text-slate-400">ID: #{{ item.userId }}</p>
+                          }
+                        </div>
+                      </div>
                     </td>
                     <td>
                       <a

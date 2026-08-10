@@ -147,15 +147,17 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
                       >{{ 'labs.maintenance' | t }}</span
                     >
                   </div>
-                } @else if (item.status === 'Inactive') {
-                  <div class="absolute inset-0 bg-red-950/50 backdrop-blur-[1px]"></div>
-                  <div
-                    class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-8 text-red-300 opacity-80"
-                  >
-                    <app-icon name="ban" [size]="32" /><span
-                      class="mt-2 text-xs font-black tracking-widest uppercase"
-                      >Ngừng hoạt động</span
-                    >
+                } @else if (item.status === 'Inactive' || item.status === 'Retired' || item.status === '5') {
+                  <div class="pointer-events-none absolute inset-0 bg-rose-950/60 backdrop-blur-[1px]"></div>
+                  <svg class="pointer-events-none absolute inset-0 h-full w-full stroke-rose-500/85" stroke-width="4" stroke-linecap="round">
+                    <line x1="0" y1="0" x2="100%" y2="100%" />
+                    <line x1="100%" y1="0" x2="0" y2="100%" />
+                  </svg>
+                  <div class="pointer-events-none absolute inset-0 flex items-center justify-center pb-8">
+                    <div class="flex items-center gap-2 rounded-full border-2 border-rose-500 bg-rose-600/90 px-4 py-1.5 font-black text-xs text-white uppercase tracking-widest shadow-xl shadow-rose-950/50 backdrop-blur-md">
+                      <app-icon name="ban" [size]="16" />
+                      <span>INACTIVE</span>
+                    </div>
                   </div>
                 } @else if (item.status === 'Broken') {
                   <div class="absolute inset-0 bg-orange-950/50 backdrop-blur-[1px]"></div>

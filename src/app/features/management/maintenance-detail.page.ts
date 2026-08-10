@@ -168,8 +168,42 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe'
         </div>
         <aside class="space-y-5">
           <article class="card-surface p-5">
-            <p class="text-xs font-black tracking-[.16em] text-violet-500 uppercase">{{ 'maintenanceDetail.creator' | t }}</p>
-            <p class="mt-3 text-lg font-black text-slate-900">User #{{ item()!.createdById }}</p>
+            <p class="text-xs font-black tracking-[.16em] text-violet-500 uppercase">
+              {{ 'maintenanceDetail.creator' | t }}
+            </p>
+            <div class="mt-3.5 flex items-center gap-3">
+              <div
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-sm font-black text-white shadow-md shadow-violet-500/20"
+              >
+                {{
+                  (
+                    item()!.createdByName ||
+                    item()!.createdByFullName ||
+                    item()!.createdUserFullName ||
+                    'U'
+                  )
+                    .charAt(0)
+                    .toUpperCase()
+                }}
+              </div>
+              <div class="min-w-0">
+                <p class="truncate text-base font-black text-slate-900">
+                  {{
+                    item()!.createdByName ||
+                    item()!.createdByFullName ||
+                    item()!.createdUserFullName ||
+                    'User #' + item()!.createdById
+                  }}
+                </p>
+                @if (item()!.createdUserEmail || item()!.createdByEmail) {
+                  <p class="truncate text-xs font-medium text-slate-400">
+                    {{ item()!.createdUserEmail || item()!.createdByEmail }}
+                  </p>
+                } @else {
+                  <p class="text-xs font-medium text-slate-400">ID: #{{ item()!.createdById }}</p>
+                }
+              </div>
+            </div>
           </article>
           @if (canManage() && ['Scheduled', 'InProgress'].includes(item()!.status)) {
             <article class="rounded-[24px] border border-rose-200 bg-rose-50 p-5">
