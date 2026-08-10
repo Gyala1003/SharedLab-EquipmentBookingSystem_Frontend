@@ -1,0 +1,200 @@
+{
+  "app": { "name": "Hệ thống đặt lịch Lab & Thiết bị" },
+  "nav": { "users": "Người dùng", "login": "Đăng nhập", "logout": "Đăng xuất" },
+  "header": {
+    "nav": {
+      "home": "Trang chủ",
+      "about": "Giới thiệu",
+      "feature": "Tính năng",
+      "workflow": "Quy trình",
+      "statistics": "Thống kê",
+      "contact": "Liên hệ"
+    },
+    "login": "Đăng nhập",
+    "access": "Truy cập hệ thống"
+  },
+  "footer": {
+    "description": "Hệ thống đặt lịch Phòng thí nghiệm và Thiết bị dùng chung, giúp tối ưu vận hành và nâng cao hiệu quả sử dụng tài nguyên cho tổ chức của bạn.",
+    "quickLinks": "Liên kết nhanh",
+    "contact": "Thông tin liên hệ",
+    "address": "Tòa nhà Khoa học Công nghệ, 268 Lý Thường Kiệt, Quận 10, TP. Hồ Chí Minh",
+    "phone": "(028) 3865 1234",
+    "email": "support@labbooking.edu.vn",
+    "copyright": "Tất cả các quyền được bảo lưu."
+  },
+  "home": {
+    "title": "Chào mừng",
+    "subtitle": "Quản lý đặt lịch phòng thí nghiệm và thiết bị.",
+    "hero": {
+      "badge": "HỆ THỐNG ĐẶT LỊCH PHÒNG THÍ NGHIỆM & THIẾT BỊ",
+      "title": "Đặt lịch phòng thí nghiệm và thiết bị dùng chung, không còn xung đột",
+      "description": "Quản lý lịch sử dụng phòng thí nghiệm và thiết bị dùng chung cho toàn bộ tổ chức. Giảm xung đột đặt lịch, theo dõi tình trạng thiết bị theo thời gian thực và giữ mọi hoạt động vận hành luôn minh bạch.",
+      "ctaPrimary": "Đăng nhập ngay",
+      "ctaWorkspace": "Truy cập hệ thống",
+      "ctaSecondary": "Tìm hiểu thêm",
+      "mockup": {
+        "title": "Lịch đặt hôm nay",
+        "today": "Thứ Tư, hôm nay",
+        "selected": "6 thiết bị đã chọn",
+        "book": "Đặt lịch",
+        "availableTitle": "Còn trống",
+        "availableRoom": "Phòng Lab 3 · Tầng 2",
+        "maintenanceTime": "Bảo trì 09:00 - 11:00",
+        "maintenanceEquipment": "Kính hiển vi điện tử",
+        "utilization": "Công suất sử dụng",
+        "equipment": {
+          "centrifuge": "Máy ly tâm",
+          "incubator": "Tủ ấm CO2",
+          "autoclave": "Nồi hấp tiệt trùng",
+          "microscope": "Kính hiển vi điện tử",
+          "spectrophotometer": "Máy quang phổ"
+        }
+      }
+    },
+    "about": {
+      "eyebrow": "VỀ HỆ THỐNG",
+      "title": "Một nền tảng duy nhất cho mọi phòng thí nghiệm và thiết bị dùng chung",
+      "description": "Hệ thống được xây dựng để phục vụ toàn bộ các đối tượng trong tổ chức giáo dục và nghiên cứu, từ sinh viên thực hành đến quản trị viên vận hành, giúp thống nhất quy trình đặt lịch và giám sát tài nguyên trên một nền tảng duy nhất.",
+      "audience": {
+        "student": "Sinh viên",
+        "lecturer": "Giảng viên",
+        "labManager": "Quản lý phòng Lab",
+        "technician": "Kỹ thuật viên",
+        "administrator": "Quản trị viên"
+      },
+      "highlight": {
+        "availability": "Truy cập mọi lúc",
+        "platform": "Nền tảng hợp nhất",
+        "roleTitle": "Phân quyền theo vai trò",
+        "roleDescription": "Mỗi vai trò được cấp quyền phù hợp, đảm bảo dữ liệu và thao tác được kiểm soát chặt chẽ."
+      }
+    },
+    "feature": {
+      "eyebrow": "TÍNH NĂNG",
+      "title": "Mọi công cụ cần thiết để vận hành phòng Lab",
+      "subtitle": "Từ đặt lịch đến báo cáo, tất cả trong một hệ thống thống nhất.",
+      "room": { "title": "Đặt phòng", "description": "Đặt lịch sử dụng phòng thí nghiệm theo khung giờ, tránh trùng lặp và xung đột." },
+      "equipment": { "title": "Đặt thiết bị", "description": "Đăng ký sử dụng thiết bị dùng chung với trạng thái cập nhật theo thời gian thực." },
+      "schedule": { "title": "Quản lý lịch", "description": "Theo dõi toàn bộ lịch đặt phòng và thiết bị trên một giao diện tập trung." },
+      "notification": { "title": "Thông báo", "description": "Nhận thông báo xác nhận, nhắc lịch và thay đổi trạng thái đặt chỗ." },
+      "users": { "title": "Quản lý người dùng", "description": "Phân quyền theo vai trò: Sinh viên, Giảng viên, Quản lý Lab, Kỹ thuật viên." },
+      "report": { "title": "Báo cáo", "description": "Thống kê tần suất sử dụng, hiệu suất phòng Lab và thiết bị theo thời gian." }
+    },
+    "workflow": {
+      "eyebrow": "QUY TRÌNH",
+      "title": "Đặt lịch chỉ trong 5 bước đơn giản",
+      "subtitle": "Quy trình rõ ràng, minh bạch từ lúc đăng nhập đến khi nhận xác nhận.",
+      "login": { "title": "Đăng nhập", "description": "Đăng nhập bằng tài khoản được cấp trong hệ thống." },
+      "selectRoom": { "title": "Chọn phòng", "description": "Chọn phòng thí nghiệm phù hợp với nhu cầu sử dụng." },
+      "selectEquipment": { "title": "Chọn thiết bị", "description": "Chọn thiết bị dùng chung cần sử dụng cho buổi làm việc." },
+      "booking": { "title": "Đặt lịch", "description": "Chọn khung giờ và xác nhận thông tin đặt lịch." },
+      "confirmation": { "title": "Nhận xác nhận", "description": "Nhận thông báo xác nhận lịch đặt qua hệ thống." }
+    },
+    "statistics": {
+      "labs": "Phòng thí nghiệm",
+      "equipment": "Thiết bị",
+      "bookings": "Lượt đặt lịch",
+      "users": "Người dùng"
+    },
+    "preview": {
+      "eyebrow": "THIẾT BỊ",
+      "title": "Thiết bị dùng chung nổi bật",
+      "subtitle": "Xem nhanh trạng thái sử dụng của một số thiết bị trong hệ thống.",
+      "status": { "available": "Còn trống", "booked": "Đã đặt", "maintenance": "Bảo trì" },
+      "items": {
+        "microscope": { "name": "Kính hiển vi điện tử", "type": "Thiết bị quang học" },
+        "centrifuge": { "name": "Máy ly tâm", "type": "Thiết bị xử lý mẫu" },
+        "incubator": { "name": "Tủ ấm CO2", "type": "Thiết bị nuôi cấy" },
+        "spectrophotometer": { "name": "Máy quang phổ", "type": "Thiết bị phân tích" }
+      }
+    },
+    "cta": {
+      "title": "Sẵn sàng tối ưu vận hành phòng Lab của bạn?",
+      "subtitle": "Đăng nhập ngay để bắt đầu quản lý đặt lịch phòng thí nghiệm và thiết bị dùng chung.",
+      "login": "Đăng nhập ngay",
+      "learnMore": "Tìm hiểu thêm"
+    }
+  },
+  "auth": {
+    "loginTitle": "Đăng nhập",
+    "loginSubtitle": "Vui lòng đăng nhập để sử dụng hệ thống",
+    "email": "Địa chỉ Email",
+    "password": "Mật khẩu",
+    "newPassword": "Mật khẩu mới",
+    "confirmPassword": "Nhập lại mật khẩu mới",
+    "submit": "Đăng nhập",
+    "loginBtn": "Đăng nhập",
+    "forgotPassword": "Bạn quên mật khẩu?",
+    "rememberMe": "Ghi nhớ đăng nhập",
+    "cancel": "Hủy bỏ",
+    "forgotPasswordTitle": "Quên mật khẩu",
+    "resetPasswordTitle": "Đặt lại mật khẩu",
+    "sendResetLinkBtn": "Gửi liên kết đặt lại mật khẩu",
+    "changePasswordBtn": "Đổi mật khẩu",
+    "backToLogin": "Trở lại đăng nhập",
+    "invalidLink": "Liên kết không hợp lệ hoặc thiếu thông tin xác thực",
+    "passwordPolicyHint": "Mật khẩu phải dài hơn 8 ký tự, gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt",
+    "passwordRules": {
+      "minLength": "Hơn 8 ký tự (tối thiểu 9)",
+      "uppercase": "Có ít nhất 1 chữ hoa",
+      "lowercase": "Có ít nhất 1 chữ thường",
+      "digit": "Có ít nhất 1 chữ số",
+      "special": "Có ít nhất 1 ký tự đặc biệt (@$!%*?&...)"
+    },
+    "validation": {
+      "emailRequired": "Vui lòng nhập email",
+      "emailInvalid": "Email không đúng định dạng",
+      "passwordRequired": "Vui lòng nhập mật khẩu",
+      "passwordMinLength": "Mật khẩu phải nhiều hơn 5 ký tự"
+    },
+    "error": {
+      "invalidCredentials": "Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!",
+      "serverError": "Hệ thống đang gặp sự cố. Vui lòng thử lại sau ít phút!",
+      "required": "Trường này không được để trống",
+      "invalidEmail": "Email không đúng định dạng",
+      "passwordMismatch": "Mật khẩu xác nhận không trùng khớp",
+      "weakPassword": "Mật khẩu chưa đạt yêu cầu an toàn",
+      "invalidToken": "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu lại",
+      "tooManyRequests": "Bạn thao tác quá nhanh, vui lòng thử lại sau"
+    },
+    "success": {
+      "login": "Đăng nhập thành công! Đang chuyển hướng...",
+      "resetEmailSent": "Đã gửi liên kết đặt lại mật khẩu! Vui lòng kiểm tra hộp thư email của bạn.",
+      "resetPassword": "Đổi mật khẩu thành công! Đang chuyển hướng về trang đăng nhập..."
+    }
+  },
+  "dashboard": {
+    "title": "Bảng điều khiển",
+    "welcome": "Xin chào,"
+  },
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "back": "Về trang chủ"
+  },
+  "errorPage": {
+    "title": "Đã xảy ra sự cố",
+    "message": "Có lỗi kỹ thuật xảy ra. Vui lòng thử lại hoặc quay về trang chủ.",
+    "retry": "Thử lại",
+    "backHome": "Quay về trang chủ",
+    "loginAgain": "Đăng nhập lại"
+  },
+  "users": {
+    "title": "Danh sách người dùng",
+    "add": "Thêm người dùng",
+    "name": "Họ tên",
+    "email": "Email",
+    "role": "Vai trò",
+    "actions": "Thao tác",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "empty": "Chưa có người dùng nào.",
+    "save": "Lưu",
+    "cancel": "Hủy"
+  },
+  "common": {
+    "error": "Đã có lỗi xảy ra",
+    "retry": "Thử lại",
+    "selectAll": "Chọn tất cả",
+    "deselectAll": "Bỏ chọn tất cả"
+  }
+}
