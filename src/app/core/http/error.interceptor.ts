@@ -121,7 +121,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
       const normalizedErr = normalize(error)
 
-      if (error.status === 403) {
+      const isSilentOrNotification = /\/Notifications\//i.test(req.url)
+
+      if (error.status === 403 && !isSilentOrNotification) {
         errorState.setError({
           status: 403,
           statusText: 'Forbidden / Không có quyền truy cập',
@@ -130,6 +132,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           timestamp: new Date(),
           details: normalizedErr.fieldErrors,
         })
+        void router.navigate(['/403'])
       }
 
       if (error.status >= 500 || error.status === 0) {

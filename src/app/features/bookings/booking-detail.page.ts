@@ -43,38 +43,39 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
         </div>
       } @else if (accessDenied() || !booking()) {
         <div
-          class="mx-auto my-8 max-w-xl space-y-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-8 text-center shadow-sm"
+          class="mx-auto my-8 max-w-xl space-y-5 rounded-[28px] border border-amber-200 bg-amber-50/90 p-8 text-center shadow-lg backdrop-blur-sm sm:p-10"
         >
           <div
-            class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner"
+            class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner"
           >
-            <app-icon name="shield" [size]="28" />
-          </div>
-          <div>
-            <h3 class="text-xl font-black text-slate-950">{{ 'lab.notFoundTitle' | t }}</h3>
+            <app-icon name="shield" [size]="32" />
           </div>
 
-          <div
-            class="rounded-xl border border-amber-200 bg-white/90 p-4 text-left text-xs text-slate-800 shadow-sm"
-          >
-            <p
-              class="rounded-lg border border-amber-200/60 bg-amber-100/60 p-3 font-sans text-xs leading-relaxed font-bold whitespace-pre-line text-amber-950"
+          <div>
+            <span
+              class="inline-block rounded-full bg-amber-200/60 px-3 py-1 text-[11px] font-black tracking-wider text-amber-900 uppercase"
             >
-              {{ errorMessage() || ('lab.notFoundMsg' | t) }}
+              HTTP 403 Forbidden
+            </span>
+            <h3 class="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+              {{ 'common.accessDeniedTitle' | t }}
+            </h3>
+            <p class="mt-2 text-sm text-slate-600">
+              {{ 'common.accessDeniedSubtitle' | t }}
             </p>
           </div>
 
-          <div class="flex flex-wrap justify-center gap-2 pt-2">
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700"
-              (click)="sendErrorReportToBE()"
+          <div class="flex flex-wrap justify-center gap-3 pt-2">
+            <a
+              routerLink="/app/calendar"
+              class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700"
             >
-              <app-icon name="send" [size]="15" /> Gửi báo lỗi về Backend
-            </button>
+              <app-icon name="calendar" [size]="15" /> {{ 'calendar.backToCalendar' | t }}
+            </a>
+
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+              class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
               (click)="goBackToList()"
             >
               <app-icon name="arrow-left" [size]="15" /> {{ 'common.back' | t }}

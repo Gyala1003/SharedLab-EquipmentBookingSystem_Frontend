@@ -23,61 +23,31 @@ import { IconComponent } from '../../shared/ui/icon'
         class="absolute right-[10%] bottom-[12%] h-80 w-80 rounded-full bg-cyan-200/60 blur-3xl"
       ></div>
       <section
-        class="relative w-full max-w-2xl rounded-[36px] border border-white bg-white/90 p-8 shadow-2xl shadow-slate-900/10 backdrop-blur-xl sm:p-14"
+        class="relative w-full max-w-lg rounded-[36px] border border-white bg-white/95 p-8 shadow-2xl shadow-slate-900/10 backdrop-blur-xl sm:p-12"
       >
         <div
           class="mx-auto flex h-24 w-24 items-center justify-center rounded-[30px] bg-gradient-to-br from-amber-100 to-orange-100 text-amber-600 shadow-inner"
         >
           <app-icon name="shield" [size]="44" />
         </div>
-        <p class="mt-8 text-sm font-bold tracking-[0.22em] text-amber-600 uppercase">
-          Lỗi {{ err()?.status || 403 }} - Truy cập bị từ chối
+        <p class="mt-8 text-xs font-black tracking-[0.22em] text-amber-600 uppercase">
+          HTTP 403 Forbidden
         </p>
-        <h1 class="mt-3 text-3xl font-bold tracking-[-0.04em] text-slate-950 sm:text-4xl">
+        <h1 class="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
           Không có quyền truy cập
         </h1>
-
-        <!-- Backend Error Note -->
-        <div
-          class="mt-6 rounded-2xl border border-amber-200 bg-amber-50/80 p-5 text-left text-xs leading-6 text-amber-900"
-        >
-          <p
-            class="mb-1 flex items-center gap-1.5 font-extrabold tracking-wider text-amber-800 uppercase"
-          >
-            <app-icon name="alert" [size]="16" class="text-amber-600" />
-            Ghi chú ngoại lệ chi tiết từ Backend (BE):
-          </p>
-          <p
-            class="mt-1 rounded-lg border border-amber-200/60 bg-amber-100/60 p-2.5 font-mono text-sm text-xs font-bold whitespace-pre-line text-amber-950"
-          >
-            {{
-              err()?.message ||
-                'Trang này hoặc thao tác này chỉ dành cho một số vai trò nhất định. Bạn không có quyền xem booking này.'
-            }}
-          </p>
-          @if (err()?.url) {
-            <div
-              class="mt-3 border-t border-amber-200/60 pt-2 font-mono text-[11px] break-all text-amber-800/90"
-            >
-              <span class="font-sans font-semibold text-amber-900">Endpoint API:</span>
-              {{ err()?.url }}
-            </div>
-          }
-        </div>
-
-        <p class="mx-auto mt-5 max-w-lg text-xs leading-6 text-slate-500">
-          Nhấn nút <strong>"Gửi báo lỗi về BE"</strong> để cập nhật dữ liệu phản hồi, hoặc nhấn
-          <strong>"Quay lại trang trước"</strong> để tiếp tục sử dụng ứng dụng bình thường.
+        <p class="mt-3 text-sm leading-relaxed text-slate-600">
+          Tài nguyên hoặc lịch này thuộc phạm vi quản lý của Quản lý phòng Lab khác hoặc Admin. Bạn không có quyền truy cập hoặc chỉnh sửa bản ghi này.
         </p>
 
         <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <button
             type="button"
             class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 text-sm font-bold text-white shadow-lg shadow-indigo-900/15 transition hover:bg-indigo-700"
-            (click)="sendReport()"
+            (click)="goCalendar()"
           >
-            <app-icon name="send" [size]="18" />
-            Gửi báo lỗi về BE (Data)
+            <app-icon name="calendar" [size]="18" />
+            Về trang Lịch (Calendar)
           </button>
           <button
             type="button"
@@ -97,10 +67,11 @@ export class ForbiddenPage {
   private readonly location = inject(Location)
   private readonly store = inject(AuthStore)
   private readonly errorState = inject(ErrorStateService)
-  private readonly systemApi = inject(SystemService)
-  private readonly toast = inject(ToastService)
 
-  protected readonly err = this.errorState.currentError
+  protected goCalendar(): void {
+    this.errorState.clearError()
+    void this.router.navigate(['/app/calendar'])
+  }
 
   protected goHome(): void {
     this.errorState.clearError()
@@ -109,37 +80,7 @@ export class ForbiddenPage {
     )
   }
 
-  protected sendReport(): void {
-    const user = this.store.user()
-    if (!user?.userId) return
-    this.systemApi
-      .sendNotification({
-        userId: user.userId,
-        title: 'Báo cáo ngoại lệ BE (Data)',
-        message: `[Báo lỗi Data] Người dùng ${user.fullName || user.username} báo cáo ngoại lệ tại endpoint: ${this.err()?.url || 'N/A'}. Nội dung: ${this.err()?.message || ''}`,
-        notificationType: 1,
-      })
-      .pipe(catchError(() => EMPTY))
-      .subscribe({
-        next: () => this.toast.success('Đã gửi dữ liệu báo lỗi về Backend!'),
-        error: () => this.toast.info('Đã ghi nhận báo lỗi.'),
-      })
-  }
-
   protected goBack(): void {
-    const user = this.store.user()
-    if (user?.userId) {
-      this.systemApi
-        .sendNotification({
-          userId: user.userId,
-          title: 'Xác nhận phản hồi Lỗi 403',
-          message: `Người dùng ${user.fullName || user.username} đã quay lại trang sau khi nhận thông báo từ chối truy cập 403 (${this.err()?.url || 'API/Page'}).`,
-          notificationType: 1,
-        })
-        .pipe(catchError(() => EMPTY))
-        .subscribe()
-    }
-
     this.errorState.clearError()
     if (history.length > 1) {
       this.location.back()

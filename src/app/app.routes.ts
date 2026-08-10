@@ -71,6 +71,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/system/blank.page').then((m) => m.BlankPage),
       },
       {
+        path: '403',
+        title: 'Không có quyền truy cập',
+        loadComponent: () => import('./features/system/forbidden.page').then((m) => m.ForbiddenPage),
+      },
+      {
         path: 'home',
         canActivate: [roleGuard(['Requester'])],
         title: 'Trang chủ · Shared Lab',

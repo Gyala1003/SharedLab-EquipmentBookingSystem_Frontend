@@ -753,6 +753,129 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'maintenances.allLabs': { vi: 'Tất cả phòng', en: 'All Labs' },
   'maintenances.allEquipment': { vi: 'Tất cả thiết bị', en: 'All Equipment' },
 
+  // Maintenance Form
+  'maintenanceForm.createTitle': { vi: 'Tạo lịch bảo trì', en: 'Create Maintenance Schedule' },
+  'maintenanceForm.editTitle': { vi: 'Chỉnh sửa lịch bảo trì', en: 'Edit Maintenance Schedule' },
+  'maintenanceForm.subtitle': {
+    vi: 'Chọn đúng một loại tài nguyên, kiểm tra thời gian và cấu hình chu kỳ lặp nếu cần.',
+    en: 'Select one resource type, check schedule time, and configure recurrence cycle if needed.',
+  },
+  'maintenanceForm.back': { vi: 'Quay lại', en: 'Back' },
+  'maintenanceForm.resourceAndTime': { vi: 'Tài nguyên & thời gian', en: 'Resource & Time' },
+  'maintenanceForm.conflictNotice': {
+    vi: 'Backend sẽ kiểm tra xung đột với booking và maintenance khác.',
+    en: 'System will check conflicts with other bookings and maintenance.',
+  },
+  'maintenanceForm.labMaintenance': { vi: 'Bảo trì phòng lab', en: 'Lab Room Maintenance' },
+  'maintenanceForm.labMaintenanceDesc': {
+    vi: 'Khóa toàn bộ phòng trong thời gian thực hiện',
+    en: 'Lock entire lab room during maintenance',
+  },
+  'maintenanceForm.equipmentMaintenance': { vi: 'Bảo trì thiết bị', en: 'Equipment Maintenance' },
+  'maintenanceForm.equipmentMaintenanceDesc': {
+    vi: 'Chỉ khóa thiết bị được chọn',
+    en: 'Only lock selected equipment',
+  },
+  'maintenanceForm.labRoom': { vi: 'Phòng lab', en: 'Lab Room' },
+  'maintenanceForm.selectLab': { vi: 'Chọn phòng lab', en: 'Select lab room' },
+  'maintenanceForm.equipmentLab': { vi: 'Phòng chứa thiết bị', en: 'Lab Room with Equipment' },
+  'maintenanceForm.allLabs': { vi: 'Tất cả phòng', en: 'All Labs' },
+  'maintenanceForm.equipment': { vi: 'Thiết bị', en: 'Equipment' },
+  'maintenanceForm.selectEquipment': { vi: 'Chọn thiết bị', en: 'Select equipment' },
+  'maintenanceForm.startTime': { vi: 'Bắt đầu', en: 'Start Time' },
+  'maintenanceForm.endTime': { vi: 'Kết thúc', en: 'End Time' },
+  'maintenanceForm.cost': { vi: 'Chi phí bảo trì', en: 'Maintenance Cost' },
+  'maintenanceForm.recurrenceType': { vi: 'Loại lặp', en: 'Recurrence Type' },
+  'maintenanceForm.none': { vi: 'Không lặp', en: 'No Recurrence' },
+  'maintenanceForm.daily': { vi: 'Hằng ngày', en: 'Daily' },
+  'maintenanceForm.weekly': { vi: 'Hằng tuần', en: 'Weekly' },
+  'maintenanceForm.monthly': { vi: 'Hằng tháng', en: 'Monthly' },
+  'maintenanceForm.recurrenceInterval': { vi: 'Khoảng lặp', en: 'Recurrence Interval' },
+  'maintenanceForm.recurrenceEndDate': { vi: 'Ngày kết thúc chuỗi', en: 'Recurrence End Date' },
+  'maintenanceForm.notes': { vi: 'Ghi chú', en: 'Notes' },
+  'maintenanceForm.notesPlaceholder': {
+    vi: 'Nội dung bảo trì, đơn vị thực hiện, linh kiện thay thế...',
+    en: 'Maintenance details, vendor, replacement parts...',
+  },
+  'maintenanceForm.cancel': { vi: 'Hủy', en: 'Cancel' },
+  'maintenanceForm.saving': { vi: 'Đang lưu...', en: 'Saving...' },
+  'maintenanceForm.saveChanges': { vi: 'Lưu thay đổi', en: 'Save Changes' },
+  'maintenanceForm.checklistTitle': { vi: 'Kiểm tra trước khi lưu', en: 'Checklist Before Saving' },
+  'maintenanceForm.rule1': {
+    vi: 'Chỉ chọn một trong Lab hoặc Equipment.',
+    en: 'Select either Lab or Equipment.',
+  },
+  'maintenanceForm.rule2': {
+    vi: 'Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.',
+    en: 'Start time must be earlier than end time.',
+  },
+  'maintenanceForm.rule3': {
+    vi: 'Lịch mới hoặc lịch sửa phải nằm trong tương lai.',
+    en: 'New or updated schedule must be in the future.',
+  },
+  'maintenanceForm.rule4': {
+    vi: 'LabManager chỉ chọn được tài nguyên thuộc phạm vi quản lý.',
+    en: 'LabManager can only select resources within managed scope.',
+  },
+  'maintenanceForm.impactTitle': { vi: 'Tác động tài nguyên', en: 'Resource Impact' },
+  'maintenanceForm.impactDesc': {
+    vi: 'Khi bắt đầu bảo trì, tài nguyên chuyển trạng thái Maintenance. Không thể bắt đầu nếu còn lượt sử dụng chưa checkout.',
+    en: 'When maintenance starts, resource status changes to Maintenance. Cannot start if active sessions are not checked out.',
+  },
+
+  // Maintenance Detail
+  'maintenanceDetail.notFoundTitle': {
+    vi: 'Không tìm thấy lịch bảo trì',
+    en: 'Maintenance Schedule Not Found',
+  },
+  'maintenanceDetail.notFoundMessage': {
+    vi: 'Bản ghi không tồn tại hoặc ngoài phạm vi truy cập.',
+    en: 'Record does not exist or is out of accessible scope.',
+  },
+  'maintenanceDetail.backToList': { vi: 'Về danh sách', en: 'Back to List' },
+  'maintenanceDetail.edit': { vi: 'Chỉnh sửa', en: 'Edit' },
+  'maintenanceDetail.start': { vi: 'Bắt đầu', en: 'Start' },
+  'maintenanceDetail.complete': { vi: 'Hoàn thành', en: 'Complete' },
+  'maintenanceDetail.infoTitle': {
+    vi: 'Thông tin lịch bảo trì',
+    en: 'Maintenance Schedule Info',
+  },
+  'maintenanceDetail.duration': { vi: 'Thời lượng', en: 'Duration' },
+  'maintenanceDetail.hours': { vi: 'giờ', en: 'hours' },
+  'maintenanceDetail.noNotes': { vi: 'Không có ghi chú.', en: 'No notes provided.' },
+  'maintenanceDetail.recurrenceConfig': {
+    vi: 'Cấu hình định kỳ',
+    en: 'Recurrence Configuration',
+  },
+  'maintenanceDetail.creator': { vi: 'Người tạo', en: 'Created By' },
+  'maintenanceDetail.cancelTitle': { vi: 'Hủy lịch bảo trì', en: 'Cancel Maintenance Schedule' },
+  'maintenanceDetail.cancelDesc': {
+    vi: 'Hủy một kỳ không dừng các kỳ sau. Hủy cả chuỗi sẽ dừng toàn bộ lịch định kỳ còn hoạt động.',
+    en: 'Canceling one occurrence will not stop future occurrences. Canceling the entire series stops all active recurrences.',
+  },
+  'maintenanceDetail.cancelSingle': { vi: 'Hủy kỳ này', en: 'Cancel This Occurrence' },
+  'maintenanceDetail.cancelSeries': { vi: 'Hủy cả chuỗi', en: 'Cancel Entire Series' },
+
+  // Access Denied / 403 Common
+  'common.accessDeniedTitle': { vi: 'Không có quyền truy cập', en: 'Access Denied' },
+  'common.accessDeniedSubtitle': {
+    vi: 'Bạn không có quyền quản lý tài nguyên hoặc xem chi tiết bản ghi này.',
+    en: 'You do not have management permissions for this resource or record.',
+  },
+  'common.backendNotice': {
+    vi: 'Thông tin phản hồi từ Backend',
+    en: 'Backend Response Information',
+  },
+  'common.defaultForbiddenMsg': {
+    vi: '🔒 Bạn không có quyền quản lý phòng Lab này nên không thể xem chi tiết.\nChỉ có Admin hoặc Quản lý của phòng mới xem được.',
+    en: '🔒 You do not have management permissions for this Lab room.\nOnly Admins or assigned Lab Managers can view details.',
+  },
+  'common.sendReportToBe': {
+    vi: 'Gửi báo lỗi về Backend',
+    en: 'Send Error Report to Backend',
+  },
+  'calendar.backToCalendar': { vi: 'Quay lại Lịch', en: 'Back to Calendar' },
+
   // Nav Item Aliases
   'nav.maintenanceSchedule': { vi: 'Lịch bảo trì', en: 'Maintenance Schedule' },
   'nav.systemMaintenance': { vi: 'Bảo trì hệ thống', en: 'System Maintenance' },

@@ -9,16 +9,17 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { ToastService } from '../../shared/ui/toast.service'
 import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 
 @Component({
   selector: 'app-maintenance-form-page',
-  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent],
+  imports: [NgClass, FormsModule, RouterLink, PageHeaderComponent, IconComponent, TranslatePipe],
   template: `<section class="space-y-6">
     <app-page-header
-      [title]="editing() ? 'Chỉnh sửa lịch bảo trì' : 'Tạo lịch bảo trì'"
-      subtitle="Chọn đúng một loại tài nguyên, kiểm tra thời gian và cấu hình chu kỳ lặp nếu cần."
+      [title]="(editing() ? 'maintenanceForm.editTitle' : 'maintenanceForm.createTitle') | t"
+      [subtitle]="'maintenanceForm.subtitle' | t"
       ><a routerLink="/app/management/maintenances" class="btn-secondary"
-        ><app-icon name="arrow-left" [size]="17" /> Quay lại</a
+        ><app-icon name="arrow-left" [size]="17" /> {{ 'maintenanceForm.back' | t }}</a
       ></app-page-header
     >
     <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
@@ -30,9 +31,9 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
             <app-icon name="wrench" [size]="22" />
           </div>
           <div>
-            <h2 class="text-xl font-black text-slate-950">Tài nguyên & thời gian</h2>
+            <h2 class="text-xl font-black text-slate-950">{{ 'maintenanceForm.resourceAndTime' | t }}</h2>
             <p class="mt-1 text-sm text-slate-500">
-              Backend sẽ kiểm tra xung đột với booking và maintenance khác.
+              {{ 'maintenanceForm.conflictNotice' | t }}
             </p>
           </div>
         </div>
@@ -45,9 +46,9 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
             "
             (click)="setType('lab')"
           >
-            <p class="font-black text-slate-900">Bảo trì phòng lab</p>
+            <p class="font-black text-slate-900">{{ 'maintenanceForm.labMaintenance' | t }}</p>
             <p class="mt-1 text-xs text-slate-500">
-              Khóa toàn bộ phòng trong thời gian thực hiện
+              {{ 'maintenanceForm.labMaintenanceDesc' | t }}
             </p></button
           ><button
             type="button"
@@ -57,15 +58,15 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
             "
             (click)="setType('equipment')"
           >
-            <p class="font-black text-slate-900">Bảo trì thiết bị</p>
-            <p class="mt-1 text-xs text-slate-500">Chỉ khóa thiết bị được chọn</p>
+            <p class="font-black text-slate-900">{{ 'maintenanceForm.equipmentMaintenance' | t }}</p>
+            <p class="mt-1 text-xs text-slate-500">{{ 'maintenanceForm.equipmentMaintenanceDesc' | t }}</p>
           </button>
         </div>
         @if (resourceType === 'lab') {
           <div class="mt-5">
-            <label class="field-label">Phòng lab *</label
+            <label class="field-label">{{ 'maintenanceForm.labRoom' | t }} *</label
             ><select class="input-shell" required [(ngModel)]="labId" name="labId">
-              <option [ngValue]="null">Chọn phòng lab</option>
+              <option [ngValue]="null">{{ 'maintenanceForm.selectLab' | t }}</option>
               @for (lab of labs(); track lab.labId) {
                 <option [ngValue]="lab.labId">{{ lab.labName }} · {{ lab.roomCode }}</option>
               }
@@ -74,23 +75,23 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
         } @else {
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="field-label">Phòng chứa thiết bị</label
+              <label class="field-label">{{ 'maintenanceForm.equipmentLab' | t }}</label
               ><select
                 class="input-shell"
                 [(ngModel)]="equipmentLabId"
                 name="equipmentLabId"
                 (ngModelChange)="equipmentId = null"
               >
-                <option [ngValue]="null">Tất cả phòng</option>
+                <option [ngValue]="null">{{ 'maintenanceForm.allLabs' | t }}</option>
                 @for (lab of labs(); track lab.labId) {
                   <option [ngValue]="lab.labId">{{ lab.labName }}</option>
                 }
               </select>
             </div>
             <div>
-              <label class="field-label">Thiết bị *</label
+              <label class="field-label">{{ 'maintenanceForm.equipment' | t }} *</label
               ><select class="input-shell" required [(ngModel)]="equipmentId" name="equipmentId">
-                <option [ngValue]="null">Chọn thiết bị</option>
+                <option [ngValue]="null">{{ 'maintenanceForm.selectEquipment' | t }}</option>
                 @for (eq of equipmentOptions(); track eq.equipmentId) {
                   <option [ngValue]="eq.equipmentId">{{ eq.equipmentName }}</option>
                 }
@@ -100,7 +101,7 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
         }
         <div class="mt-5 grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="field-label">Bắt đầu *</label
+            <label class="field-label">{{ 'maintenanceForm.startTime' | t }} *</label
             ><input
               class="input-shell"
               type="datetime-local"
@@ -110,7 +111,7 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
             />
           </div>
           <div>
-            <label class="field-label">Kết thúc *</label
+            <label class="field-label">{{ 'maintenanceForm.endTime' | t }} *</label
             ><input
               class="input-shell"
               type="datetime-local"
@@ -120,21 +121,21 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
             />
           </div>
           <div>
-            <label class="field-label">Chi phí bảo trì</label
+            <label class="field-label">{{ 'maintenanceForm.cost' | t }}</label
             ><input class="input-shell" type="number" min="0" [(ngModel)]="cost" name="cost" />
           </div>
           <div>
-            <label class="field-label">Loại lặp</label
+            <label class="field-label">{{ 'maintenanceForm.recurrenceType' | t }}</label
             ><select class="input-shell" [(ngModel)]="recurrenceType" name="recurrenceType">
-              <option [ngValue]="0">Không lặp</option>
-              <option [ngValue]="1">Hằng ngày</option>
-              <option [ngValue]="2">Hằng tuần</option>
-              <option [ngValue]="3">Hằng tháng</option>
+              <option [ngValue]="0">{{ 'maintenanceForm.none' | t }}</option>
+              <option [ngValue]="1">{{ 'maintenanceForm.daily' | t }}</option>
+              <option [ngValue]="2">{{ 'maintenanceForm.weekly' | t }}</option>
+              <option [ngValue]="3">{{ 'maintenanceForm.monthly' | t }}</option>
             </select>
           </div>
           @if (recurrenceType !== 0) {
             <div>
-              <label class="field-label">Khoảng lặp</label
+              <label class="field-label">{{ 'maintenanceForm.recurrenceInterval' | t }}</label
               ><input
                 class="input-shell"
                 type="number"
@@ -144,7 +145,7 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
               />
             </div>
             <div>
-              <label class="field-label">Ngày kết thúc chuỗi</label
+              <label class="field-label">{{ 'maintenanceForm.recurrenceEndDate' | t }}</label
               ><input
                 class="input-shell"
                 type="datetime-local"
@@ -155,41 +156,40 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
           }
         </div>
         <div class="mt-5">
-          <label class="field-label">Ghi chú</label
+          <label class="field-label">{{ 'maintenanceForm.notes' | t }}</label
           ><textarea
             class="textarea-shell"
             [(ngModel)]="notes"
             name="notes"
-            placeholder="Nội dung bảo trì, đơn vị thực hiện, linh kiện thay thế..."
+            [placeholder]="'maintenanceForm.notesPlaceholder' | t"
           ></textarea>
         </div>
         <div class="mt-7 flex justify-end gap-2">
-          <a routerLink="/app/management/maintenances" class="btn-secondary">Hủy</a
+          <a routerLink="/app/management/maintenances" class="btn-secondary">{{ 'maintenanceForm.cancel' | t }}</a
           ><button class="btn-primary" [disabled]="saving()">
             <app-icon name="save" [size]="17" />
-            {{ saving() ? 'Đang lưu...' : editing() ? 'Lưu thay đổi' : 'Tạo lịch bảo trì' }}
+            {{ (saving() ? 'maintenanceForm.saving' : editing() ? 'maintenanceForm.saveChanges' : 'maintenanceForm.createTitle') | t }}
           </button>
         </div>
       </form>
       <aside class="space-y-5">
         <article class="card-surface p-5">
           <p class="text-[10px] font-black tracking-[.16em] text-violet-500 uppercase">
-            Kiểm tra trước khi lưu
+            {{ 'maintenanceForm.checklistTitle' | t }}
           </p>
           <div class="mt-4 space-y-3">
             @for (rule of rules; track rule) {
               <div class="flex gap-3 text-sm text-slate-600">
                 <span class="mt-0.5 text-emerald-500"><app-icon name="check" [size]="16" /></span
-                ><span>{{ rule }}</span>
+                ><span>{{ rule | t }}</span>
               </div>
             }
           </div>
         </article>
         <article class="rounded-[24px] border border-amber-200 bg-amber-50 p-5">
-          <p class="font-black text-amber-900">Tác động tài nguyên</p>
+          <p class="font-black text-amber-900">{{ 'maintenanceForm.impactTitle' | t }}</p>
           <p class="mt-2 text-sm leading-6 text-amber-800/75">
-            Khi bắt đầu bảo trì, tài nguyên chuyển trạng thái Maintenance. Không thể bắt đầu nếu còn
-            lượt sử dụng chưa checkout.
+            {{ 'maintenanceForm.impactDesc' | t }}
           </p>
         </article>
       </aside>
@@ -223,10 +223,10 @@ export class MaintenanceFormPage implements OnInit {
       : this.equipments(),
   )
   protected readonly rules = [
-    'Chỉ chọn một trong Lab hoặc Equipment.',
-    'Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc.',
-    'Lịch mới hoặc lịch sửa phải nằm trong tương lai.',
-    'LabManager chỉ chọn được tài nguyên thuộc phạm vi quản lý.',
+    'maintenanceForm.rule1',
+    'maintenanceForm.rule2',
+    'maintenanceForm.rule3',
+    'maintenanceForm.rule4',
   ]
   ngOnInit(): void {
     this.id = Number(this.route.snapshot.paramMap.get('id'))

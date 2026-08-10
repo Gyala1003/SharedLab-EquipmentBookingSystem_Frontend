@@ -8,12 +8,12 @@ import type {
   MaintenanceDetailResponse,
 } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
-import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { formatMoney, labelOf } from '../../shared/utils/presentation'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 
 @Component({
   selector: 'app-maintenance-detail-page',
@@ -23,7 +23,7 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
     PageHeaderComponent,
     IconComponent,
     StatusBadgeComponent,
-    DataStateComponent,
+    TranslatePipe,
   ],
   template: `<section class="space-y-6">
     @if (loading()) {
@@ -31,32 +31,63 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
         <div class="skeleton h-8 w-1/3 rounded"></div>
         <div class="skeleton mt-5 h-80 rounded-3xl"></div>
       </div>
-    } @else if (!item()) {
-      <app-data-state
-        title="Không tìm thấy lịch bảo trì"
-        message="Bản ghi không tồn tại hoặc ngoài phạm vi truy cập."
-        icon="wrench"
-        ><a routerLink="/app/management/maintenances" class="btn-primary mt-5"
-          >Về danh sách</a
-        ></app-data-state
+    } @else if (accessDenied() || !item()) {
+      <div
+        class="mx-auto my-8 max-w-xl space-y-5 rounded-[28px] border border-amber-200 bg-amber-50/90 p-8 text-center shadow-lg backdrop-blur-sm sm:p-10"
       >
+        <div
+          class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 shadow-inner"
+        >
+          <app-icon name="shield" [size]="32" />
+        </div>
+
+        <div>
+          <span
+            class="inline-block rounded-full bg-amber-200/60 px-3 py-1 text-[11px] font-black tracking-wider text-amber-900 uppercase"
+          >
+            HTTP 403 Forbidden
+          </span>
+          <h3 class="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+            {{ 'common.accessDeniedTitle' | t }}
+          </h3>
+          <p class="mt-2 text-sm text-slate-600">
+            {{ 'common.accessDeniedSubtitle' | t }}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-3 pt-2">
+          <a
+            routerLink="/app/calendar"
+            class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-600/20 transition hover:bg-indigo-700"
+          >
+            <app-icon name="calendar" [size]="15" /> {{ 'calendar.backToCalendar' | t }}
+          </a>
+
+          <a
+            routerLink="/app/management/maintenances"
+            class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            <app-icon name="arrow-left" [size]="15" /> {{ 'maintenanceDetail.backToList' | t }}
+          </a>
+        </div>
+      </div>
     } @else {
       <app-page-header
         [title]="'Bảo trì #MT-' + item()!.maintenanceId.toString().padStart(4, '0')"
-        [subtitle]="resourceName() + ' · ' + labelOf('recurrence', item()!.recurrenceType)"
+        [subtitle]="resourceName() + ' · ' + (labelOf('recurrence', item()!.recurrenceType) | t)"
       >
         @if (canManage() && item()!.status === 'Scheduled') {
           <a
             [routerLink]="['/app/management/maintenances', item()!.maintenanceId, 'edit']"
             class="btn-secondary"
-            ><app-icon name="edit" [size]="17" /> Chỉnh sửa</a
+            ><app-icon name="edit" [size]="17" /> {{ 'maintenanceDetail.edit' | t }}</a
           ><button class="btn-primary" (click)="action('start')">
-            <app-icon name="play" [size]="17" /> Bắt đầu
+            <app-icon name="play" [size]="17" /> {{ 'maintenanceDetail.start' | t }}
           </button>
         }
         @if (canManage() && item()!.status === 'InProgress') {
           <button class="btn-primary" (click)="action('complete')">
-            <app-icon name="check" [size]="17" /> Hoàn thành
+            <app-icon name="check" [size]="17" /> {{ 'maintenanceDetail.complete' | t }}
           </button>
         }
       </app-page-header>
@@ -66,7 +97,7 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
             <div class="flex items-start justify-between gap-4">
               <div>
                 <p class="text-xs font-black tracking-[.16em] text-amber-500 uppercase">
-                  Thông tin lịch bảo trì
+                  {{ 'maintenanceDetail.infoTitle' | t }}
                 </p>
                 <h2 class="mt-2 text-2xl font-black text-slate-950">{{ resourceName() }}</h2>
               </div>
@@ -74,50 +105,50 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
             </div>
             <div class="mt-6 grid gap-4 sm:grid-cols-2">
               <div class="rounded-2xl bg-slate-50 p-5">
-                <p class="text-[10px] font-black text-slate-400 uppercase">Bắt đầu</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase">{{ 'maintenanceForm.startTime' | t }}</p>
                 <p class="mt-2 font-black text-slate-900">
                   {{ item()!.startTime | date: 'HH:mm dd/MM/yyyy' }}
                 </p>
               </div>
               <div class="rounded-2xl bg-slate-50 p-5">
-                <p class="text-[10px] font-black text-slate-400 uppercase">Kết thúc</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase">{{ 'maintenanceForm.endTime' | t }}</p>
                 <p class="mt-2 font-black text-slate-900">
                   {{ item()!.endTime | date: 'HH:mm dd/MM/yyyy' }}
                 </p>
               </div>
               <div class="rounded-2xl bg-slate-50 p-5">
-                <p class="text-[10px] font-black text-slate-400 uppercase">Thời lượng</p>
-                <p class="mt-2 font-black text-slate-900">{{ duration() }} giờ</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase">{{ 'maintenanceDetail.duration' | t }}</p>
+                <p class="mt-2 font-black text-slate-900">{{ duration() }} {{ 'maintenanceDetail.hours' | t }}</p>
               </div>
               <div class="rounded-2xl bg-slate-50 p-5">
-                <p class="text-[10px] font-black text-slate-400 uppercase">Chi phí</p>
+                <p class="text-[10px] font-black text-slate-400 uppercase">{{ 'maintenanceForm.cost' | t }}</p>
                 <p class="mt-2 font-black text-slate-900">
                   {{ formatMoney(item()!.maintenanceCost) }}
                 </p>
               </div>
             </div>
             <div class="mt-5 rounded-2xl border border-slate-200 p-5">
-              <p class="text-xs font-black text-slate-700">Ghi chú</p>
+              <p class="text-xs font-black text-slate-700">{{ 'maintenanceForm.notes' | t }}</p>
               <p class="mt-2 text-sm leading-7 whitespace-pre-line text-slate-500">
-                {{ item()!.notes || 'Không có ghi chú.' }}
+                {{ item()!.notes || ('maintenanceDetail.noNotes' | t) }}
               </p>
             </div>
           </article>
           <article class="card-surface p-6">
-            <h2 class="font-black text-slate-950">Cấu hình định kỳ</h2>
+            <h2 class="font-black text-slate-950">{{ 'maintenanceDetail.recurrenceConfig' | t }}</h2>
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
-                <p class="text-xs text-slate-400">Loại lặp</p>
+                <p class="text-xs text-slate-400">{{ 'maintenanceForm.recurrenceType' | t }}</p>
                 <p class="mt-1 font-black text-slate-800">
-                  {{ labelOf('recurrence', item()!.recurrenceType) }}
+                  {{ labelOf('recurrence', item()!.recurrenceType) | t }}
                 </p>
               </div>
               <div>
-                <p class="text-xs text-slate-400">Khoảng lặp</p>
+                <p class="text-xs text-slate-400">{{ 'maintenanceForm.recurrenceInterval' | t }}</p>
                 <p class="mt-1 font-black text-slate-800">{{ item()!.recurrenceInterval }}</p>
               </div>
               <div>
-                <p class="text-xs text-slate-400">Kết thúc chuỗi</p>
+                <p class="text-xs text-slate-400">{{ 'maintenanceForm.recurrenceEndDate' | t }}</p>
                 <p class="mt-1 font-black text-slate-800">
                   {{
                     item()!.recurrenceEndDate
@@ -137,23 +168,22 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
         </div>
         <aside class="space-y-5">
           <article class="card-surface p-5">
-            <p class="text-xs font-black tracking-[.16em] text-violet-500 uppercase">Người tạo</p>
+            <p class="text-xs font-black tracking-[.16em] text-violet-500 uppercase">{{ 'maintenanceDetail.creator' | t }}</p>
             <p class="mt-3 text-lg font-black text-slate-900">User #{{ item()!.createdById }}</p>
           </article>
           @if (canManage() && ['Scheduled', 'InProgress'].includes(item()!.status)) {
             <article class="rounded-[24px] border border-rose-200 bg-rose-50 p-5">
-              <p class="font-black text-rose-900">Hủy lịch bảo trì</p>
+              <p class="font-black text-rose-900">{{ 'maintenanceDetail.cancelTitle' | t }}</p>
               <p class="mt-2 text-sm leading-6 text-rose-800/75">
-                Hủy một kỳ không dừng các kỳ sau. Hủy cả chuỗi sẽ dừng toàn bộ lịch định kỳ còn hoạt
-                động.
+                {{ 'maintenanceDetail.cancelDesc' | t }}
               </p>
               <div class="mt-4 grid gap-2">
                 <button class="btn-secondary btn-danger" (click)="action('cancel')">
-                  Hủy lần này
+                  {{ 'maintenanceDetail.cancelSingle' | t }}
                 </button>
                 @if (item()!.recurrenceType !== 'None' && !item()!.recurrenceStopped) {
                   <button class="btn-secondary btn-danger" (click)="action('cancel-series')">
-                    Hủy cả chuỗi
+                    {{ 'maintenanceDetail.cancelSeries' | t }}
                   </button>
                 }
               </div>
@@ -174,6 +204,8 @@ export class MaintenanceDetailPage implements OnInit {
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly equipments = signal<EquipmentResponse[]>([])
   protected readonly loading = signal(true)
+  protected readonly accessDenied = signal(false)
+  protected readonly errorMessage = signal('')
   protected readonly labelOf = labelOf
   protected readonly formatMoney = formatMoney
   private id = 0
@@ -218,14 +250,23 @@ export class MaintenanceDetailPage implements OnInit {
   }
   private load(): void {
     this.loading.set(true)
+    this.accessDenied.set(false)
+    this.errorMessage.set('')
     this.api.maintenance(this.id).subscribe({
       next: (x) => {
         this.item.set(x)
         this.loading.set(false)
       },
-      error: () => {
+      error: (err: any) => {
         this.loading.set(false)
         this.item.set(null)
+        this.accessDenied.set(true)
+        const msg =
+          err?.error?.message ||
+          err?.error?.detail ||
+          err?.message ||
+          '🔒 Bạn không có quyền quản lý phòng Lab chứa lịch bảo trì này.'
+        this.errorMessage.set(msg)
       },
     })
   }
