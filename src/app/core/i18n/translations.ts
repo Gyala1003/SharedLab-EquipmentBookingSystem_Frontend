@@ -455,6 +455,32 @@ export const translations: Record<string, { vi: string; en: string }> = {
   'equipments.inUse': { vi: 'Đang sử dụng', en: 'In Use' },
   'equipments.broken': { vi: 'Bị hỏng', en: 'Broken' },
   'equipments.retired': { vi: 'Ngừng sử dụng', en: 'Retired' },
+  'equipments.createTitle': { vi: 'Thêm thiết bị mới', en: 'Add New Equipment' },
+  'equipments.createSubtitle': {
+    vi: 'Thiết bị phải thuộc một phòng lab đang tồn tại.',
+    en: 'Equipment must belong to an existing lab room.',
+  },
+  'equipments.selectLab': { vi: 'Chọn phòng lab', en: 'Select lab room' },
+  'equipments.namePlaceholder': { vi: 'Máy quang phổ FTIR', en: 'FTIR Spectrometer' },
+  'equipments.specsPlaceholder': { vi: 'Hãng, model, dải đo...', en: 'Brand, model, measurement range...' },
+  'equipments.create': { vi: 'Tạo thiết bị', en: 'Create Equipment' },
+  'equipments.editTitle': { vi: 'Chỉnh sửa thiết bị', en: 'Edit Equipment' },
+  'labs.createTitle': { vi: 'Thêm phòng thí nghiệm', en: 'Add Lab Room' },
+  'labs.createSubtitle': {
+    vi: 'Thông tin được gửi trực tiếp tới POST /api/LabRooms.',
+    en: 'Information sent directly to POST /api/LabRooms.',
+  },
+  'labs.roomName': { vi: 'Tên phòng', en: 'Room Name' },
+  'labs.roomCode': { vi: 'Mã phòng', en: 'Room Code' },
+  'labs.roomNamePlaceholder': { vi: 'Phòng Nghiên cứu AI', en: 'AI Research Lab' },
+  'labs.locationPlaceholder': { vi: 'Tầng 4, nhà A', en: 'Floor 4, Building A' },
+  'labs.selectManager': { vi: 'Chọn người quản lý', en: 'Select Manager' },
+  'labs.descPlaceholder': {
+    vi: 'Mô tả ngắn về không gian và mục đích sử dụng...',
+    en: 'Brief description of workspace and purpose...',
+  },
+  'labs.create': { vi: 'Tạo phòng lab', en: 'Create Lab Room' },
+  'labs.editTitle': { vi: 'Chỉnh sửa phòng lab', en: 'Edit Lab Room' },
 
   // Home Page
   'home.welcome': { vi: 'Chào mừng trở lại', en: 'Welcome back' },

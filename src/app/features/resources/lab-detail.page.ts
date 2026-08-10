@@ -312,8 +312,8 @@ import { getLabImageUrl } from '../../shared/utils/presentation'
 
         <app-modal
           [open]="editOpen()"
-          title="Chỉnh sửa phòng lab"
-          subtitle="RoomCode không thể sửa bằng API hiện tại."
+          [title]="'labs.editTitle' | t"
+          [subtitle]="'labs.editSubtitle' | t"
           (close)="editOpen.set(false)"
         >
           <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="save()">
@@ -330,11 +330,11 @@ import { getLabImageUrl } from '../../shared/utils/presentation'
               </div>
             }
             <div>
-              <label class="field-label">Tên phòng</label
+              <label class="field-label">{{ 'labs.roomName' | t }}</label
               ><input class="input-shell" [(ngModel)]="editForm.labName" name="labName" required />
             </div>
             <div>
-              <label class="field-label">Vị trí</label
+              <label class="field-label">{{ 'labs.location' | t }}</label
               ><input
                 class="input-shell"
                 [(ngModel)]="editForm.location"
@@ -343,7 +343,7 @@ import { getLabImageUrl } from '../../shared/utils/presentation'
               />
             </div>
             <div>
-              <label class="field-label">Sức chứa</label
+              <label class="field-label">{{ 'labs.capacity' | t }}</label
               ><input
                 class="input-shell"
                 type="number"
@@ -354,16 +354,16 @@ import { getLabImageUrl } from '../../shared/utils/presentation'
               />
             </div>
             <div>
-              <label class="field-label">Đổi LabManager</label
+              <label class="field-label">Manager</label
               ><select class="input-shell" [(ngModel)]="managerId" name="managerId">
-                <option [ngValue]="null">Giữ nguyên</option>
+                <option [ngValue]="null">{{ lab()?.managerName || ('lab.unassigned' | t) }}</option>
                 @for (manager of managers(); track manager.userId) {
                   <option [ngValue]="manager.userId">{{ manager.fullName }}</option>
                 }
               </select>
             </div>
             <div class="sm:col-span-2">
-              <label class="field-label">Mô tả</label
+              <label class="field-label">{{ 'common.description' | t }}</label
               ><textarea
                 class="textarea-shell"
                 [(ngModel)]="editForm.description"
@@ -371,11 +371,11 @@ import { getLabImageUrl } from '../../shared/utils/presentation'
               ></textarea>
             </div>
             <div class="sm:col-span-2">
-              <label class="field-label">URL ảnh</label
+              <label class="field-label">{{ 'common.imageUrl' | t }}</label
               ><input class="input-shell" [(ngModel)]="editForm.imageUrl" name="imageUrl" />
             </div>
             <div class="sm:col-span-2">
-              <label class="field-label">Hướng dẫn</label
+              <label class="field-label">{{ 'common.usageGuideline' | t }}</label
               ><textarea
                 class="textarea-shell"
                 [(ngModel)]="editForm.usageGuideline"
@@ -401,14 +401,14 @@ import { getLabImageUrl } from '../../shared/utils/presentation'
                 </div>
               } @else {
                 <button type="button" class="btn-secondary btn-danger" (click)="remove()">
-                  <app-icon name="trash" [size]="16" /> Ngừng sử dụng
+                  <app-icon name="trash" [size]="16" /> {{ 'common.disable' | t }}
                 </button>
               }
               <div class="flex gap-2">
                 <button type="button" class="btn-secondary" (click)="editOpen.set(false)">
-                  Hủy</button
+                  {{ 'common.cancel' | t }}</button
                 ><button class="btn-primary" [disabled]="saving()">
-                  {{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                  {{ saving() ? ('common.saving' | t) : ('common.saveChanges' | t) }}
                 </button>
               </div>
             </div>
@@ -473,13 +473,27 @@ export class LabDetailPage implements OnInit {
     }
     this.managerId = null
     this.editOpen.set(true)
-    if (!this.managers().length)
+    const setManagerSelection = (list: UserManagementResponse[]) => {
+      const current = list.find((m) => m.fullName === lab.managerName)
+      if (current) this.managerId = current.userId
+    }
+    if (!this.managers().length) {
       this.api
         .users({ roleName: 'LabManager', pageSize: 15 })
-        .subscribe((result) => this.managers.set(result.items))
+        .subscribe((result) => {
+          this.managers.set(result.items)
+          setManagerSelection(result.items)
+        })
+    } else {
+      setManagerSelection(this.managers())
+    }
   }
   protected save(): void {
     this.saving.set(true)
+    const currentMgr = this.managers().find((m) => m.fullName === this.lab()?.managerName)
+    const isManagerChanged =
+      this.managerId !== null && this.managerId !== (currentMgr?.userId ?? null)
+
     this.api
       .updateLab(this.id, {
         labName: this.editForm.labName,
@@ -491,7 +505,7 @@ export class LabDetailPage implements OnInit {
       })
       .subscribe({
         next: () => {
-          if (this.managerId) {
+          if (isManagerChanged && this.managerId) {
             this.api.changeLabManager(this.id, this.managerId).subscribe({
               next: () => this.finishSave(),
               error: (err: any) => {

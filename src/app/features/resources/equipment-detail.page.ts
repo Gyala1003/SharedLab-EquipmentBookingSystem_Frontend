@@ -273,8 +273,8 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
 
         <app-modal
           [open]="editOpen()"
-          title="Chỉnh sửa thiết bị"
-          subtitle="Cập nhật thông tin kỹ thuật hoặc chuyển thiết bị sang phòng khác."
+          [title]="'equipments.editTitle' | t"
+          [subtitle]="'equipments.editSubtitle' | t"
           (close)="editOpen.set(false)"
           ><form class="grid gap-4" (ngSubmit)="save()">
             @if (item()?.status === 'Inactive' || item()?.status === 'Retired') {
@@ -290,7 +290,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
               </div>
             }
             <div>
-              <label class="field-label">Tên thiết bị</label
+              <label class="field-label">{{ 'equipments.name' | t }}</label
               ><input
                 class="input-shell"
                 required
@@ -299,7 +299,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
               />
             </div>
             <div>
-              <label class="field-label">Phòng lab</label
+              <label class="field-label">{{ 'labs.labRoom' | t }}</label
               ><select class="input-shell" required [(ngModel)]="form.labId" name="labId">
                 @for (room of labs(); track room.labId) {
                   <option [ngValue]="room.labId">{{ room.labName }}</option>
@@ -307,7 +307,7 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
               </select>
             </div>
             <div>
-              <label class="field-label">Model / thông số</label
+              <label class="field-label">{{ 'equipments.modelSpecs' | t }}</label
               ><textarea
                 class="textarea-shell"
                 [(ngModel)]="form.modelSpecs"
@@ -315,11 +315,11 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
               ></textarea>
             </div>
             <div>
-              <label class="field-label">URL ảnh</label
+              <label class="field-label">{{ 'common.imageUrl' | t }}</label
               ><input class="input-shell" [(ngModel)]="form.imageUrl" name="imageUrl" />
             </div>
             <div>
-              <label class="field-label">Hướng dẫn</label
+              <label class="field-label">{{ 'common.usageGuideline' | t }}</label
               ><textarea
                 class="textarea-shell"
                 [(ngModel)]="form.usageGuideline"
@@ -328,13 +328,13 @@ import { getEquipmentImageUrl } from '../../shared/utils/presentation'
             </div>
             <div class="flex justify-between gap-2">
               <button type="button" class="btn-secondary btn-danger" (click)="remove()">
-                <app-icon name="trash" [size]="16" /> Ngừng sử dụng
+                <app-icon name="trash" [size]="16" /> {{ 'common.disable' | t }}
               </button>
               <div class="flex gap-2">
                 <button type="button" class="btn-secondary" (click)="editOpen.set(false)">
-                  Hủy</button
+                  {{ 'common.cancel' | t }}</button
                 ><button class="btn-primary" [disabled]="saving()">
-                  {{ saving() ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                  {{ saving() ? ('common.saving' | t) : ('common.saveChanges' | t) }}
                 </button>
               </div>
             </div>
