@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core'
+import { Injectable, inject, signal, computed } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
 import { env } from '../config/env'
 import { clearTranslationCache, findTranslation, translateDynamicLocation } from './translate.pipe'
@@ -12,6 +12,7 @@ export class LanguageStore {
   private readonly key = 'app.lang'
 
   readonly lang = signal<SupportedLocale>(this.resolveInitialLang())
+  readonly isEn = computed(() => this.lang() === 'en')
 
   constructor() {
     this.apply(this.lang())

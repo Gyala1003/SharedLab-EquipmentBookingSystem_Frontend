@@ -1,7 +1,8 @@
 import { DatePipe, DecimalPipe, NgClass } from '@angular/common'
 import { Component, OnInit, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { forkJoin } from 'rxjs'
+import { forkJoin, of } from 'rxjs'
+import { catchError } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type {
   CategoryCountResponse,
@@ -15,6 +16,7 @@ import type {
   UsageTrendResponse,
   ViolationSummaryResponse,
 } from '../../core/api/system.models'
+import { TranslatePipe } from '../../core/i18n/translate.pipe'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
@@ -261,6 +263,7 @@ export class TrendCardComponent {
     RankingCardComponent,
     CostCardComponent,
     TrendCardComponent,
+    TranslatePipe,
   ],
   template: `
     <section class="space-y-6">
@@ -482,6 +485,36 @@ export class TrendCardComponent {
                 </table>
               </div>
             }
+            @if (history().totalPages > 1) {
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 p-3"
+              >
+                <p class="px-2 text-xs font-bold text-slate-400">
+                  Hiển thị {{ history().items.length }} / {{ history().totalCount }} bản ghi
+                </p>
+                <div class="flex items-center gap-2">
+                  <button
+                    class="btn-secondary"
+                    [disabled]="historyPage() <= 1"
+                    (click)="loadHistoryPage(historyPage() - 1)"
+                  >
+                    <app-icon name="chevron-left" [size]="16" /> {{ 'common.prev' | t }}
+                  </button>
+                  <span
+                    class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-600"
+                  >
+                    {{ historyPage() }} / {{ history().totalPages }}
+                  </span>
+                  <button
+                    class="btn-secondary"
+                    [disabled]="historyPage() >= history().totalPages"
+                    (click)="loadHistoryPage(historyPage() + 1)"
+                  >
+                    {{ 'common.next' | t }} <app-icon name="chevron-right" [size]="16" />
+                  </button>
+                </div>
+              </div>
+            }
           </article>
         }
         @if (tab() === 'violations') {
@@ -564,6 +597,7 @@ export class ReportsPage implements OnInit {
   protected readonly mostEquipments = signal<MostUsedResourceResponse[]>([])
   protected readonly maintenanceLabs = signal<MaintenanceCostResponse[]>([])
   protected readonly maintenanceEquipments = signal<MaintenanceCostResponse[]>([])
+  protected readonly historyPage = signal(1)
   protected readonly history = signal<PagedMaintenanceHistoryResponse>({
     from: '',
     to: '',
@@ -610,48 +644,95 @@ export class ReportsPage implements OnInit {
     this.load()
   }
 
+  protected loadHistoryPage(page: number): void {
+    if (page < 1 || page > this.history().totalPages) return
+    this.historyPage.set(page)
+    if (!this.from || !this.to) return
+    const from = new Date(`${this.from}T00:00:00`).toISOString()
+    const to = new Date(`${this.to}T23:59:59`).toISOString()
+    this.api
+      .reportMaintenanceHistory({ from, to, pageNumber: page, pageSize: 20 })
+      .subscribe({
+        next: (res) => this.history.set(res),
+        error: () => this.toast.error('Không tải được trang lịch sử bảo trì'),
+      })
+  }
+
   protected load(): void {
     if (!this.from || !this.to) return
     if (this.from > this.to) {
       this.toast.error('Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).')
       return
     }
+    this.historyPage.set(1)
     this.loading.set(true)
     const from = new Date(`${this.from}T00:00:00`).toISOString()
     const to = new Date(`${this.to}T23:59:59`).toISOString()
     forkJoin({
-      status: this.api.reportBookingsByStatus(from, to),
-      purpose: this.api.reportBookingsByPurpose(from, to),
-      departments: this.api.reportBookingsByDepartment(from, to),
-      labUtil: this.api.reportLabUtilization(from, to),
-      equipmentUtil: this.api.reportEquipmentUtilization(from, to),
-      departmentUtil: this.api.reportDepartmentUtilization(from, to),
-      mostLabs: this.api.reportMostUsedLabs(from, to, this.top),
-      mostEquipments: this.api.reportMostUsedEquipments(from, to, this.top),
-      maintenanceLabs: this.api.reportMaintenanceByLab(from, to),
-      maintenanceEquipments: this.api.reportMaintenanceByEquipment(from, to),
-      history: this.api.reportMaintenanceHistory({ from, to, pageNumber: 1, pageSize: 50 }),
-      violations: this.api.reportViolations(from, to),
-      penaltyUsers: this.api.reportPenaltyUsers(from, to, this.top),
-      noShow: this.api.reportNoShow(from, to),
-      trend: this.api.reportUsageTrend(from, to, this.groupBy),
+      status: this.api.reportBookingsByStatus(from, to).pipe(catchError(() => of([]))),
+      purpose: this.api.reportBookingsByPurpose(from, to).pipe(catchError(() => of([]))),
+      departments: this.api.reportBookingsByDepartment(from, to).pipe(catchError(() => of([]))),
+      labUtil: this.api.reportLabUtilization(from, to).pipe(catchError(() => of([]))),
+      equipmentUtil: this.api.reportEquipmentUtilization(from, to).pipe(catchError(() => of([]))),
+      departmentUtil: this.api.reportDepartmentUtilization(from, to).pipe(catchError(() => of([]))),
+      mostLabs: this.api.reportMostUsedLabs(from, to, this.top).pipe(catchError(() => of([]))),
+      mostEquipments: this.api.reportMostUsedEquipments(from, to, this.top).pipe(catchError(() => of([]))),
+      maintenanceLabs: this.api.reportMaintenanceByLab(from, to).pipe(catchError(() => of([]))),
+      maintenanceEquipments: this.api.reportMaintenanceByEquipment(from, to).pipe(catchError(() => of([]))),
+      history: this.api
+        .reportMaintenanceHistory({ from, to, pageNumber: this.historyPage(), pageSize: 20 })
+        .pipe(
+          catchError(() =>
+            of({
+              from: '',
+              to: '',
+              totalCost: 0,
+              totalCount: 0,
+              pageNumber: 1,
+              pageSize: 20,
+              totalPages: 0,
+              items: [],
+            }),
+          ),
+        ),
+      violations: this.api.reportViolations(from, to).pipe(
+        catchError(() =>
+          of({
+            totalCount: 0,
+            activeCount: 0,
+            resolvedCount: 0,
+            cancelledCount: 0,
+            violationTypeCounts: [],
+            items: [],
+          }),
+        ),
+      ),
+      penaltyUsers: this.api.reportPenaltyUsers(from, to, this.top).pipe(catchError(() => of([]))),
+      noShow: this.api
+        .reportNoShow(from, to)
+        .pipe(
+          catchError(() =>
+            of({ noShowCount: 0, completedCount: 0, concludedBookingCount: 0, noShowRate: 0 }),
+          ),
+        ),
+      trend: this.api.reportUsageTrend(from, to, this.groupBy).pipe(catchError(() => of([]))),
     }).subscribe({
       next: (response) => {
-        this.statusCounts.set(response.status)
-        this.purposeCounts.set(response.purpose)
-        this.departmentCounts.set(response.departments)
-        this.labUtilization.set(response.labUtil)
-        this.equipmentUtilization.set(response.equipmentUtil)
-        this.departmentUtilization.set(response.departmentUtil)
-        this.mostLabs.set(response.mostLabs)
-        this.mostEquipments.set(response.mostEquipments)
-        this.maintenanceLabs.set(response.maintenanceLabs)
-        this.maintenanceEquipments.set(response.maintenanceEquipments)
-        this.history.set(response.history)
-        this.violations.set(response.violations)
-        this.penaltyUsers.set(response.penaltyUsers)
-        this.noShow.set(response.noShow)
-        this.usageTrend.set(response.trend)
+        this.statusCounts.set(response.status as any)
+        this.purposeCounts.set(response.purpose as any)
+        this.departmentCounts.set(response.departments as any)
+        this.labUtilization.set(response.labUtil as any)
+        this.equipmentUtilization.set(response.equipmentUtil as any)
+        this.departmentUtilization.set(response.departmentUtil as any)
+        this.mostLabs.set(response.mostLabs as any)
+        this.mostEquipments.set(response.mostEquipments as any)
+        this.maintenanceLabs.set(response.maintenanceLabs as any)
+        this.maintenanceEquipments.set(response.maintenanceEquipments as any)
+        this.history.set(response.history as any)
+        this.violations.set(response.violations as any)
+        this.penaltyUsers.set(response.penaltyUsers as any)
+        this.noShow.set(response.noShow as any)
+        this.usageTrend.set(response.trend as any)
         this.loading.set(false)
       },
       error: () => {

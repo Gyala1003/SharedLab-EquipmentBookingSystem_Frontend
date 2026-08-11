@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { forkJoin } from 'rxjs'
+import { catchError, finalize, map, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   CalendarEventResponse,
@@ -20,6 +21,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { getEquipmentImageUrl } from '../../shared/utils/presentation'
 
 @Component({
@@ -387,6 +389,7 @@ export class EquipmentDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly item = signal<EquipmentDetailResponse | null>(null)
   protected readonly lab = signal<LabRoomDetailResponse | null>(null)
@@ -400,41 +403,118 @@ export class EquipmentDetailPage implements OnInit {
   protected form = { labId: 0, equipmentName: '', modelSpecs: '', imageUrl: '', usageGuideline: '' }
   private id = 0
 
+  private readonly destroyRef = inject(DestroyRef)
+
   ngOnInit(): void {
     this.id = Number(this.route.snapshot.paramMap.get('equipmentId'))
-    this.api.equipment(this.id).subscribe({
-      next: (item) => {
-        if (
-          (item.status === 'Inactive' || item.status === 'Retired' || item.status === '5') &&
-          !this.store.isAdmin()
-        ) {
-          this.accessDenied.set(true)
-          this.loading.set(false)
-          return
-        }
-        this.item.set(item)
-        const from = new Date()
-        const to = new Date()
-        to.setDate(to.getDate() + 30)
-        forkJoin({
-          lab: this.api.lab(item.labId),
-          maintenances: this.api.maintenancesByEquipment(this.id),
-          events: this.api.calendar(from.toISOString(), to.toISOString(), undefined, this.id),
-        }).subscribe({
-          next: ({ lab, maintenances, events }) => {
-            this.lab.set(lab)
-            this.maintenances.set(maintenances)
-            this.events.set(events)
-            this.loading.set(false)
-          },
-          error: () => this.loading.set(false),
-        })
-      },
-      error: () => {
-        this.loading.set(false)
-        this.item.set(null)
-      },
-    })
+    this.loading.set(true)
+    this.api
+      .equipment(this.id)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+        catchError(() =>
+          this.api.searchEquipments({ pageSize: 100 }).pipe(
+            map((res) => {
+              const found = (res.items || []).find((e) => e.equipmentId === this.id)
+              if (!found) throw new Error('Equipment not found')
+              return {
+                ...found,
+                modelSpecs: (found as any).modelSpecs ?? null,
+                imageUrl: found.imageUrl ?? null,
+                usageGuideline: (found as any).usageGuideline ?? null,
+              } as EquipmentDetailResponse
+            }),
+          ),
+        ),
+      )
+      .subscribe({
+        next: (item) => {
+          if (
+            (item.status === 'Inactive' || item.status === 'Retired' || item.status === '5') &&
+            !this.store.isAdmin()
+          ) {
+            this.accessDenied.set(true)
+            return
+          }
+          this.item.set(item)
+
+          const from = new Date()
+          const to = new Date()
+          to.setDate(to.getDate() + 30)
+
+          const fetchMaintenancesForLab = (labObj: LabRoomDetailResponse | null) => {
+            const user = this.store.user()
+            const isLabManager = this.store.isManager()
+            const isAdmin = this.store.isAdmin()
+            const isAssignedManager =
+              isLabManager &&
+              Boolean(
+                labObj &&
+                  ((user?.fullName && labObj.managerName === user.fullName) ||
+                    (user?.userId && (labObj as any).managerId === user.userId)),
+              )
+            const canFetchMaintenance = isAdmin || isAssignedManager
+
+            if (canFetchMaintenance) {
+              this.api
+                .maintenancesByEquipment(this.id)
+                .pipe(
+                  takeUntilDestroyed(this.destroyRef),
+                  catchError(() => of([])),
+                )
+                .subscribe((maintenances) => {
+                  this.maintenances.set(maintenances)
+                })
+            } else {
+              this.maintenances.set([])
+            }
+          }
+
+          if (item.labId > 0) {
+            this.api
+              .lab(item.labId)
+              .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                catchError(() =>
+                  this.api.searchLabs({ pageNumber: 1, pageSize: 100 }).pipe(
+                    map((res) => {
+                      const found = (res.items || []).find((l) => l.labId === item.labId)
+                      if (!found) throw new Error('Lab not found')
+                      return {
+                        ...found,
+                        description: (found as any).description ?? null,
+                        imageUrl: found.imageUrl ?? null,
+                        usageGuideline: (found as any).usageGuideline ?? null,
+                        managerName: (found as any).managerName ?? null,
+                      } as LabRoomDetailResponse
+                    }),
+                    catchError(() => of(null)),
+                  ),
+                ),
+              )
+              .subscribe((lab) => {
+                if (lab) this.lab.set(lab)
+                fetchMaintenancesForLab(lab)
+              })
+          } else {
+            fetchMaintenancesForLab(null)
+          }
+
+          this.api
+            .calendar(from.toISOString(), to.toISOString(), undefined, this.id)
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() => of([])),
+            )
+            .subscribe((events) => {
+              this.events.set(events)
+            })
+        },
+        error: () => {
+          this.item.set(null)
+        },
+      })
   }
   protected getEquipmentImage(item?: EquipmentDetailResponse | EquipmentResponse | null): string {
     return getEquipmentImageUrl(item)
@@ -487,8 +567,14 @@ export class EquipmentDetailPage implements OnInit {
         },
       })
   }
-  protected remove(): void {
-    if (!confirm('Ngừng sử dụng thiết bị này?')) return
+  protected async remove(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Ngừng sử dụng thiết bị',
+      message: 'Bạn có chắc chắn muốn ngừng sử dụng thiết bị này?',
+      variant: 'danger',
+      confirmText: 'Ngừng sử dụng',
+    })
+    if (!confirmed) return
     this.api.deleteEquipment(this.id).subscribe({
       next: () => {
         this.toast.success('Đã ngừng sử dụng thiết bị')

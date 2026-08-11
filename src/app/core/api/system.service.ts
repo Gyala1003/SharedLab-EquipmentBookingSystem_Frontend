@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { Observable, of, EMPTY } from 'rxjs'
 import { catchError, map, shareReplay, tap, expand, reduce } from 'rxjs/operators'
+import { AuthStore } from '../auth/auth.store'
 import { env } from '../config/env'
 import type {
   AuditLogResponse,
@@ -124,6 +125,7 @@ function clearLocalCache(key: string): void {
 @Injectable({ providedIn: 'root' })
 export class SystemService {
   private readonly http = inject(HttpClient)
+  private readonly authStore = inject(AuthStore)
   private readonly base = env.apiBaseUrl
 
   private labsCache$?: Observable<LabRoomResponse[]>
@@ -617,6 +619,9 @@ export class SystemService {
   private usersMapCache$?: Observable<Map<number, string>>
 
   usersMap(forceRefresh = false): Observable<Map<number, string>> {
+    if (!this.authStore.isAdmin()) {
+      return of(new Map<number, string>())
+    }
     if (this.usersMapCache$ && !forceRefresh) return this.usersMapCache$
 
     this.usersMapCache$ = this.users({ pageSize: 10, pageNumber: 1 }).pipe(
@@ -724,20 +729,16 @@ export class SystemService {
     return this.http.get<RoleResponse[]>(`${this.base}/Roles`)
   }
 
-  // API /Policies là endpoint giả định, cần Backend xác nhận/triển khai đúng route và field này
+  // /Policies route does not exist in backend; return static policy rules directly
   getPolicy(): Observable<PolicyResponse> {
-    return this.http.get<PolicyResponse>(`${this.base}/Policies`).pipe(
-      catchError(() =>
-        of({
-          generalRules: [
-            'Xác thực qua người duyệt: Mọi lượt Check-in (Nhận) và Check-out (Trả) đúng giờ chỉ được tính là hoàn thành sau khi có sự xác thực/phê duyệt trực tiếp từ Bộ phận Quản lý.',
-            'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo ngay hỏng hóc/sự cố có sẵn cho Bộ phận duyệt trong 5–10 phút đầu.',
-            'Quy định Check-out & Mất tài sản: Trả phòng/thiết bị đúng thời gian đã đăng ký. Check-out muộn quá 02 tuần sẽ tự động ghi nhận là LÀM MẤT TÀI SẢN và bị ĐÓNG BĂNG/KHÓA TÀI KHOẢN HOÀN TOÀN.',
-          ],
-          categories: [],
-        }),
-      ),
-    )
+    return of({
+      generalRules: [
+        'Xác thực qua người duyệt: Mọi lượt Check-in (Nhận) và Check-out (Trả) đúng giờ chỉ được tính là hoàn thành sau khi có sự xác thực/phê duyệt trực tiếp từ Bộ phận Quản lý.',
+        'Kiểm tra đầu giờ (Check-in): Ngay sau khi Check-in, người mượn có trách nhiệm kiểm tra toàn bộ tình trạng phòng và thiết bị. Báo ngay hỏng hóc/sự cố có sẵn cho Bộ phận duyệt trong 5–10 phút đầu.',
+        'Quy định Check-out & Mất tài sản: Trả phòng/thiết bị đúng thời gian đã đăng ký. Check-out muộn quá 02 tuần sẽ tự động ghi nhận là LÀM MẤT TÀI SẢN và bị ĐÓNG BĂNG/KHÓA TÀI KHOẢN HOÀN TOÀN.',
+      ],
+      categories: [],
+    })
   }
 
   // updatePolicy bị vô hiệu hóa — /Policies không tồn tại trong backend.

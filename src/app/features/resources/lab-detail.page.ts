@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { forkJoin } from 'rxjs'
+import { catchError, finalize, map, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   CalendarEventResponse,
@@ -20,6 +21,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { getLabImageUrl } from '../../shared/utils/presentation'
 
 @Component({
@@ -438,6 +440,7 @@ export class LabDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly lab = signal<LabRoomDetailResponse | null>(null)
   protected readonly equipments = signal<EquipmentResponse[]>([])
@@ -546,8 +549,14 @@ export class LabDetailPage implements OnInit {
         },
       })
   }
-  protected remove(): void {
-    if (!confirm('Ngừng sử dụng phòng lab này?')) return
+  protected async remove(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Ngừng sử dụng Phòng Lab',
+      message: 'Ngừng sử dụng phòng lab này?',
+      variant: 'warning',
+      confirmText: 'Ngừng sử dụng',
+    })
+    if (!confirmed) return
     this.api.deleteLab(this.id).subscribe({
       next: () => {
         this.toast.success('Đã ngừng sử dụng phòng lab')
@@ -556,8 +565,14 @@ export class LabDetailPage implements OnInit {
       error: () => this.toast.error('Không thể ngừng sử dụng phòng'),
     })
   }
-  protected reactivate(): void {
-    if (!confirm('Kích hoạt lại phòng lab này?')) return
+  protected async reactivate(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Kích hoạt lại Phòng Lab',
+      message: 'Kích hoạt lại phòng lab này?',
+      variant: 'primary',
+      confirmText: 'Kích hoạt lại',
+    })
+    if (!confirmed) return
     this.api.reactivateLab(this.id).subscribe({
       next: () => {
         this.toast.success('Đã kích hoạt lại phòng lab')
@@ -573,11 +588,14 @@ export class LabDetailPage implements OnInit {
       },
     })
   }
-  protected permanentDelete(): void {
-    if (
-      !confirm('Xác nhận XÓA VĨNH VIỄN phòng lab này khỏi CSDL? Hành động này không thể hoàn tác!')
-    )
-      return
+  protected async permanentDelete(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xóa vĩnh viễn Phòng Lab',
+      message: 'Xác nhận XÓA VĨNH VIỄN phòng lab này khỏi CSDL? Hành động này không thể hoàn tác!',
+      variant: 'danger',
+      confirmText: 'Xóa Vĩnh Viễn',
+    })
+    if (!confirmed) return
     this.api.permanentDeleteLab(this.id).subscribe({
       next: () => {
         this.toast.success('Đã xóa vĩnh viễn phòng lab khỏi CSDL')
@@ -599,41 +617,109 @@ export class LabDetailPage implements OnInit {
         : ['/app/bookings', event.sourceId],
     )
   }
+  private readonly destroyRef = inject(DestroyRef)
   private load(): void {
-    const from = new Date()
-    const to = new Date()
-    to.setDate(to.getDate() + 30)
-    forkJoin({
-      lab: this.api.lab(this.id),
-      equipments: this.api.equipmentsByLab(this.id),
-      maintenances: this.api.maintenancesByLab(this.id),
-      events: this.api.calendar(from.toISOString(), to.toISOString(), this.id),
-    }).subscribe({
-      next: ({ lab, equipments, maintenances, events }) => {
-        this.lab.set(lab)
-        const validEquipments = !this.store.isAdmin()
-          ? equipments.filter(
-              (e) =>
-                e.status !== 'Inactive' &&
-                e.status !== 'Retired' &&
-                e.status !== '5' &&
-                String(e.status).toLowerCase() !== 'inactive' &&
-                String(e.status).toLowerCase() !== 'retired',
+    this.loading.set(true)
+    this.api
+      .lab(this.id)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+        catchError(() =>
+          this.api.searchLabs({ pageNumber: 1, pageSize: 100 }).pipe(
+            map((res) => {
+              const found = (res.items || []).find((l) => l.labId === this.id)
+              if (!found) throw new Error('Lab not found')
+              return {
+                ...found,
+                description: (found as any).description ?? null,
+                imageUrl: found.imageUrl ?? null,
+                usageGuideline: (found as any).usageGuideline ?? null,
+                managerName: (found as any).managerName ?? null,
+              } as LabRoomDetailResponse
+            }),
+          ),
+        ),
+      )
+      .subscribe({
+        next: (lab) => {
+          this.lab.set(lab)
+
+          const from = new Date()
+          const to = new Date()
+          to.setDate(to.getDate() + 30)
+
+          // Sub-request 1: Equipments in lab (with fallback to searchEquipments if 403)
+          this.api
+            .equipmentsByLab(this.id)
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() =>
+                this.api.searchEquipments({ labId: this.id, pageSize: 100 }).pipe(
+                  map((res) => res.items || []),
+                  catchError(() => of([])),
+                ),
+              ),
             )
-          : equipments
-        this.equipments.set(validEquipments)
-        this.maintenances.set(maintenances)
-        this.events.set(events)
-        this.tabs[0].count = validEquipments.length
-        this.tabs[1].count = events.filter((e) => e.eventType === 'Booking').length
-        this.tabs[2].count = maintenances.length
-        this.loading.set(false)
-      },
-      error: () => {
-        this.loading.set(false)
-        this.lab.set(null)
-      },
-    })
+            .subscribe((equipments) => {
+              const validEquipments = !this.store.isAdmin()
+                ? equipments.filter(
+                    (e) =>
+                      e.status !== 'Inactive' &&
+                      e.status !== 'Retired' &&
+                      e.status !== '5' &&
+                      String(e.status).toLowerCase() !== 'inactive' &&
+                      String(e.status).toLowerCase() !== 'retired',
+                  )
+                : equipments
+              this.equipments.set(validEquipments)
+              this.tabs[0].count = validEquipments.length
+            })
+
+          // Sub-request 2: Maintenances in lab (Only for Admin or Assigned LabManager)
+          const user = this.store.user()
+          const isLabManager = this.store.isManager()
+          const isAdmin = this.store.isAdmin()
+          const isAssignedManager =
+            isLabManager &&
+            Boolean(
+              (user?.fullName && lab.managerName === user.fullName) ||
+                (user?.userId && (lab as any).managerId === user.userId),
+            )
+          const canFetchMaintenance = isAdmin || isAssignedManager
+
+          if (canFetchMaintenance) {
+            this.api
+              .maintenancesByLab(this.id)
+              .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                catchError(() => of([])),
+              )
+              .subscribe((maintenances) => {
+                this.maintenances.set(maintenances)
+                this.tabs[2].count = maintenances.length
+              })
+          } else {
+            this.maintenances.set([])
+            this.tabs[2].count = 0
+          }
+
+          // Sub-request 3: Calendar events
+          this.api
+            .calendar(from.toISOString(), to.toISOString(), this.id)
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() => of([])),
+            )
+            .subscribe((events) => {
+              this.events.set(events)
+              this.tabs[1].count = events.filter((e) => e.eventType === 'Booking').length
+            })
+        },
+        error: () => {
+          this.lab.set(null)
+        },
+      })
   }
   private finishSave(): void {
     this.saving.set(false)

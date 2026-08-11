@@ -151,8 +151,83 @@ import { labelOf } from '../../shared/utils/presentation'
               </div>
             </article>
 
-            <article class="grid gap-6 md:grid-cols-2">
-              <div class="card-surface p-6">
+            @if (user.roleName === 'Requester') {
+              <article class="grid gap-6 md:grid-cols-2">
+                <div class="card-surface p-6">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h2 class="font-bold text-slate-950">{{ 'profile.activeStatusTitle' | t }}</h2>
+                      <p class="text-xs text-slate-400">{{ 'profile.activeStatusSub' | t }}</p>
+                    </div>
+                    <app-status-badge [value]="statusText()" domain="user" />
+                  </div>
+                  <p class="mt-4 text-xs leading-5 text-slate-500">
+                    {{ statusDescription(statusText()) }}
+                  </p>
+                </div>
+
+                <div class="card-surface p-6">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h2 class="font-bold text-slate-950">{{ 'profile.legitScore' | t }}</h2>
+                      <p class="text-xs text-slate-400">
+                        {{ 'profile.penaltyPoints' | t }}: {{ user.penaltyPoints }}
+                      </p>
+                    </div>
+                    <span
+                      class="text-2xl font-black"
+                      [class.text-emerald-600]="user.penaltyPoints === 0"
+                      [class.text-amber-500]="user.penaltyPoints > 0 && user.penaltyPoints < 10"
+                      [class.text-rose-600]="user.penaltyPoints >= 10"
+                    >
+                      {{ legitPoint(user) }}/100
+                    </span>
+                  </div>
+                  <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      class="h-full rounded-full transition-all duration-500"
+                      [style.width.%]="legitPoint(user)"
+                      [class.bg-emerald-500]="user.penaltyPoints === 0"
+                      [class.bg-amber-500]="user.penaltyPoints > 0 && user.penaltyPoints < 10"
+                      [class.bg-rose-500]="user.penaltyPoints >= 10"
+                    ></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="card-surface p-6">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="font-bold text-slate-950">{{ 'profile.restrictionTitle' | t }}</h2>
+                    <p class="text-xs text-slate-400">{{ 'profile.restrictionSub' | t }}</p>
+                  </div>
+                  <span
+                    class="rounded-full px-3 py-1 text-xs font-bold"
+                    [class.bg-emerald-50]="!user.restrictionUntil"
+                    [class.text-emerald-700]="!user.restrictionUntil"
+                    [class.bg-rose-50]="!!user.restrictionUntil"
+                    [class.text-rose-700]="!!user.restrictionUntil"
+                  >
+                    {{ user.restrictionUntil ? ('profile.restricted' | t) : ('profile.normal' | t) }}
+                  </span>
+                </div>
+
+                <div class="mt-5 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  @if (user.restrictionUntil) {
+                    <p class="font-bold text-rose-700">
+                      {{ 'profile.restrictedUntil' | t }}: {{ user.restrictionUntil }}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">{{ 'profile.restrictionDetail' | t }}</p>
+                  } @else {
+                    <p class="text-lg font-bold text-slate-800">{{ 'profile.noRestriction' | t }}</p>
+                    <p class="mt-2 text-xs leading-5 text-slate-400">
+                      {{ 'profile.noRestrictionDesc' | t }}
+                    </p>
+                  }
+                </div>
+              </article>
+            } @else {
+              <article class="card-surface p-6">
                 <div class="flex items-center justify-between">
                   <div>
                     <h2 class="font-bold text-slate-950">{{ 'profile.activeStatusTitle' | t }}</h2>
@@ -163,68 +238,8 @@ import { labelOf } from '../../shared/utils/presentation'
                 <p class="mt-4 text-xs leading-5 text-slate-500">
                   {{ statusDescription(statusText()) }}
                 </p>
-              </div>
-
-              <div class="card-surface p-6">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h2 class="font-bold text-slate-950">{{ 'profile.legitScore' | t }}</h2>
-                    <p class="text-xs text-slate-400">
-                      {{ 'profile.penaltyPoints' | t }}: {{ user.penaltyPoints }}
-                    </p>
-                  </div>
-                  <span
-                    class="text-2xl font-black"
-                    [class.text-emerald-600]="user.penaltyPoints === 0"
-                    [class.text-amber-500]="user.penaltyPoints > 0 && user.penaltyPoints < 10"
-                    [class.text-rose-600]="user.penaltyPoints >= 10"
-                  >
-                    {{ legitPoint(user) }}/100
-                  </span>
-                </div>
-                <div class="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    class="h-full rounded-full transition-all duration-500"
-                    [style.width.%]="legitPoint(user)"
-                    [class.bg-emerald-500]="user.penaltyPoints === 0"
-                    [class.bg-amber-500]="user.penaltyPoints > 0 && user.penaltyPoints < 10"
-                    [class.bg-rose-500]="user.penaltyPoints >= 10"
-                  ></div>
-                </div>
-              </div>
-            </article>
-
-            <article class="card-surface p-6">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h2 class="font-bold text-slate-950">{{ 'profile.restrictionTitle' | t }}</h2>
-                  <p class="text-xs text-slate-400">{{ 'profile.restrictionSub' | t }}</p>
-                </div>
-                <span
-                  class="rounded-full px-3 py-1 text-xs font-bold"
-                  [class.bg-emerald-50]="!user.restrictionUntil"
-                  [class.text-emerald-700]="!user.restrictionUntil"
-                  [class.bg-rose-50]="!!user.restrictionUntil"
-                  [class.text-rose-700]="!!user.restrictionUntil"
-                >
-                  {{ user.restrictionUntil ? ('profile.restricted' | t) : ('profile.normal' | t) }}
-                </span>
-              </div>
-
-              <div class="mt-5 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                @if (user.restrictionUntil) {
-                  <p class="font-bold text-rose-700">
-                    {{ 'profile.restrictedUntil' | t }}: {{ user.restrictionUntil }}
-                  </p>
-                  <p class="mt-1 text-xs text-slate-500">{{ 'profile.restrictionDetail' | t }}</p>
-                } @else {
-                  <p class="text-lg font-bold text-slate-800">{{ 'profile.noRestriction' | t }}</p>
-                  <p class="mt-2 text-xs leading-5 text-slate-400">
-                    {{ 'profile.noRestrictionDesc' | t }}
-                  </p>
-                }
-              </div>
-            </article>
+              </article>
+            }
           </div>
         </div>
       }

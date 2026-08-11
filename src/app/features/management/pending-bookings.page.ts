@@ -1,8 +1,9 @@
 import { DatePipe } from '@angular/common'
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, forkJoin, of, from } from 'rxjs'
+import { catchError, finalize, forkJoin, of, from } from 'rxjs'
 import { mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingResponse } from '../../core/api/system.models'
@@ -13,7 +14,9 @@ import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
+import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
@@ -38,6 +41,15 @@ import { labelOf } from '../../shared/utils/presentation'
           ><app-icon name="list" [size]="17" /> {{ 'nav.manageBookings' | t }}</a
         >
       </app-page-header>
+
+      @if (store.isAdmin()) {
+        <div class="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-xs font-medium text-amber-900 shadow-sm">
+          <app-icon name="alert" [size]="18" class="shrink-0 text-amber-600" />
+          <span>
+            <strong>Ghi chú dành cho Admin:</strong> Backend hiện tại phân quyền duyệt booking cho <strong>LabManager</strong> trực tiếp phụ trách phòng lab. Nếu gặp lỗi 403 khi bấm duyệt, vui lòng dùng tài khoản LabManager tương ứng để duyệt.
+          </span>
+        </div>
+      }
       <div
         class="rounded-[26px] border border-violet-200 bg-gradient-to-r from-violet-50 to-cyan-50 p-5"
       >
@@ -104,10 +116,10 @@ import { labelOf } from '../../shared/utils/presentation'
                   <div class="flex flex-wrap items-center gap-2.5 text-xs">
                     <!-- Booker Name & User ID -->
                     <div
-                      class="inline-flex items-center gap-2 rounded-xl border border-violet-100 bg-violet-50/90 px-3 py-1.5 font-extrabold text-violet-950"
+                      class="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/90 px-3 py-1.5 font-extrabold text-violet-950 shadow-2xs"
                     >
-                      <app-icon name="user" [size]="15" class="text-violet-600" />
-                      <span>{{ 'pendingBookings.booker' | t }}:</span>
+                      <app-icon name="user" [size]="15" class="text-violet-600 shrink-0" />
+                      <span class="text-slate-500 font-semibold">{{ 'pendingBookings.booker' | t }}:</span>
                       <span class="font-black text-slate-900">{{
                         item.userName || 'User #' + item.userId
                       }}</span>
@@ -118,14 +130,43 @@ import { labelOf } from '../../shared/utils/presentation'
                       </span>
                     </div>
 
-                    <!-- Resource Summary -->
-                    @if (item.resourceSummary) {
+                    <!-- Lab Room Name (Phòng Lab Phụ Trách) -->
+                    @if (item.labName) {
                       <div
-                        class="inline-flex items-center gap-2 rounded-xl border border-cyan-100 bg-cyan-50/90 px-3 py-1.5 font-semibold text-cyan-950"
+                        class="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/90 px-3 py-1.5 font-bold text-indigo-950 shadow-2xs"
                       >
-                        <app-icon name="box" [size]="15" class="text-cyan-600" />
-                        <span class="font-black text-slate-900">{{ item.resourceSummary }}</span>
+                        <app-icon name="building" [size]="15" class="text-indigo-600 shrink-0" />
+                        <span class="text-indigo-600/80 font-semibold">Phòng:</span>
+                        <span class="font-black text-indigo-950">{{ item.labName }}</span>
                       </div>
+                    }
+
+                    <!-- Equipment Summary (Thiết bị nếu có) -->
+                    @if (item.equipmentSummary) {
+                      <div
+                        class="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50/90 px-3 py-1.5 font-bold text-cyan-950 shadow-2xs"
+                      >
+                        <app-icon name="microscope" [size]="15" class="text-cyan-600 shrink-0" />
+                        <span class="text-cyan-700/80 font-semibold">Thiết bị:</span>
+                        <span class="font-black text-cyan-950">{{ item.equipmentSummary }}</span>
+                      </div>
+                    }
+
+                    <!-- Fallback Resource Summary if labName and equipmentSummary aren't separate -->
+                    @if (!item.labName && !item.equipmentSummary) {
+                      @if (item.resourceSummary) {
+                        <div
+                          class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 font-semibold text-slate-900 shadow-2xs"
+                        >
+                          <app-icon name="box" [size]="15" class="text-slate-500 shrink-0" />
+                          <span class="font-black text-slate-900">{{ item.resourceSummary }}</span>
+                        </div>
+                      } @else {
+                        <div class="inline-flex items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-1 text-[11px] font-medium text-slate-400">
+                          <app-icon name="refresh" [size]="13" class="animate-spin text-slate-400" />
+                          <span>Đang tải thông tin phòng...</span>
+                        </div>
+                      }
                     }
                   </div>
 
@@ -187,9 +228,17 @@ import { labelOf } from '../../shared/utils/presentation'
 export class PendingBookingsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
-  protected readonly items = signal<(BookingResponse & { resourceSummary?: string | null })[]>([])
+  protected readonly items = signal<
+    (BookingResponse & {
+      userName?: string | null
+      labName?: string | null
+      equipmentSummary?: string | null
+      resourceSummary?: string | null
+    })[]
+  >([])
   protected readonly loading = signal(true)
   protected readonly rejectOpen = signal(false)
   protected readonly selected = signal<BookingResponse | null>(null)
@@ -200,18 +249,33 @@ export class PendingBookingsPage implements OnInit {
     this.load()
   }
 
-  protected approve(item: BookingResponse): void {
-    if (!confirm(`Duyệt booking #${item.bookingId}?`)) return
+  protected async approve(item: BookingResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận duyệt booking',
+      message: `Xác nhận duyệt booking #${item.bookingId}?`,
+      variant: 'primary',
+      confirmText: 'Duyệt booking',
+    })
+    if (!confirmed) return
     this.api.approveBooking(item.bookingId).subscribe({
       next: () => {
         this.toast.success('Đã duyệt booking')
         this.load()
       },
-      error: () =>
-        this.toast.error(
-          'Không thể duyệt booking',
-          'Slot có thể vừa phát sinh xung đột hoặc booking không còn Pending.',
-        ),
+      error: (err: any) => {
+        const is403 = err?.status === 403
+        if (is403 && this.store.isAdmin()) {
+          this.toast.error(
+            'Admin hiện chưa thể duyệt qua API',
+            'BE Controller hiện phân quyền duyệt cho tài khoản LabManager phụ trách phòng. Vui lòng dùng tài khoản LabManager.',
+          )
+        } else {
+          this.toast.error(
+            'Không thể duyệt booking',
+            'Slot có thể vừa phát sinh xung đột hoặc booking không còn Pending.',
+          )
+        }
+      },
     })
   }
 
@@ -230,90 +294,123 @@ export class PendingBookingsPage implements OnInit {
         this.toast.success('Đã từ chối booking')
         this.load()
       },
-      error: () => this.toast.error('Không thể từ chối booking'),
+      error: (err: any) => {
+        const is403 = err?.status === 403
+        if (is403 && this.store.isAdmin()) {
+          this.toast.error(
+            'Admin hiện chưa thể từ chối qua API',
+            'BE Controller hiện phân quyền duyệt/từ chối cho tài khoản LabManager phụ trách phòng. Vui lòng dùng tài khoản LabManager.',
+          )
+        } else {
+          this.toast.error('Không thể từ chối booking')
+        }
+      },
     })
   }
 
+  private readonly destroyRef = inject(DestroyRef)
+
   private load(): void {
+    const isAdmin = this.store.isAdmin()
     this.loading.set(true)
     forkJoin({
-      pending: this.api.pendingBookings(),
-      usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>()))),
-    }).subscribe({
-      next: ({ pending, usersMap }) => {
-        usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
+      pending: this.api.pendingBookings().pipe(catchError(() => of([]))),
+      usersMap: isAdmin
+        ? this.api.usersMap().pipe(catchError(() => of(new Map<number, string>())))
+        : of(new Map<number, string>()),
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: ({ pending, usersMap }) => {
+          usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
 
-        const enriched = pending.map((b) => ({
-          ...b,
-          userName:
-            usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null,
-        }))
-        this.items.set(
-          [...enriched].sort(
-            (a, b) =>
-              (a.priorityLevel ?? 999) - (b.priorityLevel ?? 999) ||
-              +new Date(a.createdAt) - +new Date(b.createdAt),
-          ),
-        )
-        this.loading.set(false)
-
-        const bookingsToResolve = [...enriched]
-        if (bookingsToResolve.length > 0) {
-          const detailReqs = bookingsToResolve.map((b) =>
-            this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
+          const enriched = pending.map((b) => ({
+            ...b,
+            userName:
+              usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null,
+          }))
+          this.items.set(
+            [...enriched].sort(
+              (a, b) =>
+                (a.priorityLevel ?? 999) - (b.priorityLevel ?? 999) ||
+                +new Date(a.createdAt) - +new Date(b.createdAt),
+            ),
           )
-          from(detailReqs)
-            .pipe(
-              mergeMap((req) => req, 3),
-              toArray(),
-            )
-            .subscribe((details) => {
-              let updated = false
-              const current = [
-                ...this.items(),
-              ] as (BookingResponse & { resourceSummary?: string | null })[]
-              for (const d of details) {
-                if (d && d.bookingId) {
-                  if (d.userId && d.userName) {
-                    this.api.setCachedUserName(d.userId, d.userName)
-                  }
-                  const summary =
-                    d.items
-                      ?.map((i) =>
-                        i.equipmentName
-                          ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
-                          : i.labName,
-                      )
-                      .filter(Boolean)
-                      .join(' · ') || null
 
-                  for (const item of current) {
-                    if (item.bookingId === d.bookingId) {
-                      if (d.userName) item.userName = d.userName
-                      if (summary) item.resourceSummary = summary
-                      updated = true
-                    } else if (
-                      d.userId &&
-                      item.userId === d.userId &&
-                      !item.userName &&
-                      d.userName
-                    ) {
-                      item.userName = d.userName
-                      updated = true
+          const bookingsToResolve = [...enriched]
+          if (bookingsToResolve.length > 0) {
+            const detailReqs = bookingsToResolve.map((b) =>
+              this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
+            )
+            from(detailReqs)
+              .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                mergeMap((req) => req, 3),
+                toArray(),
+              )
+              .subscribe((details) => {
+                let updated = false
+                const current = [
+                  ...this.items(),
+                ] as (BookingResponse & {
+                  userName?: string | null
+                  labName?: string | null
+                  equipmentSummary?: string | null
+                  resourceSummary?: string | null
+                })[]
+                for (const d of details) {
+                  if (d && d.bookingId) {
+                    if (d.userId && d.userName) {
+                      this.api.setCachedUserName(d.userId, d.userName)
+                    }
+                    const labNames = Array.from(
+                      new Set(d.items?.map((i) => i.labName).filter(Boolean)),
+                    ).join(' · ')
+                    const equipmentNames = Array.from(
+                      new Set(d.items?.map((i) => i.equipmentName).filter(Boolean)),
+                    ).join(' · ')
+                    const summary =
+                      d.items
+                        ?.map((i) =>
+                          i.equipmentName
+                            ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
+                            : i.labName,
+                        )
+                        .filter(Boolean)
+                        .join(' · ') || null
+
+                    for (const item of current) {
+                      if (item.bookingId === d.bookingId) {
+                        if (d.userName) item.userName = d.userName
+                        if (labNames) item.labName = labNames
+                        if (equipmentNames) item.equipmentSummary = equipmentNames
+                        if (summary) item.resourceSummary = summary
+                        updated = true
+                      } else if (
+                        d.userId &&
+                        item.userId === d.userId &&
+                        !item.userName &&
+                        d.userName
+                      ) {
+                        item.userName = d.userName
+                        updated = true
+                      }
                     }
                   }
                 }
-              }
-              if (updated) {
-                this.items.set([...current])
-              }
-            })
-        }
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được hàng đợi')
-      },
-    })
+                if (updated) {
+                  this.items.set([...current])
+                }
+              })
+          }
+        },
+        error: () => {
+          this.items.set([])
+          this.toast.error('Không tải được danh sách chờ duyệt')
+        },
+      })
   }
 }

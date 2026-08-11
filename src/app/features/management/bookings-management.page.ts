@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { catchError, EMPTY, forkJoin, of, timeout, from } from 'rxjs'
+import { catchError, EMPTY, finalize, forkJoin, of, timeout, from } from 'rxjs'
 import { mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type { BookingDetailResponse, BookingResponse } from '../../core/api/system.models'
@@ -15,6 +16,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import {
   getFirstDayOfMonth,
   getLastDayOfMonth,
@@ -141,7 +143,7 @@ import {
               class="col-span-full flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700"
             >
               <app-icon name="alert" [size]="16" />
-              <span>Ngày bắt đầu (From) không được lớn hơn ngày kết thúc (To).</span>
+              <span>{{ 'manageBookings.invalidDateRange' | t }}</span>
             </div>
           }
         </div>
@@ -171,7 +173,7 @@ import {
               class="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-black text-violet-700 transition hover:bg-violet-100"
               (click)="status.set('')"
             >
-              Lọc theo: {{ status() }} ✕
+              {{ 'manageBookings.filterBy' | t }}: {{ (status() | t) }} ✕
             </button>
           }
         </header>
@@ -193,8 +195,9 @@ import {
                 <tr>
                   <th class="w-[140px]">{{ 'bookings.bookingCode' | t }}</th>
                   <th class="w-[160px]">{{ 'bookings.user' | t }}</th>
+                  <th class="w-[180px]">{{ 'bookings.labRoomResource' | t }}</th>
                   <th>{{ 'bookings.purpose' | t }}</th>
-                  <th class="w-[200px]">{{ 'bookings.usageTime' | t }}</th>
+                  <th class="w-[180px]">{{ 'bookings.usageTime' | t }}</th>
                   <th class="w-[90px] text-center">{{ 'bookings.priority' | t }}</th>
                   <th class="w-[130px]">{{ 'common.status' | t }}</th>
                   <th class="w-[160px] text-right">{{ 'common.actions' | t }}</th>
@@ -225,6 +228,31 @@ import {
                       <p class="mt-0.5 text-[10px] font-bold text-slate-400">
                         ID: #{{ item.userId }}
                       </p>
+                    </td>
+
+                    <!-- Phòng Lab / Tài nguyên -->
+                    <td>
+                      @if (item.labName) {
+                        <p class="flex items-center gap-1.5 text-xs font-black text-indigo-950">
+                          <app-icon name="building" [size]="14" class="shrink-0 text-indigo-600" />
+                          <span>{{ item.labName | t }}</span>
+                        </p>
+                      }
+                      @if (item.equipmentSummary) {
+                        <p class="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-cyan-800">
+                          <app-icon name="microscope" [size]="13" class="shrink-0 text-cyan-600" />
+                          <span>{{ item.equipmentSummary | t }}</span>
+                        </p>
+                      }
+                      @if (!item.labName && !item.equipmentSummary) {
+                        @if (item.resourceSummary) {
+                          <p class="text-xs font-bold text-slate-700">
+                            {{ item.resourceSummary | t }}
+                          </p>
+                        } @else {
+                          <span class="text-[11px] font-medium text-slate-400 italic">{{ 'common.loading' | t }}</span>
+                        }
+                      }
                     </td>
 
                     <!-- Mục đích sử dụng -->
@@ -590,9 +618,17 @@ import {
 export class BookingsManagementPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
-  protected readonly items = signal<BookingResponse[]>([])
+  protected readonly items = signal<
+    (BookingResponse & {
+      userName?: string | null
+      labName?: string | null
+      equipmentSummary?: string | null
+      resourceSummary?: string | null
+    })[]
+  >([])
   protected readonly loading = signal(true)
   protected readonly actioning = signal(false)
   protected readonly rejectOpen = signal(false)
@@ -661,6 +697,8 @@ export class BookingsManagementPage implements OnInit {
           const bookingIdStr = String(item.bookingId)
           const userIdStr = String(item.userId)
           const userName = (item.userName || '').toLowerCase()
+          const labStr = (item.labName || '').toLowerCase()
+          const equipStr = (item.equipmentSummary || '').toLowerCase()
           const purposeStr = labelOf(
             'purpose',
             item.purposeType,
@@ -672,6 +710,8 @@ export class BookingsManagementPage implements OnInit {
             bookingIdStr.includes(needle) ||
             userIdStr.includes(needle) ||
             userName.includes(needle) ||
+            labStr.includes(needle) ||
+            equipStr.includes(needle) ||
             purposeStr.includes(needle) ||
             statusStr.includes(needle)
           if (!matched) return false
@@ -707,7 +747,7 @@ export class BookingsManagementPage implements OnInit {
     },
     {
       status: 'LateCheckout',
-      label: 'Quá hạn Check-out',
+      label: labelOf('booking', 'LateCheckout', this.languageStore.lang()),
       count: this.items().filter(
         (b) => b.status === 'Approved' && Date.now() > +new Date(b.endTime),
       ).length,
@@ -749,6 +789,8 @@ export class BookingsManagementPage implements OnInit {
     },
   ])
 
+  private readonly destroyRef = inject(DestroyRef)
+
   ngOnInit(): void {
     this.load()
   }
@@ -756,63 +798,93 @@ export class BookingsManagementPage implements OnInit {
   protected load(): void {
     this.loading.set(true)
     forkJoin({
-      bookings: this.api.bookings(),
+      bookings: this.api.bookings().pipe(catchError(() => of([]))),
       usersMap: this.api.usersMap().pipe(catchError(() => of(new Map<number, string>()))),
-    }).subscribe({
-      next: ({ bookings, usersMap }) => {
-        usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
+    })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: ({ bookings, usersMap }) => {
+          usersMap.forEach((name, id) => this.api.setCachedUserName(id, name))
 
-        const enriched = bookings.map((b) => {
-          const name =
-            usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null
-          return { ...b, userName: name }
-        })
-        this.items.set(enriched)
-        this.loading.set(false)
+          const enriched = bookings.map((b) => {
+            const name =
+              usersMap.get(b.userId) || this.api.getCachedUserName(b.userId) || b.userName || null
+            return { ...b, userName: name }
+          })
+          this.items.set(enriched)
 
-        const sampleBookingsToResolve: BookingResponse[] = []
-        const seenUserIds = new Set<number>()
-        for (const b of enriched) {
-          if (!b.userName && !seenUserIds.has(b.userId)) {
-            seenUserIds.add(b.userId)
-            sampleBookingsToResolve.push(b)
-          }
-        }
-
-        if (sampleBookingsToResolve.length > 0) {
-          const detailReqs = sampleBookingsToResolve.map((b) =>
-            this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
-          )
-          from(detailReqs)
-            .pipe(
-              mergeMap((req) => req, 3),
-              toArray(),
+          const bookingsToResolve = [...enriched]
+          if (bookingsToResolve.length > 0) {
+            const detailReqs = bookingsToResolve.map((b) =>
+              this.api.booking(b.bookingId).pipe(catchError(() => of(null))),
             )
-            .subscribe((details) => {
-              let updated = false
-              const current = [...this.items()]
-              for (const d of details) {
-                if (d && d.userId && d.userName) {
-                  this.api.setCachedUserName(d.userId, d.userName)
-                  for (const item of current) {
-                    if (item.userId === d.userId && !item.userName) {
-                      item.userName = d.userName
-                      updated = true
+            from(detailReqs)
+              .pipe(
+                takeUntilDestroyed(this.destroyRef),
+                mergeMap((req) => req, 3),
+                toArray(),
+              )
+              .subscribe((details) => {
+                let updated = false
+                const current = [...this.items()] as (BookingResponse & {
+                  labName?: string | null
+                  equipmentSummary?: string | null
+                  resourceSummary?: string | null
+                })[]
+                for (const d of details) {
+                  if (d && d.bookingId) {
+                    if (d.userId && d.userName) {
+                      this.api.setCachedUserName(d.userId, d.userName)
+                    }
+                    const labNames = Array.from(
+                      new Set(d.items?.map((i) => i.labName).filter(Boolean)),
+                    ).join(' · ')
+                    const equipmentNames = Array.from(
+                      new Set(d.items?.map((i) => i.equipmentName).filter(Boolean)),
+                    ).join(' · ')
+                    const summary =
+                      d.items
+                        ?.map((i) =>
+                          i.equipmentName
+                            ? `${i.equipmentName}${i.labName ? ' (' + i.labName + ')' : ''}`
+                            : i.labName,
+                        )
+                        .filter(Boolean)
+                        .join(' · ') || null
+
+                    for (const item of current) {
+                      if (item.bookingId === d.bookingId) {
+                        if (d.userName) item.userName = d.userName
+                        if (labNames) item.labName = labNames
+                        if (equipmentNames) item.equipmentSummary = equipmentNames
+                        if (summary) item.resourceSummary = summary
+                        updated = true
+                      } else if (
+                        d.userId &&
+                        item.userId === d.userId &&
+                        !item.userName &&
+                        d.userName
+                      ) {
+                        item.userName = d.userName
+                        updated = true
+                      }
                     }
                   }
                 }
-              }
-              if (updated) {
-                this.items.set([...current])
-              }
-            })
-        }
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được danh sách booking')
-      },
-    })
+                if (updated) {
+                  this.items.set([...current])
+                }
+              })
+          }
+        },
+        error: () => {
+          this.items.set([])
+          this.toast.error('Không tải được danh sách booking')
+        },
+      })
   }
 
   protected reset(): void {
@@ -935,17 +1007,26 @@ export class BookingsManagementPage implements OnInit {
     })
   }
 
-  protected quickAction(
+  protected async quickAction(
     item: BookingResponse,
     actionType: 'approve' | 'complete' | 'no-show' | 'cancel',
-  ): void {
+  ): Promise<void> {
     const labels: Record<string, string> = {
       approve: 'duyệt',
       complete: 'hoàn thành',
       'no-show': 'NoShow',
       cancel: 'hủy',
     }
-    if (!confirm(`Xác nhận ${labels[actionType]} booking #${item.bookingId}?`)) return
+    const isDanger = actionType === 'cancel' || actionType === 'no-show'
+    const isWarning = actionType === 'approve'
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận thao tác',
+      message: `Xác nhận ${labels[actionType]} booking #${item.bookingId}?`,
+      confirmText: 'Xác nhận',
+      cancelText: 'Hủy bỏ',
+      variant: isDanger ? 'danger' : isWarning ? 'warning' : 'primary',
+    })
+    if (!confirmed) return
     this.actioning.set(true)
     const req =
       actionType === 'approve'

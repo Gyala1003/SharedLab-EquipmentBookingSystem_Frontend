@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
-import { catchError, EMPTY, forkJoin, of, timeout } from 'rxjs'
+import { catchError, EMPTY, finalize, forkJoin, of, timeout } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   BookingDetailResponse,
@@ -19,6 +20,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
 
 @Component({
@@ -92,6 +94,18 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
               | t: { time: (booking()!.createdAt | date: 'HH:mm dd/MM/yyyy') || '' })
           "
         >
+          @if (booking()!.status === 'Approved') {
+            @if (canCheckInNow() && !isFullyCheckedOut()) {
+              <button class="btn-primary" (click)="checkInBooking()">
+                <app-icon name="login" [size]="17" /> Check-in toàn bộ booking
+              </button>
+            }
+            @if (hasActiveLogs()) {
+              <button class="btn-primary bg-rose-600 hover:bg-rose-700 font-black" (click)="checkOutBooking()">
+                <app-icon name="logout" [size]="17" /> Check-out toàn bộ booking
+              </button>
+            }
+          }
           @if (canApprove()) {
             <button class="btn-primary" (click)="action('approve')">
               <app-icon name="check" [size]="17" /> {{ 'bookingDetail.approveBtn' | t }}</button
@@ -596,6 +610,7 @@ export class BookingDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   protected readonly booking = signal<BookingDetailResponse | null>(null)
@@ -629,7 +644,7 @@ export class BookingDetailPage implements OnInit {
     this.load()
   }
   protected canApprove(): boolean {
-    return Boolean(this.store.isManager() && this.booking()?.status === 'Pending')
+    return Boolean((this.store.isManager() || this.store.isAdmin()) && this.booking()?.status === 'Pending')
   }
   protected isOwnBooking(): boolean {
     return this.booking()?.userId === this.store.user()?.userId
@@ -639,7 +654,7 @@ export class BookingDetailPage implements OnInit {
     return Boolean(
       item &&
       ['Pending', 'Approved'].includes(item.status) &&
-      (item.userId === this.store.user()?.userId || this.store.isManager()),
+      (item.userId === this.store.user()?.userId || this.store.isManager() || this.store.isAdmin()),
     )
   }
   protected canCheckIn(): boolean {
@@ -657,6 +672,53 @@ export class BookingDetailPage implements OnInit {
     const item = this.booking()
     if (!item || item.status !== 'Approved') return false
     return getCheckInWindowInfo(item.startTime, item.endTime).isTooEarly
+  }
+  protected hasActiveLogs(): boolean {
+    return this.logs().some((log) => Boolean(log.actualCheckin) && !log.actualCheckout)
+  }
+  protected isFullyCheckedOut(): boolean {
+    return this.logs().length > 0 && this.logs().every((log) => Boolean(log.actualCheckout))
+  }
+  protected checkInBooking(): void {
+    if (this.checkUserRestricted()) return
+    this.api.checkInBooking(this.id).subscribe({
+      next: () => {
+        this.toast.success('Check-in toàn bộ thành công', 'Đã điểm danh tất cả tài nguyên trong booking.')
+        this.load()
+      },
+      error: (err: any) => {
+        const msg =
+          err?.error?.message ||
+          (typeof err?.error === 'string' ? err.error : null) ||
+          err?.message ||
+          'Không thể check-in toàn bộ booking.'
+        this.toast.error('Không thể check-in', msg)
+      },
+    })
+  }
+  protected async checkOutBooking(): Promise<void> {
+    if (this.checkUserRestricted()) return
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận Check-out',
+      message: 'Xác nhận check-out toàn bộ booking này?',
+      variant: 'warning',
+      confirmText: 'Check-out toàn bộ',
+    })
+    if (!confirmed) return
+    this.api.checkOutBooking(this.id).subscribe({
+      next: () => {
+        this.toast.success('Check-out toàn bộ thành công', 'Tất cả tài nguyên đã được giải phóng.')
+        this.load()
+      },
+      error: (err: any) => {
+        const msg =
+          err?.error?.message ||
+          (typeof err?.error === 'string' ? err.error : null) ||
+          err?.message ||
+          'Không thể check-out toàn bộ booking.'
+        this.toast.error('Không thể check-out', msg)
+      },
+    })
   }
   protected checkUserRestricted(): boolean {
     // BOOK-004: BE UsageLogService chỉ chặn Inactive/Locked, không chặn Restricted.
@@ -704,8 +766,22 @@ export class BookingDetailPage implements OnInit {
       .map((x) => x[0]?.toUpperCase() ?? '')
       .join('')
   }
-  protected action(action: 'approve' | 'cancel' | 'complete' | 'no-show'): void {
-    if (!confirm(`Xác nhận thao tác ${action} booking #${this.id}?`)) return
+  protected async action(action: 'approve' | 'cancel' | 'complete' | 'no-show'): Promise<void> {
+    const actionLabel =
+      action === 'approve'
+        ? 'Duyệt'
+        : action === 'cancel'
+          ? 'Hủy'
+          : action === 'complete'
+            ? 'Hoàn thành'
+            : 'No-Show'
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận thao tác Booking',
+      message: `Xác nhận thao tác ${actionLabel.toLowerCase()} booking #${this.id}?`,
+      variant: action === 'cancel' || action === 'no-show' ? 'danger' : 'primary',
+      confirmText: actionLabel,
+    })
+    if (!confirmed) return
     const request =
       action === 'approve'
         ? this.api.approveBooking(this.id)
@@ -749,9 +825,15 @@ export class BookingDetailPage implements OnInit {
       },
     })
   }
-  protected checkOut(logId: number): void {
+  protected async checkOut(logId: number): Promise<void> {
     if (this.checkUserRestricted()) return
-    if (!confirm('Xác nhận check-out tài nguyên này?')) return
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận Check-out tài nguyên',
+      message: 'Xác nhận check-out tài nguyên này?',
+      variant: 'warning',
+      confirmText: 'Check-out',
+    })
+    if (!confirmed) return
     this.api.checkOut(logId).subscribe({
       next: () => {
         this.toast.success('Check-out thành công', 'Phiên sử dụng đã hoàn tất.')
@@ -859,14 +941,23 @@ export class BookingDetailPage implements OnInit {
     ])
   }
 
+  private readonly destroyRef = inject(DestroyRef)
+
   private load(): void {
     this.loading.set(true)
     this.accessDenied.set(false)
     this.errorMessage.set('')
-    forkJoin({
-      booking: this.api.booking(this.id).pipe(
-        timeout(2500),
+
+    this.api
+      .booking(this.id)
+      .pipe(
+        timeout(5000),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
         catchError((err: any) => {
+          if (err?.name === 'AbortError' || err?.status === 0) {
+            return of<BookingDetailResponse | null>(null)
+          }
           this.accessDenied.set(true)
           let msg =
             err?.error?.message ||
@@ -880,41 +971,61 @@ export class BookingDetailPage implements OnInit {
             msg.toLowerCase().includes('forbidden')
           ) {
             msg =
-              '🔒 Bạn không có quyền quản lý phòng Lab này nên không thể xem chi tiết.\\nChỉ có Admin hoặc Quản lý của phòng này mới xem được.'
+              '🔒 Bạn không có quyền quản lý phòng Lab này nên không thể xem chi tiết.\nChỉ có Admin hoặc Quản lý của phòng này mới xem được.'
           } else if (err?.name === 'TimeoutError') {
-            msg = 'Máy chủ Backend đang tạm dừng hoặc xử lý lâu (Timeout 2.5s).'
+            msg = 'Máy chủ Backend đang xử lý lâu (Timeout 5s).'
           }
 
           this.errorMessage.set(msg)
-          return of(null)
+          return of<BookingDetailResponse | null>(null)
         }),
-      ),
-      logs: this.api.usageLogsByBooking(this.id).pipe(catchError(() => of([]))),
-      violations: this.api.violationsByBooking(this.id).pipe(
-        catchError((err: any) => {
-          if (!this.errorMessage()) {
-            this.accessDenied.set(true)
-            const msg =
-              err?.message ||
-              err?.error?.message ||
-              err?.error?.detail ||
-              'Bạn không có quyền xem vi phạm của booking này.'
-            this.errorMessage.set(msg)
+      )
+      .subscribe({
+        next: (booking: BookingDetailResponse | null) => {
+          if (!booking) {
+            return
           }
-          return of([])
-        }),
-      ),
-    }).subscribe({
-      next: ({ booking, logs, violations }) => {
-        this.booking.set(booking)
-        this.logs.set(logs)
-        this.violations.set(violations)
-        this.loading.set(false)
-      },
-      error: () => {
-        this.booking.set(null)
-        this.loading.set(false)
-      },
-    })
+
+          // Enforce ownership: Non-admin/manager users MUST be the owner of the booking
+          const currentUserId = this.store.user()?.userId
+          const isOwner = booking.userId === currentUserId
+          const canAccess = isOwner || this.store.isAdmin() || this.store.isManager()
+
+          if (!canAccess) {
+            this.toast.error(
+              'Không có quyền truy cập',
+              'Bạn không có quyền truy cập vào thông tin booking của người khác.',
+            )
+            void this.router.navigate(['/app/bookings/my'])
+            return
+          }
+
+          this.booking.set(booking)
+
+          this.api
+            .usageLogsByBooking(this.id)
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() => of([])),
+            )
+            .subscribe((logs) => {
+              this.logs.set(logs)
+            })
+
+          this.api
+            .violationsByBooking(this.id)
+            .pipe(
+              takeUntilDestroyed(this.destroyRef),
+              catchError(() => of([])),
+            )
+            .subscribe((violations) => {
+              this.violations.set(violations)
+            })
+        },
+        error: () => {
+          this.booking.set(null)
+          this.loading.set(false)
+        },
+      })
   }
 }

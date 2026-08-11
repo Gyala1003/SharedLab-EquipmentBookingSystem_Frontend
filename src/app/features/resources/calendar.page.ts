@@ -110,7 +110,7 @@ interface CalendarDay {
 
       <article class="card-surface overflow-hidden">
         <header
-          class="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+          class="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between sm:px-6"
         >
           <div>
             <p class="text-xs font-bold tracking-[.18em] text-violet-500 uppercase">
@@ -120,6 +120,24 @@ interface CalendarDay {
               {{ filteredEvents().length }} {{ 'calendar.eventsInPeriod' | t }}
             </h2>
           </div>
+
+          <!-- Color Legend Bar -->
+          <div class="flex flex-wrap items-center gap-3.5 rounded-2xl bg-slate-50/90 px-4 py-2.5 text-xs font-semibold text-slate-600 border border-slate-200/60 shadow-inner">
+            <span class="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">{{ 'calendar.legendTitle' | t }}:</span>
+            <div class="flex items-center gap-1.5">
+              <span class="h-3 w-3 rounded-md bg-indigo-500 shadow-sm shadow-indigo-500/30"></span>
+              <span>{{ 'calendar.legendBooking' | t }}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="h-3 w-3 rounded-md bg-amber-500 shadow-sm shadow-amber-500/30"></span>
+              <span>{{ 'calendar.legendMaintenance' | t }}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="h-3 w-3 rounded-full bg-violet-600 shadow-sm shadow-violet-600/30"></span>
+              <span>{{ 'calendar.legendToday' | t }}</span>
+            </div>
+          </div>
+
           <div class="inline-flex gap-1 rounded-2xl bg-slate-100 p-1">
             <button
               class="rounded-xl px-3 py-2 text-xs font-extrabold transition"
@@ -141,7 +159,7 @@ interface CalendarDay {
               "
               (click)="setView('week')"
             >
-              Tuần
+              {{ 'calendar.weekView' | t }}
             </button>
             <button
               class="rounded-xl px-3 py-2 text-xs font-extrabold transition"
@@ -152,7 +170,7 @@ interface CalendarDay {
               "
               (click)="setView('day')"
             >
-              Ngày
+              {{ 'calendar.dayView' | t }}
             </button>
             <button
               class="rounded-xl px-3 py-2 text-xs font-extrabold transition"

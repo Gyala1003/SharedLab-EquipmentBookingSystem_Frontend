@@ -8,10 +8,12 @@ import type {
   MaintenanceDetailResponse,
 } from '../../core/api/system.models'
 import { AuthStore } from '../../core/auth/auth.store'
+import { LanguageStore } from '../../core/i18n/language.store'
 import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { formatMoney, labelOf } from '../../shared/utils/presentation'
 import { TranslatePipe } from '../../core/i18n/translate.pipe'
 
@@ -73,8 +75,8 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe'
       </div>
     } @else {
       <app-page-header
-        [title]="'Bảo trì #MT-' + item()!.maintenanceId.toString().padStart(4, '0')"
-        [subtitle]="resourceName() + ' · ' + (labelOf('recurrence', item()!.recurrenceType) | t)"
+        [title]="('maintenanceDetail.titlePrefix' | t) + ' #MT-' + item()!.maintenanceId.toString().padStart(4, '0')"
+        [subtitle]="(resourceName() | t) + ' · ' + (labelOf('recurrence', item()!.recurrenceType) | t)"
       >
         @if (canManage() && item()!.status === 'Scheduled') {
           <a
@@ -99,7 +101,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe'
                 <p class="text-xs font-black tracking-[.16em] text-amber-500 uppercase">
                   {{ 'maintenanceDetail.infoTitle' | t }}
                 </p>
-                <h2 class="mt-2 text-2xl font-black text-slate-950">{{ resourceName() }}</h2>
+                <h2 class="mt-2 text-2xl font-black text-slate-950">{{ resourceName() | t }}</h2>
               </div>
               <app-status-badge [value]="item()!.status" domain="maintenance" />
             </div>
@@ -123,7 +125,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe'
               <div class="rounded-2xl bg-slate-50 p-5">
                 <p class="text-[10px] font-black text-slate-400 uppercase">{{ 'maintenanceForm.cost' | t }}</p>
                 <p class="mt-2 font-black text-slate-900">
-                  {{ formatMoney(item()!.maintenanceCost) }}
+                  {{ formatMoney(item()!.maintenanceCost, languageStore.lang()) }}
                 </p>
               </div>
             </div>
@@ -234,6 +236,8 @@ export class MaintenanceDetailPage implements OnInit {
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
   private readonly store = inject(AuthStore)
+  protected readonly languageStore = inject(LanguageStore)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly item = signal<MaintenanceDetailResponse | null>(null)
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly equipments = signal<EquipmentResponse[]>([])
@@ -264,8 +268,16 @@ export class MaintenanceDetailPage implements OnInit {
     const x = this.item()
     return x ? Math.round((+new Date(x.endTime) - +new Date(x.startTime)) / 360000) / 10 : 0
   }
-  protected action(action: 'start' | 'complete' | 'cancel' | 'cancel-series'): void {
-    if (!confirm(`Xác nhận ${action} lịch bảo trì #${this.id}?`)) return
+  protected async action(action: 'start' | 'complete' | 'cancel' | 'cancel-series'): Promise<void> {
+    const actionText =
+      action === 'start' ? 'bắt đầu' : action === 'complete' ? 'hoàn thành' : 'hủy'
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận lịch bảo trì',
+      message: `Xác nhận ${actionText} lịch bảo trì #${this.id}?`,
+      variant: action.includes('cancel') ? 'danger' : 'primary',
+      confirmText: action === 'start' ? 'Bắt đầu' : action === 'complete' ? 'Hoàn thành' : 'Hủy lịch',
+    })
+    if (!confirmed) return
     const request =
       action === 'start'
         ? this.api.startMaintenance(this.id)

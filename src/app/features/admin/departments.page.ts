@@ -12,6 +12,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 
 @Component({
   selector: 'app-departments-page',
@@ -442,6 +443,7 @@ import { ToastService } from '../../shared/ui/toast.service'
 export class DepartmentsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly languageStore = inject(LanguageStore)
   protected readonly departments = signal<DepartmentResponse[]>([])
   protected readonly loading = signal(true)
@@ -517,8 +519,14 @@ export class DepartmentsPage implements OnInit {
     this.toggleTarget.set(item)
   }
 
-  protected confirmDelete(item: DepartmentResponse): void {
-    if (!confirm(`Xác nhận xóa / ngừng sử dụng khoa/phòng ban "${item.departmentName}"?`)) return
+  protected async confirmDelete(item: DepartmentResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Ngừng sử dụng khoa/phòng ban',
+      message: `Xác nhận xóa / ngừng sử dụng khoa/phòng ban "${item.departmentName}"?`,
+      variant: 'danger',
+      confirmText: 'Ngừng sử dụng',
+    })
+    if (!confirmed) return
     this.saving.set(true)
     this.api.deactivateDepartment(item.departmentId).subscribe({
       next: () => {

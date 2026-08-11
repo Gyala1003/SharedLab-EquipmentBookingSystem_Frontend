@@ -1,7 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router, RouterLink } from '@angular/router'
+import { catchError, finalize, forkJoin, of } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
 import type {
   EquipmentResponse,
@@ -15,6 +17,7 @@ import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf } from '../../shared/utils/presentation'
 
 @Component({
@@ -164,6 +167,7 @@ export class MyWaitlistsPage implements OnInit {
   protected readonly languageStore = inject(LanguageStore)
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly items = signal<WaitlistResponse[]>([])
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly equipments = signal<EquipmentResponse[]>([])
@@ -218,21 +222,32 @@ export class MyWaitlistsPage implements OnInit {
       .filter((item) => !this.status || item.status === this.status)
       .sort((a, b) => +new Date(b.requestedStart) - +new Date(a.requestedStart)),
   )
+  private readonly destroyRef = inject(DestroyRef)
+
   ngOnInit(): void {
     const userId = this.store.user()?.userId
     if (!userId) return
-    this.api.labs().subscribe((labs) => this.labs.set(labs))
-    this.api.equipments().subscribe((items) => this.equipments.set(items))
-    this.api.waitlistsByUser(userId).subscribe({
-      next: (items) => {
-        this.items.set(items)
-        this.loading.set(false)
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được hàng chờ')
-      },
+
+    this.loading.set(true)
+    forkJoin({
+      labs: this.api.labs().pipe(catchError(() => of([]))),
+      equipments: this.api.equipments().pipe(catchError(() => of([]))),
+      waitlists: this.api.waitlistsByUser(userId).pipe(catchError(() => of([]))),
     })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: ({ labs, equipments, waitlists }) => {
+          this.labs.set(labs)
+          this.equipments.set(equipments)
+          this.items.set(waitlists)
+        },
+        error: () => {
+          this.toast.error('Không tải được hàng chờ')
+        },
+      })
   }
   protected count(status: string): number {
     return this.items().filter((item) => item.status === status).length
@@ -250,7 +265,9 @@ export class MyWaitlistsPage implements OnInit {
   }
   protected countdown(item: WaitlistResponse): string {
     if (!item.notifiedAt) return '—'
-    const remaining = Math.max(0, +new Date(item.notifiedAt) + 30 * 60_000 - Date.now())
+    // 30 phút — phải khớp với WaitlistConstants.NotificationLifetimeMinutes (backend)
+    const NOTIFICATION_LIFETIME_MS = 30 * 60_000
+    const remaining = Math.max(0, +new Date(item.notifiedAt) + NOTIFICATION_LIFETIME_MS - Date.now())
     const minutes = Math.floor(remaining / 60_000)
     const seconds = Math.floor((remaining % 60_000) / 1000)
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
@@ -260,14 +277,21 @@ export class MyWaitlistsPage implements OnInit {
       queryParams: {
         labId: item.labId,
         equipmentId: item.equipmentId,
+        // Truyền cả start và end để booking form tự pre-fill ngày + slot
         start: item.requestedStart,
         end: item.requestedEnd,
         waitlistId: item.waitlistId,
       },
     })
   }
-  protected cancel(item: WaitlistResponse): void {
-    if (!confirm('Hủy lượt hàng chờ này?')) return
+  protected async cancel(item: WaitlistResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận hủy hàng chờ',
+      message: 'Bạn có chắc chắn muốn hủy lượt hàng chờ này?',
+      variant: 'danger',
+      confirmText: 'Hủy hàng chờ',
+    })
+    if (!confirmed) return
     this.api.cancelWaitlist(item.waitlistId).subscribe({
       next: () => {
         this.toast.success('Đã hủy hàng chờ')

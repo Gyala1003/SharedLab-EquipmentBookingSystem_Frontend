@@ -1,8 +1,9 @@
 import { DatePipe, NgClass } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
-import { EMPTY, from, of, timeout } from 'rxjs'
+import { EMPTY, Subscription, finalize, from, of, timeout } from 'rxjs'
 import { catchError, mergeMap, toArray } from 'rxjs/operators'
 import { SystemService } from '../../core/api/system.service'
 import type {
@@ -20,6 +21,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
 
 @Component({
@@ -221,10 +223,10 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
                               <button
                                 type="button"
                                 class="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 hover:underline"
-                                (click)="openDetail(booking)"
+                                (click)="checkOutBooking(booking.bookingId)"
                               >
                                 <app-icon name="logout" [size]="11" />
-                                {{ 'bookings.checkoutNow' | t }} →
+                                Check-out toàn bộ →
                               </button>
                             </div>
                           } @else {
@@ -239,9 +241,9 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
                             <button
                               type="button"
                               class="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-black text-cyan-700 transition hover:bg-cyan-100"
-                              (click)="openDetail(booking)"
+                              (click)="checkInBooking(booking.bookingId)"
                             >
-                              <app-icon name="login" [size]="12" /> {{ 'bookings.checkinNow' | t }}
+                              <app-icon name="login" [size]="12" /> Check-in toàn bộ
                             </button>
                           } @else if (isUpcoming(booking)) {
                             <span
@@ -277,7 +279,7 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
                         >
                           <app-icon name="eye" [size]="15" /> {{ 'common.detail' | t }}
                         </button>
-                        @if (booking.status === 'Pending' || booking.status === 'Approved') {
+                        @if ((isOwner(booking) || store.isAdmin()) && (booking.status === 'Pending' || booking.status === 'Approved')) {
                           <button
                             type="button"
                             class="btn-secondary btn-danger px-2.5 py-1.5 text-xs"
@@ -415,6 +417,33 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
               }
             </div>
 
+            @if (detail.status === 'Approved') {
+              <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4">
+                <div>
+                  <p class="font-black text-cyan-950">Điểm danh Check-in / Check-out toàn booking</p>
+                  <p class="text-xs text-cyan-800">Điểm danh tự động cho tất cả phòng lab và thiết bị trong booking này.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  @if (canCheckInNow(detail)) {
+                    <button
+                      type="button"
+                      class="btn-primary flex items-center gap-2"
+                      (click)="checkInBooking(detail.bookingId)"
+                    >
+                      <app-icon name="login" [size]="16" /> Check-in toàn bộ
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="btn-primary bg-rose-600 flex items-center gap-2 hover:bg-rose-700 font-black"
+                    (click)="checkOutBooking(detail.bookingId)"
+                  >
+                    <app-icon name="logout" [size]="16" /> Check-out toàn bộ
+                  </button>
+                </div>
+              </div>
+            }
+
             <!-- Danh sách tài nguyên -->
             <div>
               <p class="mb-2 text-xs font-black tracking-wider text-slate-400 uppercase">
@@ -457,7 +486,7 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
                             type="button"
                             class="btn-primary px-3 py-1 text-xs"
                             [disabled]="!canCheckInNow(detail)"
-                            (click)="checkInItem(item.bookingItemId)"
+                            (click)="checkInBooking(detail.bookingId)"
                           >
                             <app-icon name="login" [size]="14" /> {{ 'bookings.checkinNow' | t }}
                           </button>
@@ -466,7 +495,7 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
                             <button
                               type="button"
                               class="btn-primary bg-rose-600 px-3 py-1 text-xs hover:bg-rose-700"
-                              (click)="checkOutLog(log.logId)"
+                              (click)="checkOutBooking(detail.bookingId)"
                             >
                               <app-icon name="logout" [size]="14" /> Check-out
                             </button>
@@ -494,7 +523,7 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
                 <app-icon name="arrow-right" [size]="15" /> {{ 'bookings.openFullDetail' | t }}
               </a>
 
-              @if (detail.status === 'Pending' || detail.status === 'Approved') {
+              @if ((isOwner(detail) || store.isAdmin()) && (detail.status === 'Pending' || detail.status === 'Approved')) {
                 <button
                   type="button"
                   class="btn-secondary btn-danger text-xs"
@@ -512,9 +541,12 @@ import { labelOf, getCheckInWindowInfo } from '../../shared/utils/presentation'
 })
 export class MyBookingsPage implements OnInit {
   private readonly api = inject(SystemService)
-  private readonly store = inject(AuthStore)
+  protected readonly store = inject(AuthStore)
   protected readonly languageStore = inject(LanguageStore)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
+  private readonly destroyRef = inject(DestroyRef)
+  private dataSub?: Subscription
 
   protected readonly bookings = signal<BookingResponse[]>([])
   protected readonly detailsMap = signal(new Map<number, BookingDetailResponse>())
@@ -530,6 +562,11 @@ export class MyBookingsPage implements OnInit {
   protected readonly detailAccessDenied = signal(false)
   protected readonly detailErrorMessage = signal('')
   protected readonly detailBooking = signal<BookingDetailResponse | null>(null)
+
+  protected isOwner(booking?: BookingResponse | BookingDetailResponse | null): boolean {
+    if (!booking) return false
+    return booking.userId === this.store.user()?.userId
+  }
 
   protected readonly tabs = computed(() => [
     {
@@ -584,12 +621,19 @@ export class MyBookingsPage implements OnInit {
   ])
 
   protected readonly filtered = computed(() => {
+    const currentUserId = this.store.user()?.userId
+    const isAdmin = this.store.isAdmin()
     const needle = this.keyword().trim().toLowerCase()
     const status = this.activeStatus()
     const map = this.detailsMap()
 
     return [...this.bookings()]
       .filter((item) => {
+        // Enforce data ownership: Non-admins strictly see only their own bookings
+        if (!isAdmin && currentUserId && item.userId !== currentUserId) {
+          return false
+        }
+
         const matchesStatus = !status || item.status === status
         if (!matchesStatus) return false
 
@@ -632,18 +676,31 @@ export class MyBookingsPage implements OnInit {
   protected loadData(): void {
     const userId = this.store.user()?.userId
     if (!userId) return
+
+    if (this.dataSub) {
+      this.dataSub.unsubscribe()
+    }
+
     this.loading.set(true)
-    this.api.bookingsByUser(userId).subscribe({
-      next: (items) => {
-        this.bookings.set(items)
-        this.loading.set(false)
-        this.loadDetailsAndLogs(items)
-      },
-      error: () => {
-        this.loading.set(false)
-        this.toast.error('Không tải được danh sách booking của bạn')
-      },
-    })
+    this.dataSub = this.api
+      .bookingsByUser(userId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (items: BookingResponse[]) => {
+          const isAdmin = this.store.isAdmin()
+          const userItems = isAdmin ? items : items.filter((b) => b.userId === userId)
+          this.bookings.set(userItems)
+          this.loadDetailsAndLogs(userItems)
+        },
+        error: (err) => {
+          if (err?.name !== 'AbortError' && err?.status !== 0) {
+            this.toast.error('Không tải được danh sách booking của bạn')
+          }
+        },
+      })
   }
 
   protected setStatus(val: string): void {
@@ -721,17 +778,19 @@ export class MyBookingsPage implements OnInit {
 
     this.api
       .booking(booking.bookingId)
-      .pipe(timeout(10000))
+      .pipe(
+        timeout(10000),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.detailLoading.set(false)),
+      )
       .subscribe({
-        next: (detail) => {
+        next: (detail: BookingDetailResponse) => {
           this.detailBooking.set(detail)
-          this.detailLoading.set(false)
           if (detail) {
             this.detailsMap.update((map) => new Map(map).set(detail.bookingId, detail))
           }
         },
         error: (err: any) => {
-          this.detailLoading.set(false)
           this.detailAccessDenied.set(true)
           const msg =
             err?.message ||
@@ -790,11 +849,15 @@ export class MyBookingsPage implements OnInit {
     this.detailBooking.set(null)
   }
 
-  protected confirmCancel(booking: BookingResponse | BookingDetailResponse): void {
-    if (
-      !confirm(`Xác nhận hủy yêu cầu booking #BK-${booking.bookingId.toString().padStart(5, '0')}?`)
-    )
-      return
+  protected async confirmCancel(booking: BookingResponse | BookingDetailResponse): Promise<void> {
+    const code = `#BK-${booking.bookingId.toString().padStart(5, '0')}`
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Hủy yêu cầu Booking',
+      message: `Xác nhận hủy yêu cầu booking ${code}?`,
+      variant: 'danger',
+      confirmText: 'Hủy Booking',
+    })
+    if (!confirmed) return
     this.api.cancelBooking(booking.bookingId).subscribe({
       next: () => {
         this.toast.success('Đã hủy booking thành công')
@@ -853,14 +916,15 @@ export class MyBookingsPage implements OnInit {
     })
   }
 
-  protected checkOutLog(logId: number): void {
+  protected async checkOutLog(logId: number): Promise<void> {
     if (this.checkUserRestricted()) return
-    if (
-      !confirm(
-        'Xác nhận trả phòng / check-out tài nguyên này? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)',
-      )
-    )
-      return
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận Check-out',
+      message: 'Xác nhận trả phòng / check-out tài nguyên này? (Nội quy: Nếu trễ quá thời gian kết thúc, hệ thống sẽ tự động ghi nhận sự cố Trả muộn và vi phạm)',
+      variant: 'warning',
+      confirmText: 'Check-out',
+    })
+    if (!confirmed) return
     this.api.checkOut(logId).subscribe({
       next: () => {
         this.toast.success('Check-out thành công', 'Phiên sử dụng đã kết thúc.')
@@ -880,9 +944,15 @@ export class MyBookingsPage implements OnInit {
     })
   }
 
-  protected checkOutBooking(bookingId: number): void {
+  protected async checkOutBooking(bookingId: number): Promise<void> {
     if (this.checkUserRestricted()) return
-    if (!confirm('Xác nhận checkout toàn bộ booking này?')) return
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Xác nhận Check-out Toàn bộ',
+      message: 'Xác nhận checkout toàn bộ booking này?',
+      variant: 'warning',
+      confirmText: 'Check-out Toàn bộ',
+    })
+    if (!confirmed) return
     this.api.checkOutBooking(bookingId).subscribe({
       next: () => {
         this.toast.success('Check-out toàn bộ thành công', 'Tất cả tài nguyên đã được giải phóng.')

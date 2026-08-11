@@ -1,5 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
+import { Router } from '@angular/router'
+import { ToastService } from '../../shared/ui/toast.service'
 import { ApiError } from '../http/api-error'
 import { AuthService } from './auth.service'
 import { TokenStorage } from './token-storage'
@@ -12,6 +14,8 @@ const USER_KEY = 'auth.user'
 export class AuthStore {
   private readonly auth = inject(AuthService)
   private readonly tokens = inject(TokenStorage)
+  private readonly router = inject(Router)
+  private readonly toast = inject(ToastService)
 
   private readonly _user = signal<AuthUser | null>(this.restore())
   private readonly _status = signal<'idle' | 'loading' | 'error'>('idle')
@@ -63,8 +67,11 @@ export class AuthStore {
     } catch (e) {
       if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
         this.clear()
+        this.toast.error('Phiên làm việc hết hạn', 'Vui lòng đăng nhập lại để tiếp tục.')
+        void this.router.navigate(['/login'])
       } else if (!cachedUser) {
         this.clear()
+        void this.router.navigate(['/login'])
       }
     }
   }
