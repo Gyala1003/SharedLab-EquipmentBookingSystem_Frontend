@@ -9,6 +9,8 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { PositiveIntegerDirective } from '../../shared/ui/positive-integer.directive'
 import { ToastService } from '../../shared/ui/toast.service'
 import { toDateInput } from '../../shared/utils/presentation'
+import { apiErrorMessage } from '../../core/http/api-error'
+import { validateKeyword } from '../../shared/utils/search'
 
 @Component({
   selector: 'app-audit-logs-page',
@@ -74,6 +76,7 @@ import { toDateInput } from '../../shared/utils/presentation'
           <label class="field-label">Entity</label
           ><input
             class="input-shell"
+            maxlength="100"
             [(ngModel)]="entityName"
             placeholder="Booking, User, LabRoom..."
           />
@@ -246,6 +249,15 @@ export class AuditLogsPage implements OnInit {
     return new Set(this.logs().map((log) => log.userId)).size
   }
   protected applyFilters(): void {
+    if (this.from && this.to && this.from > this.to) {
+      this.toast.info('Từ ngày phải nhỏ hơn hoặc bằng Đến ngày')
+      return
+    }
+    const kv = validateKeyword(this.entityName)
+    if (!kv.valid) {
+      if (kv.reason) this.toast.info(kv.reason)
+      return
+    }
     this.page.set(1)
     this.load()
   }
@@ -306,6 +318,11 @@ export class AuditLogsPage implements OnInit {
   }
 
   private load(): void {
+    if (this.from && this.to && this.from > this.to) {
+      this.toast.info('Từ ngày phải nhỏ hơn hoặc bằng Đến ngày')
+      return
+    }
+
     this.loading.set(true)
     this.api
       .auditLogs({
@@ -325,9 +342,9 @@ export class AuditLogsPage implements OnInit {
           this.totalCount.set(response.totalCount)
           this.loading.set(false)
         },
-        error: () => {
+        error: (err: unknown) => {
           this.loading.set(false)
-          this.toast.error('Không tải được audit log')
+          this.toast.error('Không tải được audit log', apiErrorMessage(err))
         },
       })
   }

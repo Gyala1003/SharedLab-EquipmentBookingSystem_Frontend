@@ -53,11 +53,17 @@ interface SlotRangeSelection {
   slotIds: number[]
 }
 
+function isUnderMaintenance(value: ApiEnum | number | string | null | undefined): boolean {
+  const status = String(value ?? '').trim().toLowerCase()
+  return status === '3' || status === 'maintenance' || status === 'undermaintenance'
+}
+
 function isBookableEquipmentStatus(value: ApiEnum | null | undefined): boolean {
-  const status = String(value ?? '')
-    .trim()
-    .toLowerCase()
-  return ['1', '2', '3', 'available', 'inuse', 'maintenance'].includes(status)
+  const status = String(value ?? '').trim().toLowerCase()
+  if (isUnderMaintenance(status) || ['4', '5', 'broken', 'retired'].includes(status)) {
+    return false
+  }
+  return ['1', '2', 'available', 'inuse'].includes(status)
 }
 
 @Component({
@@ -157,8 +163,8 @@ function isBookableEquipmentStatus(value: ApiEnum | null | undefined): boolean {
                 >
                   <option [ngValue]="null">Chọn phòng lab</option>
                   @for (lab of labs(); track lab.labId) {
-                    <option [ngValue]="lab.labId">
-                      {{ lab.labName }} · {{ lab.roomCode }} · {{ lab.status }}
+                    <option [ngValue]="lab.labId" [disabled]="isUnderMaintenance(lab.status)">
+                      {{ lab.labName }} · {{ lab.roomCode }} · {{ isUnderMaintenance(lab.status) ? 'Đang bảo trì (Không thể chọn)' : labelOf('lab', lab.status) }}
                     </option>
                   }
                 </select>
@@ -216,11 +222,13 @@ function isBookableEquipmentStatus(value: ApiEnum | null | undefined): boolean {
                           type="button"
                           class="flex items-center gap-3 rounded-2xl border p-4 text-left transition"
                           [ngClass]="
-                            isSelected(equipment.equipmentId)
-                              ? 'border-cyan-300 bg-cyan-50 shadow-sm'
-                              : 'border-slate-200 hover:border-cyan-200'
+                            isUnderMaintenance(equipment.status)
+                              ? 'border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed'
+                              : isSelected(equipment.equipmentId)
+                                ? 'border-cyan-300 bg-cyan-50 shadow-sm'
+                                : 'border-slate-200 hover:border-cyan-200'
                           "
-                          [disabled]="editing()"
+                          [disabled]="editing() || isUnderMaintenance(equipment.status)"
                           (click)="toggleEquipment(equipment)"
                         >
                           <span
@@ -230,16 +238,22 @@ function isBookableEquipmentStatus(value: ApiEnum | null | undefined): boolean {
                             ><span class="block truncate text-sm font-black text-slate-900">{{
                               equipment.equipmentName
                             }}</span
-                            ><span class="mt-1 block text-[10px] font-bold text-slate-400">{{
-                              equipment.status
-                            }}</span></span
+                            ><span class="mt-1 flex items-center gap-1 text-[10px] font-bold">
+                              @if (isUnderMaintenance(equipment.status)) {
+                                <span class="rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-700">Đang bảo trì</span>
+                              } @else {
+                                <span class="text-slate-400">{{ labelOf('equipment', equipment.status) }}</span>
+                              }
+                            </span></span
                           >
                           <span
                             class="flex h-6 w-6 items-center justify-center rounded-lg border"
                             [ngClass]="
-                              isSelected(equipment.equipmentId)
-                                ? 'border-cyan-500 bg-cyan-500 text-white'
-                                : 'border-slate-300 bg-white text-transparent'
+                              isUnderMaintenance(equipment.status)
+                                ? 'border-slate-200 bg-slate-200 text-slate-400'
+                                : isSelected(equipment.equipmentId)
+                                  ? 'border-cyan-500 bg-cyan-500 text-white'
+                                  : 'border-slate-300 bg-white text-transparent'
                             "
                             ><app-icon name="check" [size]="15"
                           /></span>
@@ -721,10 +735,14 @@ export class BookingFormPage implements OnInit {
       description: 'Các nhu cầu hợp lệ ngoài ba nhóm trên.',
     },
   ]
+  protected readonly labelOf = labelOf
+
+  protected isUnderMaintenance(status: ApiEnum | number | string | null | undefined): boolean {
+    return isUnderMaintenance(status)
+  }
+
   protected availableEquipments(): EquipmentResponse[] {
-    return this.equipments().filter(
-      (item) => item.labId === this.labId && isBookableEquipmentStatus(item.status),
-    )
+    return this.equipments().filter((item) => item.labId === this.labId)
   }
 
   protected selectedRoom(): SelectedResource | null {
@@ -758,12 +776,8 @@ export class BookingFormPage implements OnInit {
           : of([] as WaitlistResponse[]),
     }).subscribe({
       next: ({ labs, equipments, rules, booking, waitlists }) => {
-        const availableLabs = labs.filter((lab) => isAvailableLabStatus(lab.status))
-        const availableEquipments = equipments.filter((equipment) =>
-          isBookableEquipmentStatus(equipment.status),
-        )
-        this.labs.set(booking ? labs : availableLabs)
-        this.equipments.set(booking ? equipments : availableEquipments)
+        this.labs.set(labs)
+        this.equipments.set(equipments)
         this.rules.set(rules)
         this.currentUserWaitlists.set(waitlists)
 
@@ -793,7 +807,7 @@ export class BookingFormPage implements OnInit {
         }
 
         const preselectedEquipment = qEquipment
-          ? availableEquipments.find((equipment) => equipment.equipmentId === qEquipment)
+          ? equipments.find((equipment) => equipment.equipmentId === qEquipment)
           : undefined
         const targetLabId = qLab || preselectedEquipment?.labId || 0
         if (targetLabId) {
@@ -853,6 +867,12 @@ export class BookingFormPage implements OnInit {
     if (this.editing()) return
     this.invalidateAvailability()
     const lab = this.labs().find((item) => item.labId === this.labId)
+    if (lab && isUnderMaintenance(lab.status)) {
+      this.toast.warning('Phòng lab này đang bảo trì, không thể chọn đặt.')
+      this.labId = null
+      this.selected.set([])
+      return
+    }
     this.selected.set(
       lab
         ? [
@@ -874,8 +894,12 @@ export class BookingFormPage implements OnInit {
       this.editing() ||
       !this.hasSelectedLab() ||
       item.labId !== this.labId ||
+      isUnderMaintenance(item.status) ||
       !isBookableEquipmentStatus(item.status)
     ) {
+      if (isUnderMaintenance(item.status)) {
+        this.toast.warning('Thiết bị này đang bảo trì, không thể chọn mượn.')
+      }
       return
     }
 
@@ -956,12 +980,12 @@ export class BookingFormPage implements OnInit {
     const currentSlots = this.selectedTimeSlots()
     if (currentSlots.length && currentSlots.some((item) => item.period !== slot.period)) {
       this.selectedSlotIds.set([slot.id])
-      this.toast.info('Chỉ chọn các slot liên tiếp trong cùng một buổi')
+      this.toast.warning('Chỉ chọn các slot liên tiếp trong cùng một buổi')
     } else {
       const nextIds = [...current, slot.id].sort((left, right) => left - right)
       const nextSlots = this.timeSlots.filter((item) => nextIds.includes(item.id))
       if (!this.isValidConsecutiveSelection(nextSlots)) {
-        this.toast.info('Chỉ chọn các slot liên tiếp trong cùng một buổi')
+        this.toast.warning('Chỉ chọn các slot liên tiếp trong cùng một buổi')
         return
       }
       this.selectedSlotIds.set(nextIds)

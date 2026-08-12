@@ -8,7 +8,7 @@ import type {
 } from '../../core/api/api.models'
 import { WorkspaceService } from '../../core/api/workspace.service'
 import { AuthStore } from '../../core/auth/auth.store'
-import { ApiError } from '../../core/http/api-error'
+import { ApiError, apiErrorMessage } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
 
@@ -739,9 +739,7 @@ export class DashboardPage implements OnInit {
       error: (error: unknown) => {
         this.loading.set(false)
         this.dashboard.set(EMPTY_DASHBOARD)
-        const message =
-          error instanceof ApiError ? error.message : 'Không thể tải dữ liệu dashboard.'
-        this.toast.error('Tải dashboard thất bại', message)
+        this.toast.error('Tải dashboard thất bại', apiErrorMessage(error, 'Không thể tải dữ liệu dashboard.'))
       },
     })
   }

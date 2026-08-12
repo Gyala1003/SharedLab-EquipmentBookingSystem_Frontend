@@ -21,6 +21,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { formatMoney, toDateInput } from '../../shared/utils/presentation'
+import { apiErrorMessage } from '../../core/http/api-error'
 
 @Component({
   selector: 'app-report-bars',
@@ -883,9 +884,9 @@ export class ReportsPage implements OnInit {
     )
   }
 
-  private failLoad(): void {
+  private failLoad(err?: unknown): void {
     this.loading.set(false)
-    this.toast.error('Không tải được báo cáo')
+    this.toast.error('Không tải được báo cáo', apiErrorMessage(err))
   }
 
   protected exportCurrent(): void {

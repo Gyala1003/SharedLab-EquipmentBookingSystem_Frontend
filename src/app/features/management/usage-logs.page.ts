@@ -11,6 +11,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf, toDateInput, toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
+import { apiErrorMessage } from '../../core/http/api-error'
 import { validateKeyword } from '../../shared/utils/search'
 
 @Component({
@@ -51,7 +52,7 @@ import { validateKeyword } from '../../shared/utils/search'
         <p class="mt-2 text-3xl font-black text-rose-600">{{ incidentCount() }}</p>
       </div>
     </div>
-    <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
+    <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_1fr_1fr_auto]">
       <div>
         <label class="field-label">Tìm theo Log / BookingItem</label>
         <div class="relative flex items-center">
@@ -99,6 +100,10 @@ import { validateKeyword } from '../../shared/utils/search'
       <div>
         <label class="field-label">Từ ngày</label
         ><input class="input-shell" type="date" [(ngModel)]="from" />
+      </div>
+      <div>
+        <label class="field-label">Đến ngày</label
+        ><input class="input-shell" type="date" [(ngModel)]="to" />
       </div>
       <div class="flex items-end">
         <button class="btn-secondary w-full" (click)="reset()">
@@ -227,24 +232,33 @@ export class UsageLogsPage implements OnInit {
   protected usageStatus = ''
   protected reviewStatus = ''
   protected from = ''
+  protected to = ''
   protected checkoutTime = ''
   private selectedId = 0
   protected selectedCheckin = ''
   protected readonly labelOf = labelOf
   protected filtered(): UsageLogResponse[] {
+    if (this.from && this.to && this.from > this.to) {
+      this.toast.info('Từ ngày phải nhỏ hơn hoặc bằng Đến ngày')
+    }
     const kv = validateKeyword(this.keyword)
     const needle = kv.valid ? kv.trimmed : ''
     return this.items()
-      .filter(
-        (item) =>
-          (!needle ||
-            String(item.logId).includes(needle) ||
-            String(item.bookingItemId).includes(needle)) &&
-          (!this.usageStatus ||
-            (this.usageStatus === 'active' ? !item.actualCheckout : !!item.actualCheckout)) &&
-          (!this.reviewStatus || item.incidentReviewStatus === this.reviewStatus) &&
-          (!this.from || toDateInput(new Date(item.actualCheckin)) >= this.from),
-      )
+      .filter((item) => {
+        const itemDate = toDateInput(new Date(item.actualCheckin))
+        const matchesNeedle =
+          !needle ||
+          String(item.logId).includes(needle) ||
+          String(item.bookingItemId).includes(needle)
+        const matchesUsage =
+          !this.usageStatus ||
+          (this.usageStatus === 'active' ? !item.actualCheckout : !!item.actualCheckout)
+        const matchesReview = !this.reviewStatus || item.incidentReviewStatus === this.reviewStatus
+        const matchesFrom = !this.from || itemDate >= this.from
+        const matchesTo = !this.to || itemDate <= this.to
+
+        return matchesNeedle && matchesUsage && matchesReview && matchesFrom && matchesTo
+      })
       .sort((a, b) => +new Date(b.actualCheckin) - +new Date(a.actualCheckin))
   }
   ngOnInit(): void {
@@ -264,6 +278,7 @@ export class UsageLogsPage implements OnInit {
     this.usageStatus = ''
     this.reviewStatus = ''
     this.from = ''
+    this.to = ''
   }
   protected openCheckout(item: UsageLogResponse): void {
     this.selectedId = item.logId
@@ -292,7 +307,7 @@ export class UsageLogsPage implements OnInit {
           this.toast.success('Đã checkout tài nguyên')
           this.load()
         },
-        error: () => this.toast.error('Không thể checkout'),
+        error: (err: unknown) => this.toast.error('Không thể checkout', apiErrorMessage(err)),
       })
   }
   protected load(): void {
@@ -302,9 +317,9 @@ export class UsageLogsPage implements OnInit {
         this.items.set(x)
         this.loading.set(false)
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false)
-        this.toast.error('Không tải được UsageLog')
+        this.toast.error('Không tải được Nhật ký sử dụng', apiErrorMessage(err))
       },
     })
   }

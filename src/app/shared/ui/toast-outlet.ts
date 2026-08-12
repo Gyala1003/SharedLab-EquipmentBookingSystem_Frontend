@@ -11,19 +11,19 @@ import { ToastService } from './toast.service'
         <div
           class="pointer-events-auto flex items-start gap-3 rounded-2xl border bg-white/95 p-4 shadow-xl shadow-slate-900/10 backdrop-blur"
           [class.border-emerald-200]="toast.kind === 'success'"
-          [class.border-rose-200]="toast.kind === 'error'"
+          [class.border-rose-200]="toast.kind === 'error' || toast.kind === 'warning'"
           [class.border-indigo-200]="toast.kind === 'info'"
         >
           <div
             class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg font-bold"
             [class.bg-emerald-50]="toast.kind === 'success'"
             [class.text-emerald-600]="toast.kind === 'success'"
-            [class.bg-rose-50]="toast.kind === 'error'"
-            [class.text-rose-600]="toast.kind === 'error'"
+            [class.bg-rose-50]="toast.kind === 'error' || toast.kind === 'warning'"
+            [class.text-rose-600]="toast.kind === 'error' || toast.kind === 'warning'"
             [class.bg-indigo-50]="toast.kind === 'info'"
             [class.text-indigo-600]="toast.kind === 'info'"
           >
-            {{ toast.kind === 'success' ? '✓' : toast.kind === 'error' ? '!' : 'i' }}
+            {{ toast.kind === 'success' ? '✓' : toast.kind === 'error' || toast.kind === 'warning' ? '!' : 'i' }}
           </div>
           <div class="min-w-0 flex-1">
             <p class="font-semibold text-slate-900">{{ toast.title }}</p>

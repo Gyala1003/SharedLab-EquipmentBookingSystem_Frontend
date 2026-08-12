@@ -13,6 +13,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
+import { apiErrorMessage } from '../../core/http/api-error'
 
 @Component({
   selector: 'app-waitlists-management-page',
@@ -73,11 +74,24 @@ import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
         ><input class="input-shell" type="datetime-local" [(ngModel)]="requestedEnd" />
       </div>
       <div class="flex items-end">
-        <button class="btn-primary w-full" (click)="loadQueue()">
+        <button
+          class="btn-primary w-full"
+          [disabled]="(!labId && !equipmentId) || !validRequestedRange()"
+          (click)="loadQueue()"
+        >
           <app-icon name="filter" [size]="17" /> Lọc queue
         </button>
       </div>
     </div>
+    @if (!labId && !equipmentId) {
+      <p class="text-xs font-semibold text-amber-600">
+        💡 Chọn 1 phòng lab hoặc 1 thiết bị cụ thể để lọc hàng chờ (Queue) theo khung giờ.
+      </p>
+    } @else if (!validRequestedRange()) {
+      <p class="text-xs font-semibold text-rose-600">
+        ⚠️ Khung giờ không hợp lệ (Thời gian bắt đầu phải trước thời gian kết thúc).
+      </p>
+    }
     <article class="card-surface overflow-hidden">
       <header class="flex items-center justify-between border-b border-slate-100 px-5 py-5">
         <div>
@@ -252,7 +266,7 @@ export class WaitlistsManagementPage implements OnInit {
       : { labId: this.labId, equipmentId: null }
   }
 
-  private validRequestedRange(): boolean {
+  protected validRequestedRange(): boolean {
     if (!this.requestedStart || !this.requestedEnd) return false
     return new Date(this.requestedStart).getTime() < new Date(this.requestedEnd).getTime()
   }
@@ -263,9 +277,9 @@ export class WaitlistsManagementPage implements OnInit {
         this.items.set(x)
         this.loading.set(false)
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false)
-        this.toast.error('Không tải được hàng chờ')
+        this.toast.error('Không tải được hàng chờ', apiErrorMessage(err))
       },
     })
   }
@@ -292,9 +306,9 @@ export class WaitlistsManagementPage implements OnInit {
             this.items.set(x)
             this.loading.set(false)
           },
-          error: () => {
+          error: (err: unknown) => {
             this.loading.set(false)
-            this.toast.error('Không tải được queue')
+            this.toast.error('Không tải được queue', apiErrorMessage(err))
           },
         })
     } else {
@@ -319,7 +333,7 @@ export class WaitlistsManagementPage implements OnInit {
           this.toast.success('Đã thông báo người tiếp theo')
           this.loadQueue()
         },
-        error: () => this.toast.error('Không thể thông báo người tiếp theo'),
+        error: (err: unknown) => this.toast.error('Không thể thông báo người tiếp theo', apiErrorMessage(err)),
       })
   }
   protected cancel(item: WaitlistResponse): void {
@@ -329,7 +343,7 @@ export class WaitlistsManagementPage implements OnInit {
         this.toast.success('Đã hủy waitlist')
         this.loadAll()
       },
-      error: () => this.toast.error('Không thể hủy waitlist'),
+      error: (err: unknown) => this.toast.error('Không thể hủy waitlist', apiErrorMessage(err)),
     })
   }
   protected expire(item: WaitlistResponse): void {
@@ -339,7 +353,7 @@ export class WaitlistsManagementPage implements OnInit {
         this.toast.success('Đã cho hết hạn')
         this.loadAll()
       },
-      error: () => this.toast.error('Không thể cho hết hạn'),
+      error: (err: unknown) => this.toast.error('Không thể cho hết hạn', apiErrorMessage(err)),
     })
   }
 }
