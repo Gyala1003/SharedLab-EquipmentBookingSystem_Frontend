@@ -95,8 +95,8 @@ interface NavGroup {
                   <a
                     [routerLink]="item.route"
                     [ngClass]="{
-                      'bg-linear-to-r from-violet-500/30 to-indigo-500/20 text-white ring-1 ring-inset ring-white/10 shadow-lg shadow-black/10':
-                        isItemActive(item.route)
+                      'bg-linear-to-r from-violet-500/30 to-indigo-500/20 text-white shadow-lg ring-1 shadow-black/10 ring-white/10 ring-inset':
+                        isItemActive(item.route),
                     }"
                     class="group flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[13px] font-bold text-white/64 transition duration-150 hover:bg-indigo-400/10 hover:text-white"
                     (click)="mobileOpen.set(false)"
@@ -160,9 +160,7 @@ interface NavGroup {
       </aside>
 
       <div class="min-h-screen lg:pl-[292px]">
-        <header
-          class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/88 backdrop-blur-xl"
-        >
+        <header class="sticky top-0 z-20 border-b border-slate-200/80 bg-white/88 backdrop-blur-xl">
           <div
             class="mx-auto flex h-20 w-full max-w-[1580px] items-center gap-4 px-4 sm:px-6 lg:px-8"
           >
@@ -384,6 +382,13 @@ export class AppLayoutComponent implements OnInit {
       route === '/app/management/maintenances' &&
       currentUrl.startsWith('/app/management/maintenances/') &&
       !currentUrl.includes('/new')
+    ) {
+      return true
+    }
+    if (
+      route === '/app/management/bookings' &&
+      currentUrl.startsWith('/app/management/bookings/') &&
+      !currentUrl.startsWith('/app/management/bookings/pending')
     ) {
       return true
     }

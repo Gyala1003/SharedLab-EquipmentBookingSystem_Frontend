@@ -859,11 +859,7 @@ export class ReportsPage implements OnInit {
     })
   }
 
-  private safe<T>(
-    request: Observable<T>,
-    fallback: T,
-    failed: { count: number },
-  ): Observable<T> {
+  private safe<T>(request: Observable<T>, fallback: T, failed: { count: number }): Observable<T> {
     return request.pipe(
       catchError(() => {
         failed.count += 1

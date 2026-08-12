@@ -101,10 +101,13 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
               </p>
             </div>
             @if (item()!.status === 'Scheduled') {
-              <div class="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-5 text-violet-900">
+              <div
+                class="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-5 text-violet-900"
+              >
                 <p class="font-black">Tự động bắt đầu</p>
                 <p class="mt-2 text-sm leading-6 text-violet-800/75">
-                  Hệ thống sẽ tự chuyển lịch sang InProgress đúng giờ bắt đầu và gửi nhắc trước 15 phút. Không cần bấm Start thủ công.
+                  Hệ thống sẽ tự chuyển lịch sang InProgress đúng giờ bắt đầu và gửi nhắc trước 15
+                  phút. Không cần bấm Start thủ công.
                 </p>
               </div>
             }
@@ -112,7 +115,8 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
               <div class="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-rose-900">
                 <p class="font-black">Đã quá thời gian kết thúc dự kiến</p>
                 <p class="mt-2 text-sm leading-6 text-rose-800/75">
-                  Tài nguyên vẫn giữ trạng thái Maintenance. LabManager hoặc Admin cần kiểm tra thực tế và bấm Hoàn thành khi bảo trì đã xong.
+                  Tài nguyên vẫn giữ trạng thái Maintenance. LabManager hoặc Admin cần kiểm tra thực
+                  tế và bấm Hoàn thành khi bảo trì đã xong.
                 </p>
               </div>
             }
@@ -152,7 +156,9 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
         <aside class="space-y-5">
           <article class="card-surface p-5">
             <p class="text-xs font-black tracking-[.16em] text-violet-500 uppercase">Người tạo</p>
-            <p class="mt-3 text-lg font-black text-slate-900">{{ item()!.createdByName || 'Chưa xác định người tạo' }}</p>
+            <p class="mt-3 text-lg font-black text-slate-900">
+              {{ item()!.createdByName || 'Chưa xác định người tạo' }}
+            </p>
           </article>
           @if (canManage() && ['Scheduled', 'InProgress'].includes(item()!.status)) {
             <article class="rounded-[24px] border border-rose-200 bg-rose-50 p-5">

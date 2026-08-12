@@ -124,13 +124,38 @@ export class RolesPage implements OnInit {
   protected readonly matrix = [
     { name: 'Xem tài nguyên và lịch dùng chung', requester: true, manager: true, admin: true },
     { name: 'Tạo, sửa và theo dõi booking cá nhân', requester: true, manager: false, admin: false },
-    { name: 'Hàng chờ, check-in/check-out và báo sự cố cá nhân', requester: true, manager: false, admin: false },
-    { name: 'Duyệt/từ chối booking trong phạm vi phòng', requester: false, manager: true, admin: false },
-    { name: 'Bảo trì, usage log, sự cố, hàng chờ và vi phạm quản lý', requester: false, manager: true, admin: false },
+    {
+      name: 'Hàng chờ, check-in/check-out và báo sự cố cá nhân',
+      requester: true,
+      manager: false,
+      admin: false,
+    },
+    {
+      name: 'Duyệt/từ chối booking trong phạm vi phòng',
+      requester: false,
+      manager: true,
+      admin: false,
+    },
+    {
+      name: 'Bảo trì, usage log, sự cố, hàng chờ và vi phạm quản lý',
+      requester: false,
+      manager: true,
+      admin: false,
+    },
     { name: 'Dashboard và báo cáo', requester: false, manager: true, admin: true },
     { name: 'Quản lý phòng lab và thiết bị', requester: false, manager: false, admin: true },
-    { name: 'Quản trị người dùng, phòng ban, vai trò và quy tắc ưu tiên', requester: false, manager: false, admin: true },
-    { name: 'Gửi thông báo hệ thống và xem Audit log', requester: false, manager: false, admin: true },
+    {
+      name: 'Quản trị người dùng, phòng ban, vai trò và quy tắc ưu tiên',
+      requester: false,
+      manager: false,
+      admin: true,
+    },
+    {
+      name: 'Gửi thông báo hệ thống và xem Audit log',
+      requester: false,
+      manager: false,
+      admin: true,
+    },
   ]
 
   ngOnInit(): void {

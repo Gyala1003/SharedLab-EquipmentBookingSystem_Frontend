@@ -103,7 +103,11 @@ import { LanguageService } from '../../core/i18n/language.service'
               {{ 'auth.login.title' | translate }}
             </h2>
             <p class="mt-3 text-sm leading-6 text-slate-500">
-              {{ language.locale() === 'en' ? 'Sign in with either your email address or username.' : 'Đăng nhập bằng email hoặc username của tài khoản.' }}
+              {{
+                language.locale() === 'en'
+                  ? 'Sign in with either your email address or username.'
+                  : 'Đăng nhập bằng email hoặc username của tài khoản.'
+              }}
             </p>
 
             @if (sessionNotice; as notice) {
@@ -112,7 +116,8 @@ import { LanguageService } from '../../core/i18n/language.service'
               >
                 <span class="mt-0.5 text-amber-600"><app-icon name="alert" [size]="18" /></span>
                 <p>
-                  <strong>{{ notice.title }}</strong><br />
+                  <strong>{{ notice.title }}</strong
+                  ><br />
                   <span class="text-amber-800/80">{{ notice.message }}</span>
                 </p>
               </div>
@@ -134,7 +139,9 @@ import { LanguageService } from '../../core/i18n/language.service'
 
             <form class="mt-9 space-y-5" (ngSubmit)="submit()" #form="ngForm">
               <label class="block">
-                <span class="mb-2 block text-sm font-semibold text-slate-700">{{ language.locale() === 'en' ? 'Email / Username' : 'Email / Username' }}</span>
+                <span class="mb-2 block text-sm font-semibold text-slate-700">{{
+                  language.locale() === 'en' ? 'Email / Username' : 'Email / Username'
+                }}</span>
                 <div class="relative">
                   <span
                     class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400"
@@ -147,12 +154,20 @@ import { LanguageService } from '../../core/i18n/language.service'
                     type="text"
                     autocomplete="username"
                     required
-                    [placeholder]="language.locale() === 'en' ? 'Enter email or username' : 'Nhập email hoặc username'"
+                    [placeholder]="
+                      language.locale() === 'en'
+                        ? 'Enter email or username'
+                        : 'Nhập email hoặc username'
+                    "
                     class="input-shell !pl-12"
                   />
                 </div>
                 <p class="mt-2 text-xs text-slate-400">
-                  {{ language.locale() === 'en' ? 'Example: user@university.edu or nguyenvana' : 'Ví dụ: user@university.edu hoặc nguyenvana' }}
+                  {{
+                    language.locale() === 'en'
+                      ? 'Example: user@university.edu or nguyenvana'
+                      : 'Ví dụ: user@university.edu hoặc nguyenvana'
+                  }}
                 </p>
               </label>
 
@@ -267,40 +282,41 @@ export class LoginPage {
     if (reason === 'session-invalidated') {
       return isEnglish
         ? {
-          title: 'Your sign-in session is no longer active',
-          message:
-            'This account may have been signed in on another device or browser, so this session has ended. Please sign in again to continue.',
-        }
+            title: 'Your sign-in session is no longer active',
+            message:
+              'This account may have been signed in on another device or browser, so this session has ended. Please sign in again to continue.',
+          }
         : {
-          title: 'Phiên đăng nhập không còn hiệu lực',
-          message:
-            'Tài khoản có thể vừa được đăng nhập trên thiết bị hoặc trình duyệt khác, nên phiên này đã kết thúc. Vui lòng đăng nhập lại để tiếp tục.',
-        }
+            title: 'Phiên đăng nhập không còn hiệu lực',
+            message:
+              'Tài khoản có thể vừa được đăng nhập trên thiết bị hoặc trình duyệt khác, nên phiên này đã kết thúc. Vui lòng đăng nhập lại để tiếp tục.',
+          }
     }
 
     if (reason === 'session-expired') {
       return isEnglish
         ? {
-          title: 'Your session has expired',
-          message: 'Please sign in again to continue using the system.',
-        }
+            title: 'Your session has expired',
+            message: 'Please sign in again to continue using the system.',
+          }
         : {
-          title: 'Phiên đăng nhập đã hết hạn',
-          message: 'Vui lòng đăng nhập lại để tiếp tục sử dụng hệ thống.',
-        }
+            title: 'Phiên đăng nhập đã hết hạn',
+            message: 'Vui lòng đăng nhập lại để tiếp tục sử dụng hệ thống.',
+          }
     }
 
     if (reason === 'password-reset') {
       return isEnglish
         ? {
-          title: 'Your previous session has ended',
-          message: 'The account password was changed. Please sign in again with the new password.',
-        }
+            title: 'Your previous session has ended',
+            message:
+              'The account password was changed. Please sign in again with the new password.',
+          }
         : {
-          title: 'Phiên đăng nhập đã được kết thúc',
-          message:
-            'Mật khẩu của tài khoản vừa được thay đổi. Vui lòng đăng nhập lại bằng mật khẩu mới.',
-        }
+            title: 'Phiên đăng nhập đã được kết thúc',
+            message:
+              'Mật khẩu của tài khoản vừa được thay đổi. Vui lòng đăng nhập lại bằng mật khẩu mới.',
+          }
     }
 
     return null

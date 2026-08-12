@@ -125,7 +125,8 @@ interface CalendarDay {
                 class="rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-white hover:text-violet-700"
                 type="button"
                 (click)="today()"
-                >Hôm nay</button
+              >
+                Hôm nay</button
               ><button
                 class="flex h-8 w-8 items-center justify-center rounded-xl text-slate-600 hover:bg-white hover:text-violet-700"
                 type="button"

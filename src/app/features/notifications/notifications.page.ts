@@ -548,6 +548,10 @@ export class NotificationsPage implements OnInit {
 
   protected typeLabel(type: string): string {
     const normalized = type.toLowerCase()
+    if (normalized.includes('checkin') || normalized.includes('check-in'))
+      return 'Nhắc check-in booking'
+    if (normalized.includes('checkout') || normalized.includes('check-out'))
+      return 'Nhắc check-out booking'
     if (normalized.includes('approve')) return 'Booking được duyệt'
     if (normalized.includes('reject')) return 'Booking bị từ chối'
     if (normalized.includes('reminder')) return 'Nhắc lịch booking'

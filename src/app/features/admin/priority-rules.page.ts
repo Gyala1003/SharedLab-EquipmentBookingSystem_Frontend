@@ -304,7 +304,11 @@ export class PriorityRulesPage implements OnInit {
     this.editingId.set(null)
     this.customPurposeName = ''
     const defaultPurpose = this.availablePurposeOptions()[0]?.value ?? null
-    this.form = { purposeType: defaultPurpose, priorityLevel: this.rules().length + 1, description: '' }
+    this.form = {
+      purposeType: defaultPurpose,
+      priorityLevel: this.rules().length + 1,
+      description: '',
+    }
     this.formOpen.set(true)
   }
   protected openEdit(rule: PriorityRuleResponse): void {

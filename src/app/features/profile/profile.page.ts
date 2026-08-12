@@ -52,7 +52,10 @@ import { normalizeUserStatus } from '../../shared/utils/presentation'
                 </span>
               </div>
 
-              <div class="mt-6 grid gap-3 border-t border-slate-100 pt-6" [class.grid-cols-2]="user.roleName === 'Requester'">
+              <div
+                class="mt-6 grid gap-3 border-t border-slate-100 pt-6"
+                [class.grid-cols-2]="user.roleName === 'Requester'"
+              >
                 @if (user.roleName === 'Requester') {
                   <div class="rounded-2xl bg-slate-50 p-4">
                     <p class="text-2xl font-bold text-slate-950">{{ user.penaltyPoints }}</p>
@@ -152,7 +155,9 @@ import { normalizeUserStatus } from '../../shared/utils/presentation'
                     [class.bg-emerald-50]="statusText() === 'Active'"
                     [class.border-amber-100]="statusText() === 'Restricted'"
                     [class.bg-amber-50]="statusText() === 'Restricted'"
-                    [class.border-rose-100]="statusText() === 'Locked' || statusText() === 'Inactive'"
+                    [class.border-rose-100]="
+                      statusText() === 'Locked' || statusText() === 'Inactive'
+                    "
                     [class.bg-rose-50]="statusText() === 'Locked' || statusText() === 'Inactive'"
                   >
                     <div class="flex items-center justify-between gap-4">
@@ -178,7 +183,10 @@ import { normalizeUserStatus } from '../../shared/utils/presentation'
                           {{ statusDescription(statusText()) }}
                         </p>
                       </div>
-                      <app-icon [name]="statusText() === 'Active' ? 'check' : 'alert'" [size]="26" />
+                      <app-icon
+                        [name]="statusText() === 'Active' ? 'check' : 'alert'"
+                        [size]="26"
+                      />
                     </div>
                   </div>
                 </article>
@@ -204,7 +212,8 @@ import { normalizeUserStatus } from '../../shared/utils/presentation'
                         {{ user.restrictionUntil | date: 'dd/MM/yyyy' }}
                       </p>
                       <p class="mt-3 text-xs leading-5 text-slate-400">
-                        Sau thời điểm này, quyền đặt lịch sẽ được khôi phục nếu tài khoản đủ điều kiện.
+                        Sau thời điểm này, quyền đặt lịch sẽ được khôi phục nếu tài khoản đủ điều
+                        kiện.
                       </p>
                     } @else {
                       <p class="text-lg font-bold text-slate-800">Không có thời hạn hạn chế</p>
@@ -216,7 +225,6 @@ import { normalizeUserStatus } from '../../shared/utils/presentation'
                 </article>
               </div>
             }
-
           </div>
         </div>
       }
@@ -232,8 +240,8 @@ export class ProfilePage {
     return r !== 'ADMIN' && r !== 'MANAGER' && r !== 'LABMANAGER' && r !== 'LAB_MANAGER'
   }
 
-  protected readonly statusText = computed(() =>
-    normalizeUserStatus(this.store.user()?.status) || 'Active',
+  protected readonly statusText = computed(
+    () => normalizeUserStatus(this.store.user()?.status) || 'Active',
   )
 
   protected initials(name: string): string {

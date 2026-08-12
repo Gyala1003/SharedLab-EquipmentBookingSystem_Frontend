@@ -433,8 +433,8 @@ export class RequesterHomePage implements OnInit {
       .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
       .slice(0, 5),
   )
-  protected readonly statusText = computed(() =>
-    normalizeUserStatus(this.store.user()?.status) || 'Active',
+  protected readonly statusText = computed(
+    () => normalizeUserStatus(this.store.user()?.status) || 'Active',
   )
   protected readonly healthScore = computed(() =>
     Math.max(
@@ -455,7 +455,8 @@ export class RequesterHomePage implements OnInit {
         ? `Tài khoản đang bị hạn chế đến ${new Date(until).toLocaleString('vi-VN')}. Trong thời gian này bạn có thể không tạo được booking mới.`
         : 'Tài khoản đang bị hạn chế. Vui lòng xem các vi phạm đang hoạt động.'
     }
-    if (status === 'Locked') return 'Tài khoản đã bị khóa. Hãy liên hệ quản trị viên để được hỗ trợ.'
+    if (status === 'Locked')
+      return 'Tài khoản đã bị khóa. Hãy liên hệ quản trị viên để được hỗ trợ.'
     if (status === 'Inactive') return 'Tài khoản đang ngừng hoạt động. Hãy liên hệ quản trị viên.'
     if (this.violationSummary().activeViolationCount > 0)
       return `Bạn đang có ${this.violationSummary().activeViolationCount} vi phạm hoạt động. Hãy kiểm tra để tránh bị hạn chế tài khoản.`

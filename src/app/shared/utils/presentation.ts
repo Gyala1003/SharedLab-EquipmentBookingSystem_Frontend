@@ -86,6 +86,8 @@ const maps: Record<string, Record<string, string>> = {
     BookingApproved: 'Booking được duyệt',
     BookingRejected: 'Booking bị từ chối',
     BookingReminder: 'Nhắc lịch booking',
+    CheckInReminder: 'Nhắc check-in booking',
+    CheckOutReminder: 'Nhắc check-out booking',
     WaitlistAvailable: 'Có chỗ từ hàng chờ',
     Maintenance: 'Bảo trì',
     Violation: 'Vi phạm',

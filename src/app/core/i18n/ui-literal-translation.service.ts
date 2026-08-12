@@ -13,6 +13,68 @@ const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'CODE', 'PRE'])
 const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Shared Lab Workspace': 'Shared Lab Workspace',
   'Không gian phòng thí nghiệm dùng chung': 'Shared Lab Workspace',
+  'Các phòng lab bạn đang quản lý • cập nhật theo khoảng thời gian đã chọn.':
+    'Laboratories you manage • updated based on the selected time range.',
+  'Các phòng lab bạn đang quản lý · cập nhật theo khoảng thời gian đã chọn.':
+    'Laboratories you manage • updated based on the selected time range.',
+  'Toàn bộ hệ thống • cập nhật theo khoảng thời gian đã chọn.':
+    'Entire system • updated based on the selected time range.',
+  'Toàn bộ hệ thống · cập nhật theo khoảng thời gian đã chọn.':
+    'Entire system • updated based on the selected time range.',
+  'Cancel khấn cấp': 'Emergency Cancel',
+  'End khấn cấp': 'Emergency End',
+  'CANCEL KHẤN CẤP': 'EMERGENCY CANCEL',
+  'END KHẤN CẤP': 'EMERGENCY END',
+  'Hủy khẩn cấp': 'Emergency Cancel',
+  'Kết thúc khẩn cấp': 'Emergency End',
+  'HỦY KHẨN CẤP': 'EMERGENCY CANCEL',
+  'KẾT THÚC KHẨN CẤP': 'EMERGENCY END',
+  'Nhắc check-in booking': 'Check-in reminder',
+  'Nhắc check-out booking': 'Check-out reminder',
+  'Nhắc lịch booking': 'Booking reminder',
+  'Booking được duyệt': 'Booking approved',
+  'Booking bị từ chối': 'Booking rejected',
+  'Phòng AI': 'AI Lab',
+  'Phòng AI và Khoa học dữ liệu': 'AI & Data Science Lab',
+  'Phòng An toàn thông tin': 'Information Security Lab',
+  'Phòng Cơ khí và In 3D': 'Mechanical & 3D Printing Lab',
+  'Phòng IoT và Hệ thống nhúng': 'IoT & Embedded Systems Lab',
+  'Phòng Robot và Tự động hóa': 'Robotics & Automation Lab',
+  'Phòng Thực hành Mạng và An ninh mạng': 'Network & Cybersecurity Practice Lab',
+  'Phòng thực hành Vật Lý': 'Physics Practice Lab',
+  'Phòng Thực hành Vật lý': 'Physics Practice Lab',
+  'Phòng Máy tính cấu hình cao': 'High-Performance Computing Lab',
+  'Phòng Workstation GPU': 'GPU Workstation Lab',
+  'Laboratory Hóa học': 'Chemistry Laboratory',
+  'Phòng Hóa học': 'Chemistry Laboratory',
+  'Phòng Điện tử': 'Electronics Laboratory',
+  'Phòng Máy tính': 'Computer Laboratory',
+  'Máy quang phổ UV-Vis': 'UV-Vis Spectrophotometer',
+  'Máy quang phổ FTIR': 'FTIR Spectrophotometer',
+  'Máy in 3D công nghiệp': 'Industrial 3D Printer',
+  'Kính hiển vi điện tử': 'Electron Microscope',
+  'Phòng workstation GPU phục vụ huấn luyện mô hình học máy và trí tuệ nhân tạo.':
+    'GPU workstation lab for machine learning and artificial intelligence model training.',
+  'Phòng máy tính cấu hình cao phục vụ giảng dạy và thực hành.':
+    'High-performance computer lab for teaching and practical sessions.',
+  'Phòng nghiên cứu và thử nghiệm thiết bị IoT, cảm biến và vi điều khiển.':
+    'Research and testing lab for IoT devices, sensors, and microcontrollers.',
+  'Phòng thực hành trang bị đầy đủ bộ dụng cụ thí nghiệm vật lý cơ bản và nâng cao.':
+    'Practice lab fully equipped with basic and advanced physics experiment kits.',
+  'Phòng thực hành an ninh mạng và an toàn thông tin.':
+    'Practice lab for cybersecurity and information security.',
+  'Không tự ý thay đổi driver GPU hoặc cấu hình hệ thống.':
+    'Do not arbitrarily change GPU drivers or system configurations.',
+  'Chỉ kiểm thử trong môi trường được cấp quyền; không đưa dữ liệu thật vào lab.':
+    'Only test in authorized environments; do not input real data into the lab.',
+  'Check tình trạng trước khi dùng; báo quản lý phòng nếu phát hiện bất thường.':
+    'Check condition before use; report any anomalies to the lab manager.',
+  'Tắt nguồn thiết bị và dọn dẹp vệ sinh trước khi rời khỏi phòng thí nghiệm.':
+    'Power off equipment and clean up before leaving the laboratory.',
+  'Tuân thủ quy định an toàn phòng thí nghiệm và hướng dẫn của giảng viên.':
+    'Comply with laboratory safety regulations and instructor guidance.',
+  'Khung giờ đã được đặt': 'Reserved slot',
+  'Khung giờ đã đặt': 'Reserved slot',
   'Tạo lịch đặt': 'Create booking',
   'Lịch đặt': 'Booking',
   'Lịch đặt và bảo trì': 'Bookings and maintenance',
@@ -40,11 +102,10 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
     'A verified alternative time slot has been selected.',
   'Bạn không có quyền check-in booking này': 'You cannot check in for this booking.',
   'Bạn không có quyền check-out booking này': 'You cannot check out from this booking.',
-  'Bạn không có quyền báo sự cố cho booking này':
-    'You cannot report an incident for this booking.',
-  'Ngày': 'Day',
-  'Tuần': 'Week',
-  'Tháng': 'Month',
+  'Bạn không có quyền báo sự cố cho booking này': 'You cannot report an incident for this booking.',
+  Ngày: 'Day',
+  Tuần: 'Week',
+  Tháng: 'Month',
   'Danh sách': 'List',
   'Phòng thí nghiệm': 'Laboratory',
   'Tất cả phòng': 'All laboratories',
@@ -52,7 +113,8 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Loại sự kiện': 'Event type',
   'Sự kiện trong kỳ': 'Events in this period',
   'Không có sự kiện': 'No events',
-  'Ngày này chưa có lịch đặt hoặc bảo trì.': 'There are no bookings or maintenance events on this day.',
+  'Ngày này chưa có lịch đặt hoặc bảo trì.':
+    'There are no bookings or maintenance events on this day.',
   'Hãy đổi khoảng thời gian hoặc bộ lọc để xem lịch tài nguyên.':
     'Change the period or filters to view the resource calendar.',
   'Theo dõi lịch đặt và bảo trì theo ngày, tuần, tháng hoặc dạng danh sách.':
@@ -76,7 +138,8 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Hãy nhập đầy đủ tên phòng, mã phòng, vị trí, sức chứa và LabManager':
     'Enter the laboratory name, room code, location, capacity, and lab manager.',
   'Không thể gửi liên kết đặt lại mật khẩu.': 'Unable to send the password reset link.',
-  'Không thể gửi thông báo. Vui lòng thử lại.': 'Unable to send the notification. Please try again.',
+  'Không thể gửi thông báo. Vui lòng thử lại.':
+    'Unable to send the notification. Please try again.',
   'Không tải được danh sách LabManager đang hoạt động':
     'Unable to load the list of active lab managers.',
   'Không tải được dữ liệu tạo tài khoản': 'Unable to load account creation data.',
@@ -258,8 +321,7 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
     'You cannot change the role or deactivate the account currently in use.',
   'Đăng nhập bằng email hoặc username của tài khoản.':
     'Sign in with the account email address or username.',
-  'Ví dụ: user@university.edu hoặc nguyenvana':
-    'Example: user@university.edu or nguyenvana',
+  'Ví dụ: user@university.edu hoặc nguyenvana': 'Example: user@university.edu or nguyenvana',
   'Phiên đăng nhập không còn hiệu lực': 'Your session is no longer valid',
   'Tài khoản có thể vừa được đăng nhập trên thiết bị hoặc trình duyệt khác, nên phiên này đã kết thúc. Vui lòng đăng nhập lại để tiếp tục.':
     'This account may have been used to sign in on another device or browser, so this session has ended. Sign in again to continue.',
@@ -277,8 +339,7 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Chỉnh sửa booking': 'Edit booking',
   'Tạo yêu cầu booking': 'Create booking request',
   'Đã gửi yêu cầu đặt lịch': 'Booking request submitted',
-  'Yêu cầu của bạn đang chờ quản lý duyệt.':
-    'Your request is pending manager approval.',
+  'Yêu cầu của bạn đang chờ quản lý duyệt.': 'Your request is pending manager approval.',
   'Hãy chọn phòng và khung giờ hợp lệ trước khi tham gia hàng chờ':
     'Select a laboratory and a valid time slot before joining the waitlist.',
   'Đã tham gia hàng chờ của phòng': 'Joined the laboratory waitlist',
@@ -317,8 +378,7 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Hệ thống sẽ kiểm tra xung đột tài nguyên và thời gian trước khi lưu.':
     'The system checks resource and time conflicts before saving.',
   'Bảo trì phòng lab': 'Laboratory maintenance',
-  'Khóa toàn bộ phòng trong thời gian thực hiện':
-    'Block the entire laboratory during maintenance',
+  'Khóa toàn bộ phòng trong thời gian thực hiện': 'Block the entire laboratory during maintenance',
   'Bảo trì thiết bị': 'Equipment maintenance',
   'Chỉ khóa thiết bị được chọn': 'Block only the selected equipment',
   'Phòng chứa thiết bị': 'Equipment laboratory',
@@ -380,8 +440,7 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Quản lý phòng lab và thiết bị': 'Manage laboratories and equipment',
   'Quản trị người dùng, phòng ban, vai trò và quy tắc ưu tiên':
     'Manage users, departments, roles, and priority rules',
-  'Gửi thông báo hệ thống và xem Audit log':
-    'Send system notifications and view audit logs',
+  'Gửi thông báo hệ thống và xem Audit log': 'Send system notifications and view audit logs',
   'Quản trị người dùng, tài nguyên, cấu hình hệ thống và báo cáo toàn cục.':
     'Manage users, resources, system settings, and global reports.',
   'Quản lý người dùng, phòng ban, vai trò, phòng lab và thiết bị':
@@ -396,8 +455,7 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
     'Manage maintenance, usage logs, incidents, waitlists, and violations',
   'Xem dashboard và báo cáo trong phạm vi quản lý':
     'View dashboards and reports within the assigned scope',
-  'Tạo, sửa, hủy và theo dõi booking cá nhân':
-    'Create, edit, cancel, and track personal bookings',
+  'Tạo, sửa, hủy và theo dõi booking cá nhân': 'Create, edit, cancel, and track personal bookings',
   'Tham gia hàng chờ, check-in/check-out và báo sự cố':
     'Join waitlists, check in or out, and report incidents',
   'Xem thông báo, vi phạm và điểm phạt cá nhân':
@@ -446,8 +504,8 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Chi tiết thông báo': 'Notification details',
   'Đóng chi tiết': 'Close details',
   'Thời gian gửi': 'Sent at',
-  'Trước': 'Previous',
-  'Sau': 'Next',
+  Trước: 'Previous',
+  Sau: 'Next',
   'Hãy tạo booking trước khi thời gian giữ chỗ kết thúc.':
     'Create the booking before the reservation expires.',
   'Xem trạng thái và điểm phạt ở trang Tài khoản cá nhân.':
@@ -693,13 +751,54 @@ function translateLiteral(value: string): string {
   if (dynamic) return dynamic
 
   let fallback = normalized
-  for (const [pattern, replacement] of PHRASE_FALLBACKS) fallback = fallback.replace(pattern, replacement)
+  for (const [pattern, replacement] of PHRASE_FALLBACKS)
+    fallback = fallback.replace(pattern, replacement)
   return fallback !== normalized ? cleanGeneratedEnglish(fallback) : value
 }
 
 function translateDynamic(value: string): string | null {
   let match: RegExpMatchArray | null
-  if ((match = value.match(/^Trạng thái hiện tại:\s*(.+?)\.\s*Liên hệ quản trị viên hoặc chờ hết thời gian hạn chế\.$/))) {
+  if (
+    (match = value.match(
+      /^(Các phòng lab bạn đang quản lý|Toàn bộ hệ thống)\s*[•·]\s*cập nhật theo khoảng (?:thời gian|Time) đã chọn\.?$/i,
+    ))
+  ) {
+    const scope = match[1].toLowerCase().includes('toàn bộ')
+      ? 'Entire system'
+      : 'Laboratories you manage'
+    return `${scope} • updated based on the selected time range.`
+  }
+  if (
+    (match = value.match(
+      /^Bạn có lịch sử dụng (?:phòng|thiết bị|tài nguyên)?\s*lúc\s+(.+?)\.\s*(?:Please|Vui lòng)\s*check-in đúng giờ\.?$/i,
+    ))
+  ) {
+    return `You have a scheduled reservation on ${match[1]}. Please check in on time.`
+  }
+  if ((match = value.match(/^Booking từ\s+(.+?)\s+đến\s+(.+?)\s+đã được duyệt\.?$/i))) {
+    return `Your booking from ${match[1]} to ${match[2]} has been approved.`
+  }
+  if (
+    (match = value.match(
+      /^Booking của bạn sẽ (?:End|kết thúc) lúc\s+(.+?)\.\s*(?:Please|Vui lòng)\s*(?:mở hệ thống để check-out|check-out)(.*)$/i,
+    ))
+  ) {
+    return `Your booking will end at ${match[1]}. Please open the system to check out${match[2]}`
+  }
+  if ((match = value.match(/^Tầng\s+(\d+)\s*-\s*Tòa\s+([A-Za-z0-9]+)$/i))) {
+    return `Floor ${match[1]} - Building ${match[2]}`
+  }
+  if ((match = value.match(/^Quản lý phòng\s+(\d+)$/i))) {
+    return `Lab Manager ${match[1]}`
+  }
+  if ((match = value.match(/^Thiết bị\s+#(\d+)\s*•\s*(.+)$/i))) {
+    return `Equipment #${match[1]} • ${translateLiteral(match[2].trim())}`
+  }
+  if (
+    (match = value.match(
+      /^Trạng thái hiện tại:\s*(.+?)\.\s*Liên hệ quản trị viên hoặc chờ hết thời gian hạn chế\.$/,
+    ))
+  ) {
     return `Current status: ${match[1]}. Contact an administrator or wait until the restriction expires.`
   }
   if ((match = value.match(/^(.+),\s+lặp hằng ngày từ\s+(.+)\s+đến\s+(.+)\.$/))) {
@@ -709,7 +808,11 @@ function translateDynamic(value: string): string | null {
   if ((match = value.match(/^(.+),\s+(.+)\s+\+(\d+)\s+phòng$/))) {
     return `${match[1]}, ${match[2]} +${match[3]} laboratories`
   }
-  if ((match = value.match(/^Vị trí hiện tại:\s*(\d+)\. Thiết bị không được giữ và sẽ chọn lại khi đến lượt\.$/))) {
+  if (
+    (match = value.match(
+      /^Vị trí hiện tại:\s*(\d+)\. Thiết bị không được giữ và sẽ chọn lại khi đến lượt\.$/,
+    ))
+  ) {
     return `Current position: ${match[1]}. Equipment is not reserved and must be selected again when your turn arrives.`
   }
   if ((match = value.match(/^Chào\s+(.+),\s+sẵn sàng nghiên cứu chưa\?$/))) {
@@ -731,7 +834,8 @@ function translateDynamic(value: string): string | null {
   if ((match = value.match(/^Bảo trì\s+#(?:MT-)?(\d+)$/))) return `Maintenance #${match[1]}`
   if ((match = value.match(/^Trang\s+(\d+)\s*\/\s*(\d+)$/))) return `Page ${match[1]} / ${match[2]}`
   if ((match = value.match(/^Đang hiển thị\s+(.+)$/))) return `Showing ${match[1]}`
-  if ((match = value.match(/^(\d+)\s+sự kiện trong kỳ$/))) return `${match[1]} events in this period`
+  if ((match = value.match(/^(\d+)\s+sự kiện trong kỳ$/)))
+    return `${match[1]} events in this period`
   if ((match = value.match(/^\+(\d+)\s+sự kiện khác$/))) return `+${match[1]} more events`
   if ((match = value.match(/^Hiển thị\s+(\d+)\s*\/\s*(\d+)\s+tài khoản$/)))
     return `Showing ${match[1]} of ${match[2]} accounts`
@@ -751,11 +855,23 @@ function translateDynamic(value: string): string | null {
     return `${match[1]} · +${match[2]} points`
   if ((match = value.match(/^Vị trí được giữ tối đa 30 phút kể từ\s+(.+)\.$/)))
     return `Your position is held for up to 30 minutes from ${match[1]}.`
-  if ((match = value.match(/^Tài khoản đang bị hạn chế đến\s+(.+)\. Trong thời gian này bạn có thể không tạo được booking mới\.$/)))
+  if (
+    (match = value.match(
+      /^Tài khoản đang bị hạn chế đến\s+(.+)\. Trong thời gian này bạn có thể không tạo được booking mới\.$/,
+    ))
+  )
     return `This account is restricted until ${match[1]}. You may be unable to create new bookings during this period.`
-  if ((match = value.match(/^Tài khoản đang bị hạn chế đến\s+(.+)\. Vui lòng kiểm tra thời hạn hạn chế hoặc liên hệ quản trị viên\.$/)))
+  if (
+    (match = value.match(
+      /^Tài khoản đang bị hạn chế đến\s+(.+)\. Vui lòng kiểm tra thời hạn hạn chế hoặc liên hệ quản trị viên\.$/,
+    ))
+  )
     return `This account is restricted until ${match[1]}. Check the restriction period or contact an administrator.`
-  if ((match = value.match(/^Bạn đang có\s+(\d+)\s+vi phạm hoạt động\. Hãy kiểm tra để tránh bị hạn chế tài khoản\.$/)))
+  if (
+    (match = value.match(
+      /^Bạn đang có\s+(\d+)\s+vi phạm hoạt động\. Hãy kiểm tra để tránh bị hạn chế tài khoản\.$/,
+    ))
+  )
     return `You have ${match[1]} active violations. Review them to avoid account restrictions.`
   if ((match = value.match(/^Xác nhận\s+(.+?)\s+booking #([0-9]+)\?$/)))
     return `Confirm ${translateAction(match[1])} for booking #${match[2]}?`
@@ -769,14 +885,26 @@ function translateDynamic(value: string): string | null {
     return `${match[1] === 'Xử lý' ? 'Resolve' : 'Cancel'} violation #${match[2]}?`
   if ((match = value.match(/^Xác nhận\s+(.+?)\s+lịch bảo trì #([0-9]+)\?$/)))
     return `Confirm ${translateAction(match[1])} for maintenance #${match[2]}?`
-  if ((match = value.match(/^Bạn sắp\s+(.+?)\s+tài khoản của\s+(.+)\. Thao tác sẽ có hiệu lực ngay\.$/)))
+  if (
+    (match = value.match(
+      /^Bạn sắp\s+(.+?)\s+tài khoản của\s+(.+)\. Thao tác sẽ có hiệu lực ngay\.$/,
+    ))
+  )
     return `You are about to ${translateAction(match[1])} ${match[2]}'s account. This action takes effect immediately.`
-  if ((match = value.match(/^Ngừng hoạt động đơn vị “(.+)”\? Người dùng cũ vẫn giữ liên kết dữ liệu\.$/)))
+  if (
+    (match = value.match(
+      /^Ngừng hoạt động đơn vị “(.+)”\? Người dùng cũ vẫn giữ liên kết dữ liệu\.$/,
+    ))
+  )
     return `Deactivate “${match[1]}”? Existing user data links will be preserved.`
   if ((match = value.match(/^Kích hoạt lại đơn vị “(.+)”\?$/))) return `Reactivate “${match[1]}”?`
   if ((match = value.match(/^Thông báo đã được gửi tới\s+(.+)\.$/)))
     return `The notification was sent to ${match[1]}.`
-  if ((match = value.match(/^(\d+)\s+nhóm dữ liệu chưa tải được; các phần còn lại vẫn được hiển thị\.$/)))
+  if (
+    (match = value.match(
+      /^(\d+)\s+nhóm dữ liệu chưa tải được; các phần còn lại vẫn được hiển thị\.$/,
+    ))
+  )
     return `${match[1]} data groups could not be loaded; the remaining sections are still displayed.`
   if ((match = value.match(/^Booking #([0-9]+) đang chờ duyệt\.$/)))
     return `Booking #${match[1]} is pending approval.`

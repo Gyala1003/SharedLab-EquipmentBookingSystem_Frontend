@@ -145,7 +145,9 @@ import {
                 <app-icon name="book-open" [size]="17" /> Hướng dẫn sử dụng
               </p>
               <p class="mt-2 text-sm leading-6 whitespace-pre-line text-cyan-900/65">
-                {{ item()!.usageGuideline || 'Liên hệ quản lý phòng thí nghiệm để được hướng dẫn.' }}
+                {{
+                  item()!.usageGuideline || 'Liên hệ quản lý phòng thí nghiệm để được hướng dẫn.'
+                }}
               </p>
             </div>
           </article>
@@ -157,7 +159,11 @@ import {
               <div>
                 <h2 class="font-black text-slate-950">Lịch 30 ngày tới</h2>
                 <p class="mt-1 text-xs text-slate-400">
-                  {{ store.isRequester() ? 'Lịch đặt của thiết bị' : 'Booking và bảo trì của thiết bị' }}
+                  {{
+                    store.isRequester()
+                      ? 'Lịch đặt của thiết bị'
+                      : 'Booking và bảo trì của thiết bị'
+                  }}
                 </p>
               </div>
               <a
@@ -213,42 +219,45 @@ import {
           </article>
           @if (!store.isRequester()) {
             <article class="card-surface overflow-hidden">
-            <header class="border-b border-slate-100 px-5 py-5">
-              <h2 class="font-black text-slate-950">Lịch sử bảo trì</h2>
-              <p class="mt-1 text-xs text-slate-400">Các lịch bảo trì gắn với thiết bị</p>
-            </header>
-            @if (maintenances().length === 0) {
-              <div class="p-5">
-                <app-data-state
-                  title="Chưa có lịch bảo trì"
-                  message="Thiết bị chưa có bản ghi bảo trì."
-                  icon="wrench"
-                />
-              </div>
-            } @else {
-              <div class="divide-y divide-slate-100">
-                @for (maintenance of maintenances().slice(0, 6); track maintenance.maintenanceId) {
-                  <a
-                    [routerLink]="['/app/management/maintenances', maintenance.maintenanceId]"
-                    class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50"
-                    ><div
-                      class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"
-                    >
-                      <app-icon name="wrench" [size]="18" />
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <p class="font-black text-slate-800">
-                        Bảo trì #{{ maintenance.maintenanceId }}
-                      </p>
-                      <p class="mt-1 text-xs text-slate-400">
-                        {{ maintenance.startTime | date: 'dd/MM/yyyy HH:mm' }}
-                      </p>
-                    </div>
-                    <app-status-badge [value]="maintenance.status" domain="maintenance"
-                  /></a>
-                }
-              </div>
-            }
+              <header class="border-b border-slate-100 px-5 py-5">
+                <h2 class="font-black text-slate-950">Lịch sử bảo trì</h2>
+                <p class="mt-1 text-xs text-slate-400">Các lịch bảo trì gắn với thiết bị</p>
+              </header>
+              @if (maintenances().length === 0) {
+                <div class="p-5">
+                  <app-data-state
+                    title="Chưa có lịch bảo trì"
+                    message="Thiết bị chưa có bản ghi bảo trì."
+                    icon="wrench"
+                  />
+                </div>
+              } @else {
+                <div class="divide-y divide-slate-100">
+                  @for (
+                    maintenance of maintenances().slice(0, 6);
+                    track maintenance.maintenanceId
+                  ) {
+                    <a
+                      [routerLink]="['/app/management/maintenances', maintenance.maintenanceId]"
+                      class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50"
+                      ><div
+                        class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600"
+                      >
+                        <app-icon name="wrench" [size]="18" />
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="font-black text-slate-800">
+                          Bảo trì #{{ maintenance.maintenanceId }}
+                        </p>
+                        <p class="mt-1 text-xs text-slate-400">
+                          {{ maintenance.startTime | date: 'dd/MM/yyyy HH:mm' }}
+                        </p>
+                      </div>
+                      <app-status-badge [value]="maintenance.status" domain="maintenance"
+                    /></a>
+                  }
+                </div>
+              }
             </article>
           }
         </div>
@@ -362,13 +371,13 @@ export class EquipmentDetailPage implements OnInit {
     }
     this.editOpen.set(true)
     if (!this.labs().length)
-      this.api.labs().subscribe((items) =>
-        this.labs.set(
-          items.filter(
-            (lab) => lab.labId === item.labId || !isInactiveLabStatus(lab.status),
+      this.api
+        .labs()
+        .subscribe((items) =>
+          this.labs.set(
+            items.filter((lab) => lab.labId === item.labId || !isInactiveLabStatus(lab.status)),
           ),
-        ),
-      )
+        )
   }
   protected save(): void {
     this.saving.set(true)
@@ -477,9 +486,9 @@ export class EquipmentDetailPage implements OnInit {
     const lab = this.lab()
     return Boolean(
       equipment &&
-        lab &&
-        isAvailableEquipmentStatus(equipment.status) &&
-        isAvailableLabStatus(lab.status),
+      lab &&
+      isAvailableEquipmentStatus(equipment.status) &&
+      isAvailableLabStatus(lab.status),
     )
   }
 }

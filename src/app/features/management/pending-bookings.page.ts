@@ -45,7 +45,8 @@ type PendingBookingView = BookingResponse & { userName: string }
         <div class="flex-1">
           <p class="font-black text-slate-900">Nguyên tắc xử lý ưu tiên</p>
           <p class="mt-1 text-sm leading-6 text-slate-600">
-            Số ưu tiên càng nhỏ càng được xét trước. Các yêu cầu cùng mức ưu tiên được xử lý theo thời gian gửi.
+            Số ưu tiên càng nhỏ càng được xét trước. Các yêu cầu cùng mức ưu tiên được xử lý theo
+            thời gian gửi.
           </p>
         </div>
         <span
@@ -159,7 +160,11 @@ type PendingBookingView = BookingResponse & { userName: string }
       ></textarea>
       <div class="mt-5 flex justify-end gap-2">
         <button class="btn-secondary" (click)="rejectOpen.set(false)">Hủy</button
-        ><button class="btn-primary" [disabled]="!reason.trim() || processingId() !== null" (click)="reject()">
+        ><button
+          class="btn-primary"
+          [disabled]="!reason.trim() || processingId() !== null"
+          (click)="reject()"
+        >
           Xác nhận
         </button>
       </div></app-modal

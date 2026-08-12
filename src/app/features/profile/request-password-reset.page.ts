@@ -21,8 +21,12 @@ import { IconComponent } from '../../shared/ui/icon'
       </a>
 
       <article class="card-surface overflow-hidden">
-        <div class="bg-linear-to-r from-[#111a3a] via-indigo-950 to-violet-900 px-6 py-8 text-white sm:px-9">
-          <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-cyan-300">
+        <div
+          class="bg-linear-to-r from-[#111a3a] via-indigo-950 to-violet-900 px-6 py-8 text-white sm:px-9"
+        >
+          <div
+            class="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-cyan-300"
+          >
             <app-icon name="shield" [size]="27" />
           </div>
           <h1 class="mt-5 text-3xl font-bold tracking-[-0.035em]">
@@ -37,7 +41,9 @@ import { IconComponent } from '../../shared/ui/icon'
           <div class="grid gap-4 sm:grid-cols-3">
             @for (step of steps; track step.key; let index = $index) {
               <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-xs font-bold text-indigo-700">
+                <span
+                  class="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-xs font-bold text-indigo-700"
+                >
                   {{ index + 1 }}
                 </span>
                 <p class="mt-3 text-sm font-bold text-slate-900">
@@ -48,8 +54,14 @@ import { IconComponent } from '../../shared/ui/icon'
           </div>
 
           @if (success()) {
-            <div class="mt-7 rounded-3xl border border-emerald-200 bg-emerald-50 p-6" role="status" aria-live="polite">
-              <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+            <div
+              class="mt-7 rounded-3xl border border-emerald-200 bg-emerald-50 p-6"
+              role="status"
+              aria-live="polite"
+            >
+              <div
+                class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"
+              >
                 <app-icon name="check" [size]="24" />
               </div>
               <h2 class="mt-4 text-lg font-bold text-emerald-900">
@@ -57,7 +69,8 @@ import { IconComponent } from '../../shared/ui/icon'
               </h2>
               <p class="mt-2 text-sm leading-6 text-emerald-800">
                 {{ 'auth.requestReset.sentText' | translate }}
-                <strong>{{ accountEmail() }}</strong>.
+                <strong>{{ accountEmail() }}</strong
+                >.
               </p>
               <div class="mt-5 flex flex-col gap-3 sm:flex-row">
                 <button
@@ -115,7 +128,9 @@ import { IconComponent } from '../../shared/ui/icon'
                 (click)="submit()"
               >
                 @if (loading()) {
-                  <span class="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                  <span
+                    class="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                  ></span>
                   {{ 'auth.requestReset.submitting' | translate }}
                 } @else {
                   {{ 'auth.requestReset.submit' | translate }}

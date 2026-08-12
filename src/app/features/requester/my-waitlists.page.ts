@@ -121,8 +121,9 @@ import { ToastService } from '../../shared/ui/toast.service'
                     <p class="text-xs font-black text-emerald-800">Thời gian giữ chỗ còn lại</p>
                     <p class="mt-2 text-2xl font-black text-emerald-700">{{ countdown(item) }}</p>
                     <p class="mt-1 text-[11px] text-emerald-700/70">
-                      Phòng được giữ ưu tiên tối đa 30 phút kể từ {{ item.notifiedAt | date: 'HH:mm:ss' }}.
-                      Thiết bị không được giữ và sẽ chọn lại khi tạo booking.
+                      Phòng được giữ ưu tiên tối đa 30 phút kể từ
+                      {{ item.notifiedAt | date: 'HH:mm:ss' }}. Thiết bị không được giữ và sẽ chọn
+                      lại khi tạo booking.
                     </p>
                   </div>
                 }

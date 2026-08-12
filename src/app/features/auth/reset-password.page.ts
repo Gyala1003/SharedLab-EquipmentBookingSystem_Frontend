@@ -163,7 +163,7 @@ import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher'
                 role="alert"
                 aria-live="assertive"
                 tabindex="-1"
-                class="flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 outline-none ring-rose-200 focus:ring-2"
+                class="flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 ring-rose-200 outline-none focus:ring-2"
               >
                 <app-icon name="alert" [size]="18" />
                 <div>

@@ -17,6 +17,25 @@
     "closeTab": "Đóng tab này",
     "goLogin": "Về trang đăng nhập"
   },
+  "COMMON": {
+    "SEARCH": "Tìm kiếm...",
+    "FILTER": "Lọc",
+    "ACTION": "Hành động",
+    "STATUS": "Trạng thái",
+    "LOADING": "Đang tải..."
+  },
+  "NAV": {
+    "HOME": "Trang chủ",
+    "LABS": "Phòng thí nghiệm",
+    "EQUIPMENTS": "Thiết bị",
+    "MY_BOOKINGS": "Booking của tôi",
+    "PENDING_BOOKINGS": "Yêu cầu cần duyệt"
+  },
+  "TOAST": {
+    "SUCCESS": "Thao tác thành công",
+    "ERROR": "Thao tác thất bại",
+    "UPDATE_SUCCESS": "Cập nhật thành công"
+  },
   "PRIORITY": {
     "URGENT": "Khẩn cấp"
   },
@@ -292,5 +311,48 @@
       "disabledTitle": "Đã tắt Maintenance Mode",
       "disabledText": "Hệ thống đã trở về trạng thái vận hành bình thường."
     }
+  },
+  "DASHBOARD": {
+    "MANAGEMENT_SUBTITLE": "Các phòng lab bạn đang quản lý • cập nhật theo khoảng thời gian đã chọn.",
+    "CANCEL_EMERGENCY": "Hủy khẩn cấp",
+    "END_EMERGENCY": "Kết thúc khẩn cấp"
+  },
+  "BOOKING": {
+    "SLOT_RESERVED": "Khung giờ đã được đặt",
+    "CHECKIN_REMINDER": "Nhắc check-in booking",
+    "CHECKOUT_REMINDER": "Nhắc check-out booking",
+    "STATUS": {
+      "PENDING": "Chờ duyệt",
+      "APPROVED": "Đã duyệt",
+      "REJECTED": "Bị từ chối",
+      "CANCELLED": "Đã hủy"
+    },
+    "PRIORITY": {
+      "NORMAL": "Bình thường",
+      "HIGH": "Cao",
+      "URGENT": "Khẩn cấp"
+    }
+  },
+  "LAB": {
+    "BUILDING_A": "Tòa A",
+    "BUILDING_B": "Tòa B",
+    "FLOOR_5": "Tầng 5",
+    "GUIDELINE_DEFAULT": "Không tự ý thay đổi driver GPU hoặc cấu hình hệ thống."
+  },
+  "LABORATORY": {
+    "FLOOR": "Tầng {{floor}} - Tòa {{building}}",
+    "MANAGER": "Quản lý phòng {{id}}",
+    "BUILDING_A": "Tòa A",
+    "BUILDING_B": "Tòa B",
+    "FLOOR_5": "Tầng 5",
+    "GUIDELINE_DEFAULT": "Không tự ý thay đổi driver GPU hoặc cấu hình hệ thống."
+  },
+  "EQUIPMENT": {
+    "SPECTROPHOTOMETER": "Máy quang phổ UV-Vis",
+    "GUIDELINE_CHECK": "Check tình trạng trước khi dùng; báo quản lý phòng nếu phát hiện bất thường."
+  },
+  "NOTIFICATION": {
+    "CHECKIN_REMINDER": "Bạn có lịch sử dụng phòng lúc {{time}}. Please check-in đúng giờ.",
+    "CHECKOUT_REMINDER": "Booking của bạn sẽ End lúc {{time}}. Please mở hệ thống để check-out: {{link}}"
   }
 }

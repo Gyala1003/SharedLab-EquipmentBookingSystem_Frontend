@@ -47,8 +47,11 @@ const EMPTY_DASHBOARD: DashboardResponse = {
             Dashboard tổng quan
           </h1>
           <p class="mt-2 text-sm text-slate-500">
-            {{ store.isAdmin() ? 'Toàn bộ hệ thống' : 'Các phòng lab bạn đang quản lý' }} • cập nhật
-            theo khoảng thời gian đã chọn.
+            {{
+              store.isAdmin()
+                ? 'Toàn bộ hệ thống • cập nhật theo khoảng thời gian đã chọn.'
+                : 'Các phòng lab bạn đang quản lý • cập nhật theo khoảng thời gian đã chọn.'
+            }}
           </p>
         </div>
 

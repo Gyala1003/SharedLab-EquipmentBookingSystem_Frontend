@@ -17,6 +17,25 @@
     "closeTab": "Close this tab",
     "goLogin": "Go to sign in"
   },
+  "COMMON": {
+    "SEARCH": "Search...",
+    "FILTER": "Filter",
+    "ACTION": "Action",
+    "STATUS": "Status",
+    "LOADING": "Loading..."
+  },
+  "NAV": {
+    "HOME": "Home",
+    "LABS": "Laboratories",
+    "EQUIPMENTS": "Equipment",
+    "MY_BOOKINGS": "My Bookings",
+    "PENDING_BOOKINGS": "Pending Bookings"
+  },
+  "TOAST": {
+    "SUCCESS": "Operation successful",
+    "ERROR": "Operation failed",
+    "UPDATE_SUCCESS": "Updated successfully"
+  },
   "PRIORITY": {
     "URGENT": "Urgent"
   },
@@ -292,5 +311,48 @@
       "disabledTitle": "Maintenance Mode disabled",
       "disabledText": "The system has returned to normal operation."
     }
+  },
+  "DASHBOARD": {
+    "MANAGEMENT_SUBTITLE": "Laboratories you manage • updated based on the selected time range.",
+    "CANCEL_EMERGENCY": "Emergency Cancel",
+    "END_EMERGENCY": "Emergency End"
+  },
+  "BOOKING": {
+    "SLOT_RESERVED": "Reserved slot",
+    "CHECKIN_REMINDER": "Check-in reminder",
+    "CHECKOUT_REMINDER": "Check-out reminder",
+    "STATUS": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "PRIORITY": {
+      "NORMAL": "Normal",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    }
+  },
+  "LAB": {
+    "BUILDING_A": "Building A",
+    "BUILDING_B": "Building B",
+    "FLOOR_5": "Floor 5",
+    "GUIDELINE_DEFAULT": "Do not arbitrarily change GPU drivers or system configurations."
+  },
+  "LABORATORY": {
+    "FLOOR": "Floor {{floor}} - Building {{building}}",
+    "MANAGER": "Lab Manager {{id}}",
+    "BUILDING_A": "Building A",
+    "BUILDING_B": "Building B",
+    "FLOOR_5": "Floor 5",
+    "GUIDELINE_DEFAULT": "Do not arbitrarily change GPU drivers or system configurations."
+  },
+  "EQUIPMENT": {
+    "SPECTROPHOTOMETER": "UV-Vis Spectrophotometer",
+    "GUIDELINE_CHECK": "Check condition before use; report any anomalies to the lab manager."
+  },
+  "NOTIFICATION": {
+    "CHECKIN_REMINDER": "You have a scheduled reservation on {{time}}. Please check in on time.",
+    "CHECKOUT_REMINDER": "Your booking will end at {{time}}. Please open the system to check out: {{link}}"
   }
 }
