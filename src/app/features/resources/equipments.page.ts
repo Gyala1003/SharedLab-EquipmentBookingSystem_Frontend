@@ -19,6 +19,7 @@ import {
   isInactiveLabStatus,
   isRetiredEquipmentStatus,
 } from '../../shared/utils/presentation'
+import { validateKeyword } from '../../shared/utils/search'
 
 @Component({
   selector: 'app-equipments-page',
@@ -59,6 +60,7 @@ import {
             ><input
               type="search"
               class="input-shell search-input h-12 pr-10 !pl-11"
+              maxlength="100"
               [(ngModel)]="keyword"
               (ngModelChange)="scheduleSearch()"
               (keyup.enter)="runSearchNow()"
@@ -318,10 +320,20 @@ export class EquipmentsPage implements OnInit, OnDestroy {
   }
   protected scheduleSearch(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer)
+    const validation = validateKeyword(this.keyword)
+    if (!validation.valid) {
+      if (validation.reason) this.toast.info(validation.reason)
+      return
+    }
     this.searchTimer = setTimeout(() => this.runSearchNow(), 400)
   }
   protected runSearchNow(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer)
+    const validation = validateKeyword(this.keyword)
+    if (!validation.valid) {
+      if (validation.reason) this.toast.info(validation.reason)
+      return
+    }
     this.page.set(1)
     this.load()
   }

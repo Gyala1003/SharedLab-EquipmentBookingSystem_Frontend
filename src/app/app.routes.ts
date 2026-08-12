@@ -270,6 +270,20 @@ export const routes: Routes = [
           import('./features/admin/priority-rules.page').then((m) => m.PriorityRulesPage),
       },
       {
+        path: 'admin/policies',
+        canActivate: [roleGuard(['Admin'])],
+        title: 'Chính sách & Nội quy',
+        loadComponent: () =>
+          import('./features/admin/policies.page').then((m) => m.PoliciesPage),
+      },
+      {
+        path: 'management/policies',
+        canActivate: [roleGuard(['LabManager'])],
+        title: 'Chính sách & Nội quy',
+        loadComponent: () =>
+          import('./features/resources/policies-view.page').then((m) => m.PoliciesViewPage),
+      },
+      {
         path: 'notifications/send',
         canActivate: [roleGuard(['Admin'])],
         title: 'Gửi thông báo',

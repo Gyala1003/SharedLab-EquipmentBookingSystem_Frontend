@@ -12,7 +12,7 @@ import { PositiveIntegerDirective } from '../../shared/ui/positive-integer.direc
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
-import { searchIncludes } from '../../shared/utils/search'
+import { searchIncludes, validateKeyword } from '../../shared/utils/search'
 import { apiErrorMessage } from '../../core/http/api-error'
 
 @Component({
@@ -60,9 +60,20 @@ import { apiErrorMessage } from '../../core/http/api-error'
           <input
             type="search"
             class="input-shell search-input pr-10 !pl-11"
+            maxlength="100"
             [(ngModel)]="keyword"
             placeholder="Violation ID, tên người dùng, Booking ID..."
           />
+          @if (keyword) {
+            <button
+              type="button"
+              class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700"
+              aria-label="Xóa từ khóa"
+              (click)="keyword = ''"
+            >
+              <app-icon name="x" [size]="16" />
+            </button>
+          }
         </div>
       </div>
       <div>
@@ -178,6 +189,7 @@ import { apiErrorMessage } from '../../core/http/api-error'
           <label class="field-label">Tìm người dùng</label>
           <input
             class="input-shell mb-3"
+            maxlength="100"
             [(ngModel)]="userSearch"
             name="userSearch"
             placeholder="Tên, username hoặc email..."
@@ -257,13 +269,15 @@ export class ViolationsManagementPage implements OnInit {
     { value: 5, key: 'UnauthorizedUse', label: 'Sử dụng trái phép' },
   ]
   protected filtered(): ViolationResponse[] {
+    const kv = validateKeyword(this.keyword)
+    const safeKeyword = kv.valid ? kv.trimmed : ''
     return this.items()
       .filter(
         (item) =>
           (!this.status || item.status === this.status) &&
           (!this.type || item.violationType === this.type) &&
           searchIncludes(
-            this.keyword,
+            safeKeyword,
             item.violationId,
             item.userId,
             item.userName,
@@ -292,6 +306,11 @@ export class ViolationsManagementPage implements OnInit {
 
   protected scheduleUserSearch(): void {
     if (this.userSearchTimer) clearTimeout(this.userSearchTimer)
+    const validation = validateKeyword(this.userSearch)
+    if (!validation.valid) {
+      if (validation.reason) this.toast.info(validation.reason)
+      return
+    }
     this.userSearchTimer = setTimeout(() => this.loadUsers(), 350)
   }
 

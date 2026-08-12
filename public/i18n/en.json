@@ -167,7 +167,8 @@
       "sendNotification": "Send notification",
       "audit": "Audit logs",
       "roles": "Role directory",
-      "systemMaintenance": "System Maintenance"
+      "systemMaintenance": "System Maintenance",
+      "policies": "Policies & Rules"
     },
     "roles": {
       "admin": "Administrator",

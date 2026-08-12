@@ -15,6 +15,7 @@ import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { SmartImageComponent } from '../../shared/ui/smart-image'
 import { ToastService } from '../../shared/ui/toast.service'
 import { isAvailableLabStatus } from '../../shared/utils/presentation'
+import { validateKeyword } from '../../shared/utils/search'
 
 interface LabForm {
   labName: string
@@ -67,6 +68,7 @@ interface LabForm {
             ><input
               type="search"
               class="input-shell search-input h-12 pr-10 !pl-11"
+              maxlength="100"
               [(ngModel)]="keyword"
               (ngModelChange)="scheduleSearch()"
               (keyup.enter)="runSearchNow()"
@@ -416,6 +418,11 @@ export class LabsPage implements OnInit, OnDestroy {
   }
   protected scheduleSearch(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer)
+    const validation = validateKeyword(this.keyword)
+    if (!validation.valid) {
+      if (validation.reason) this.toast.info(validation.reason)
+      return
+    }
     this.searchTimer = setTimeout(() => {
       this.page.set(1)
       this.load()
@@ -423,6 +430,11 @@ export class LabsPage implements OnInit, OnDestroy {
   }
   protected runSearchNow(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer)
+    const validation = validateKeyword(this.keyword)
+    if (!validation.valid) {
+      if (validation.reason) this.toast.info(validation.reason)
+      return
+    }
     this.page.set(1)
     this.load()
   }

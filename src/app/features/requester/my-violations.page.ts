@@ -10,6 +10,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
+import { PolicyStoreService } from '../../core/state/policy.store'
 
 @Component({
   selector: 'app-my-violations-page',
@@ -161,6 +162,50 @@ import { labelOf } from '../../shared/utils/presentation'
             </table>
           </div>
         }
+
+        <article class="card-surface p-6">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <p class="text-xs font-black tracking-[.15em] text-indigo-500 uppercase">
+                Tham chiếu
+              </p>
+              <h2 class="mt-1 text-lg font-black text-slate-950">Nội quy & Chính sách sử dụng</h2>
+            </div>
+            <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+              <app-icon name="file-text" [size]="20" />
+            </span>
+          </div>
+
+          <div class="mt-5 grid gap-4 md:grid-cols-2">
+            @for (policy of policyStore.list(); track policy.policyId) {
+              <div class="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+                <div class="flex items-center justify-between gap-2">
+                  <span
+                    class="rounded-full px-2.5 py-0.5 text-[11px] font-black"
+                    [class]="
+                      policy.category === 'LabRoom'
+                        ? 'bg-violet-100 text-violet-700'
+                        : policy.category === 'Equipment'
+                          ? 'bg-cyan-100 text-cyan-700'
+                          : 'bg-amber-100 text-amber-700'
+                    "
+                  >
+                    {{
+                      policy.category === 'LabRoom'
+                        ? 'Phòng lab'
+                        : policy.category === 'Equipment'
+                          ? 'Thiết bị'
+                          : 'Chung'
+                    }}
+                  </span>
+                  <span class="text-[11px] font-bold text-slate-400">#POL-{{ policy.policyId }}</span>
+                </div>
+                <h3 class="mt-3 text-sm font-black text-slate-900">{{ policy.title }}</h3>
+                <p class="mt-2 text-xs leading-5 text-slate-600 whitespace-pre-line">{{ policy.content }}</p>
+              </div>
+            }
+          </div>
+        </article>
       }
     </section>
   `,
@@ -169,6 +214,7 @@ export class MyViolationsPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly store = inject(AuthStore)
   private readonly toast = inject(ToastService)
+  protected readonly policyStore = inject(PolicyStoreService)
   protected readonly summary = signal<UserViolationSummaryResponse>({
     userId: 0,
     fullName: '',

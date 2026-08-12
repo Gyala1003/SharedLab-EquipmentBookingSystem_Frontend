@@ -167,7 +167,8 @@
       "sendNotification": "Gửi thông báo",
       "audit": "Nhật ký kiểm toán",
       "roles": "Danh sách vai trò",
-      "systemMaintenance": "Bảo trì hệ thống"
+      "systemMaintenance": "Bảo trì hệ thống",
+      "policies": "Chính sách & Nội quy"
     },
     "roles": {
       "admin": "Quản trị viên",

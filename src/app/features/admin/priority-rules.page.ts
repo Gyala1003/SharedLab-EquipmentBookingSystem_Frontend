@@ -124,18 +124,7 @@ import { labelOf } from '../../shared/utils/presentation'
                       title="Chỉnh sửa"
                       (click)="openEdit(rule)"
                     >
-                      <app-icon name="edit" [size]="17" /></button
-                    ><button
-                      class="rounded-xl p-2 text-slate-400"
-                      [ngClass]="
-                        isActive(rule)
-                          ? 'hover:bg-rose-50 hover:text-rose-600'
-                          : 'hover:bg-emerald-50 hover:text-emerald-600'
-                      "
-                      [title]="isActive(rule) ? 'Tạm ngừng' : 'Kích hoạt'"
-                      (click)="toggle(rule)"
-                    >
-                      <app-icon [name]="isActive(rule) ? 'pause' : 'play'" [size]="17" />
+                      <app-icon name="edit" [size]="17" />
                     </button>
                   </div>
                 </div>

@@ -317,6 +317,11 @@ export class AppLayoutComponent implements OnInit {
           icon: 'shield-alert',
           route: '/app/management/violations',
         },
+        {
+          labelKey: 'layout.items.policies',
+          icon: 'file-text',
+          route: '/app/management/policies',
+        },
         { labelKey: 'layout.items.reports', icon: 'chart', route: '/app/reports' },
       ],
     },
@@ -327,6 +332,7 @@ export class AppLayoutComponent implements OnInit {
         { labelKey: 'layout.items.users', icon: 'users', route: '/app/admin/users' },
         { labelKey: 'layout.items.departments', icon: 'building', route: '/app/admin/departments' },
         { labelKey: 'layout.items.priority', icon: 'layers', route: '/app/admin/priority-rules' },
+        { labelKey: 'layout.items.policies', icon: 'file-text', route: '/app/admin/policies' },
         { labelKey: 'layout.items.reports', icon: 'chart', route: '/app/reports' },
         {
           labelKey: 'layout.items.sendNotification',

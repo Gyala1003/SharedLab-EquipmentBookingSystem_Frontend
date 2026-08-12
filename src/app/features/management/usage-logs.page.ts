@@ -11,6 +11,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf, toDateInput, toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
+import { validateKeyword } from '../../shared/utils/search'
 
 @Component({
   selector: 'app-usage-logs-page',
@@ -62,9 +63,20 @@ import { labelOf, toDateInput, toIso, toLocalDateTimeInput } from '../../shared/
           <input
             type="search"
             class="input-shell search-input pr-10 !pl-11"
+            maxlength="100"
             [(ngModel)]="keyword"
             placeholder="Mã log, mã booking..."
           />
+          @if (keyword) {
+            <button
+              type="button"
+              class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700"
+              aria-label="Xóa từ khóa"
+              (click)="keyword = ''"
+            >
+              <app-icon name="x" [size]="16" />
+            </button>
+          }
         </div>
       </div>
       <div>
@@ -220,7 +232,8 @@ export class UsageLogsPage implements OnInit {
   protected selectedCheckin = ''
   protected readonly labelOf = labelOf
   protected filtered(): UsageLogResponse[] {
-    const needle = this.keyword.trim()
+    const kv = validateKeyword(this.keyword)
+    const needle = kv.valid ? kv.trimmed : ''
     return this.items()
       .filter(
         (item) =>

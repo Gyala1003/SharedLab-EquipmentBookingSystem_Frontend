@@ -95,7 +95,33 @@ textarea:focus-visible {
 .input-shell.search-input,
 input.search-input,
 input[type='search'] {
+  box-sizing: border-box;
   padding-left: 2.75rem !important;
+  padding-right: 2.5rem !important;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Hide default browser search cancel button to prevent overlap with custom X button */
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-decoration,
+input[type='search']::-webkit-search-results-button,
+input[type='search']::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+input[type='search']::-ms-clear,
+input[type='search']::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+button[aria-label="Xóa từ khóa"] {
+  z-index: 10;
 }
 
 .input-shell:hover {

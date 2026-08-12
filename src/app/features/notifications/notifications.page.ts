@@ -10,7 +10,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
 import { isNotificationVisibleForRole } from '../../shared/utils/notification-visibility'
 import { stripTechnicalIds } from '../../shared/utils/presentation'
-import { searchIncludes } from '../../shared/utils/search'
+import { searchIncludes, validateKeyword } from '../../shared/utils/search'
 
 type NotificationTab = 'all' | 'unread'
 
@@ -91,8 +91,19 @@ type NotificationTab = 'all' | 'unread'
                     [(ngModel)]="searchText"
                     type="search"
                     placeholder="Tìm trong thông báo..."
-                    class="search-input h-10 w-full rounded-xl border border-slate-200 bg-white pr-3 !pl-10 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400"
+                    maxlength="100"
+                    class="search-input h-10 w-full rounded-xl border border-slate-200 bg-white pr-10 !pl-10 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400"
                   />
+                  @if (searchText) {
+                    <button
+                      type="button"
+                      class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700"
+                      aria-label="Xóa từ khóa"
+                      (click)="searchText = ''"
+                    >
+                      <app-icon name="x" [size]="15" />
+                    </button>
+                  }
                 </div>
                 <div class="relative">
                   <span
@@ -438,7 +449,8 @@ export class NotificationsPage implements OnInit {
     [...new Set(this.notifications().map((item) => item.notificationType))].sort(),
   )
   protected filteredNotifications(): NotificationResponse[] {
-    const query = this.searchText.trim()
+    const kv = validateKeyword(this.searchText)
+    const query = kv.valid ? kv.trimmed : ''
     return this.notifications().filter((item) => {
       const matchesType = this.typeFilter === 'all' || item.notificationType === this.typeFilter
       const matchesQuery = searchIncludes(query, item.title, item.message)

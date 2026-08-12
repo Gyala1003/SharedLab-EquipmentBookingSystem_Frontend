@@ -3,14 +3,14 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import type { Observable } from 'rxjs'
 import { SystemService } from '../../core/api/system.service'
-import type { DepartmentResponse } from '../../core/api/system.models'
+import type { DepartmentResponse, UserManagementResponse } from '../../core/api/system.models'
 import { DataStateComponent } from '../../shared/ui/data-state'
 import { IconComponent } from '../../shared/ui/icon'
 import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { searchIncludes } from '../../shared/utils/search'
+import { searchIncludes, validateKeyword } from '../../shared/utils/search'
 
 @Component({
   selector: 'app-departments-page',
@@ -61,9 +61,20 @@ import { searchIncludes } from '../../shared/utils/search'
             ><input
               type="search"
               class="input-shell search-input pr-10 !pl-11"
+              maxlength="100"
               [(ngModel)]="keyword"
               placeholder="Tên hoặc mô tả đơn vị..."
             />
+            @if (keyword) {
+              <button
+                type="button"
+                class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700"
+                aria-label="Xóa từ khóa"
+                (click)="keyword = ''"
+              >
+                <app-icon name="x" [size]="16" />
+              </button>
+            }
           </div>
         </div>
         <div>
@@ -127,6 +138,13 @@ import { searchIncludes } from '../../shared/utils/search'
                     >#DEP-{{ department.departmentId }}</span
                   >
                   <div class="flex gap-1">
+                    <button
+                      class="rounded-xl p-2 text-slate-400 hover:bg-cyan-50 hover:text-cyan-600"
+                      title="Xem thành viên"
+                      (click)="openMembers(department)"
+                    >
+                      <app-icon name="users" [size]="17" />
+                    </button>
                     <button
                       class="rounded-xl p-2 text-slate-400 hover:bg-violet-50 hover:text-violet-600"
                       title="Chỉnh sửa"
@@ -212,6 +230,78 @@ import { searchIncludes } from '../../shared/utils/search'
           </button>
         </div></app-modal
       >
+
+      <app-modal
+        [open]="membersTarget() !== null"
+        [title]="'Thành viên · ' + (membersTarget()?.departmentName || '')"
+        [subtitle]="'Danh sách tài khoản thuộc đơn vị công tác này (' + filteredMembers().length + ' thành viên)'"
+        width="720px"
+        (close)="membersTarget.set(null)"
+      >
+        <div class="space-y-4">
+          <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <p class="text-xs font-bold text-slate-500">Bộ lọc trạng thái tài khoản</p>
+            <select class="input-shell !h-9 text-xs w-48" [(ngModel)]="membersStatusFilter">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Ngừng hoạt động</option>
+            </select>
+          </div>
+
+          @if (membersLoading()) {
+            <div class="space-y-3 py-4">
+              @for (item of [1, 2, 3]; track item) {
+                <div class="skeleton h-14 rounded-2xl"></div>
+              }
+            </div>
+          } @else if (filteredMembers().length === 0) {
+            <app-data-state
+              icon="users"
+              title="Không có thành viên phù hợp"
+              message="Chưa có tài khoản người dùng nào thuộc đơn vị này theo bộ lọc."
+            />
+          } @else {
+            <div class="max-h-96 overflow-y-auto">
+              <table class="table-shell">
+                <thead>
+                  <tr>
+                    <th>Người dùng</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (user of filteredMembers(); track user.userId) {
+                    <tr>
+                      <td>
+                        <div class="flex items-center gap-3">
+                          <div
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xs font-black text-indigo-700"
+                          >
+                            {{ initials(user.fullName) }}
+                          </div>
+                          <div>
+                            <p class="font-bold text-slate-900">{{ user.fullName }}</p>
+                            <p class="text-xs text-slate-400">{{ user.username }} · {{ user.email }}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-xs font-black text-indigo-700">
+                          {{ roleLabel(user.roleName) }}
+                        </span>
+                      </td>
+                      <td>
+                        <app-status-badge [value]="user.status" domain="user" />
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </app-modal>
     </section>
   `,
 })
@@ -224,6 +314,10 @@ export class DepartmentsPage implements OnInit {
   protected readonly formOpen = signal(false)
   protected readonly editingId = signal<number | null>(null)
   protected readonly toggleTarget = signal<DepartmentResponse | null>(null)
+  protected readonly membersTarget = signal<DepartmentResponse | null>(null)
+  protected readonly members = signal<UserManagementResponse[]>([])
+  protected readonly membersLoading = signal(false)
+  protected membersStatusFilter = 'all'
   protected keyword = ''
   protected statusFilter = 'all'
   protected form = { departmentName: '', description: '' }
@@ -231,11 +325,13 @@ export class DepartmentsPage implements OnInit {
     () => this.departments().filter((item) => this.isActive(item.status)).length,
   )
   protected filtered(): DepartmentResponse[] {
+    const kv = validateKeyword(this.keyword)
+    const safeKeyword = kv.valid ? kv.trimmed : ''
     return this.departments().filter((item) => {
       const statusMatches =
         this.statusFilter === 'all' ||
         (this.statusFilter === 'active' ? this.isActive(item.status) : !this.isActive(item.status))
-      const keywordMatches = searchIncludes(this.keyword, item.departmentName, item.description)
+      const keywordMatches = searchIncludes(safeKeyword, item.departmentName, item.description)
       return statusMatches && keywordMatches
     })
   }
@@ -251,6 +347,55 @@ export class DepartmentsPage implements OnInit {
     this.form = { departmentName: '', description: '' }
     this.formOpen.set(true)
   }
+  protected openMembers(department: DepartmentResponse): void {
+    this.membersTarget.set(department)
+    this.membersLoading.set(true)
+    this.members.set([])
+    this.api
+      .users({
+        departmentId: department.departmentId,
+        pageSize: 100,
+      })
+      .subscribe({
+        next: (response) => {
+          this.members.set(response.items)
+          this.membersLoading.set(false)
+        },
+        error: () => {
+          this.membersLoading.set(false)
+          this.toast.error('Không tải được danh sách thành viên')
+        },
+      })
+  }
+
+  protected filteredMembers(): UserManagementResponse[] {
+    return this.members().filter((user) => {
+      if (this.membersStatusFilter === 'all') return true
+      if (this.membersStatusFilter === 'active')
+        return user.status === 1 || user.status === '1' || user.status === 'Active'
+      if (this.membersStatusFilter === 'inactive')
+        return user.status === 2 || user.status === '2' || user.status === 'Inactive'
+      return true
+    })
+  }
+
+  protected initials(name: string): string {
+    return name
+      .trim()
+      .split(/\s+/)
+      .slice(-2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('')
+  }
+
+  protected roleLabel(role: string): string {
+    return role === 'Admin'
+      ? 'Quản trị viên'
+      : role === 'LabManager'
+        ? 'Quản lý phòng lab'
+        : 'Người đặt lịch'
+  }
+
   protected openEdit(item: DepartmentResponse): void {
     this.editingId.set(item.departmentId)
     this.form = { departmentName: item.departmentName, description: item.description ?? '' }

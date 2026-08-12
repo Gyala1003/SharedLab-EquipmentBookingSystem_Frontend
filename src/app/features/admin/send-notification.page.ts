@@ -9,7 +9,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { ToastService } from '../../shared/ui/toast.service'
 import { ApiError, apiErrorMessage } from '../../core/http/api-error'
-import { searchIncludes } from '../../shared/utils/search'
+import { searchIncludes, validateKeyword } from '../../shared/utils/search'
 
 interface NotificationRecipient {
   userId: number
@@ -60,11 +60,22 @@ interface NotificationRecipient {
                 ><input
                   type="search"
                   class="input-shell search-input pr-10 !pl-11"
+                  maxlength="100"
                   [(ngModel)]="userSearch"
                   name="userSearch"
                   placeholder="Tìm theo họ tên, username hoặc email..."
                   (ngModelChange)="scheduleUserSearch()"
                 />
+                @if (userSearch) {
+                  <button
+                    type="button"
+                    class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700"
+                    aria-label="Xóa từ khóa"
+                    (click)="userSearch = ''; scheduleUserSearch()"
+                  >
+                    <app-icon name="x" [size]="16" />
+                  </button>
+                }
               </div>
               <div
                 class="mt-3 max-h-56 overflow-auto rounded-2xl border border-slate-100 bg-slate-50/60 p-2"
@@ -369,6 +380,12 @@ export class SendNotificationPage implements OnInit {
     // Admin can search the full user directory. Lab Managers search locally
     // within requesters who have bookings in their management scope.
     if (!this.store.isAdmin()) return
+
+    const validation = validateKeyword(this.userSearch)
+    if (!validation.valid) {
+      if (validation.reason) this.toast.info(validation.reason)
+      return
+    }
 
     this.userSearchTimer = setTimeout(() => this.loadUsers(), 300)
   }

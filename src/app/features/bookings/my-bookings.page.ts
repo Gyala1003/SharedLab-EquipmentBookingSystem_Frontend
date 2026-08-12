@@ -12,7 +12,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
 import { labelOf } from '../../shared/utils/presentation'
-import { searchIncludes } from '../../shared/utils/search'
+import { searchIncludes, validateKeyword } from '../../shared/utils/search'
 
 @Component({
   selector: 'app-my-bookings-page',
@@ -85,9 +85,20 @@ import { searchIncludes } from '../../shared/utils/search'
             ><input
               type="search"
               class="input-shell search-input h-11 pr-10 !pl-10"
+              maxlength="100"
               [(ngModel)]="keyword"
               placeholder="Tìm theo mục đích"
             />
+            @if (keyword) {
+              <button
+                type="button"
+                class="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700"
+                aria-label="Xóa từ khóa"
+                (click)="keyword = ''"
+              >
+                <app-icon name="x" [size]="16" />
+              </button>
+            }
           </div>
         </div>
         @if (loading()) {
@@ -184,11 +195,13 @@ export class MyBookingsPage implements OnInit {
     { value: 'EmergencyEnded', label: 'Kết thúc khẩn cấp' },
   ]
   protected filtered(): BookingResponse[] {
+    const kv = validateKeyword(this.keyword)
+    const safeKeyword = kv.valid ? kv.trimmed : ''
     return [...this.bookings()]
       .filter(
         (item) =>
           (!this.status || item.status === this.status) &&
-          searchIncludes(this.keyword, labelOf('purpose', item.purposeType)),
+          searchIncludes(safeKeyword, labelOf('purpose', item.purposeType)),
       )
       .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
   }
