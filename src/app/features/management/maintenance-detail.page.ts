@@ -13,6 +13,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { formatMoney, labelOf } from '../../shared/utils/presentation'
 
 @Component({
@@ -185,10 +186,11 @@ import { formatMoney, labelOf } from '../../shared/utils/presentation'
   </section>`,
 })
 export class MaintenanceDetailPage implements OnInit, OnDestroy {
-  private readonly api = inject(SystemService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
+  private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   private readonly store = inject(AuthStore)
   protected readonly item = signal<MaintenanceDetailResponse | null>(null)
   protected readonly labs = signal<LabRoomResponse[]>([])
@@ -234,8 +236,17 @@ export class MaintenanceDetailPage implements OnInit, OnDestroy {
     )
   }
 
-  protected action(action: 'complete' | 'cancel' | 'cancel-series'): void {
-    if (!confirm(`Xác nhận ${action} lịch bảo trì #${this.id}?`)) return
+  protected async action(action: 'complete' | 'cancel' | 'cancel-series'): Promise<void> {
+    const isCancel = action === 'cancel' || action === 'cancel-series'
+    const actionLabel = action === 'complete' ? 'hoàn thành' : action === 'cancel' ? 'hủy' : 'hủy chuỗi'
+    const confirmed = await this.confirmDialog.open({
+      title: action === 'complete' ? 'Hoàn thành bảo trì' : 'Hủy bảo trì',
+      message: `Xác nhận ${actionLabel} lịch bảo trì #${this.id}?`,
+      confirmText: action === 'complete' ? 'Hoàn thành' : 'Hủy bảo trì',
+      cancelText: 'Hủy',
+      kind: isCancel ? 'danger' : 'primary',
+    })
+    if (!confirmed) return
     const request =
       action === 'complete'
         ? this.api.completeMaintenance(this.id)

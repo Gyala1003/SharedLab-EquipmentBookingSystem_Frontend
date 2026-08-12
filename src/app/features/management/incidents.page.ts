@@ -9,7 +9,8 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toIso } from '../../shared/utils/presentation'
+import { labelOf, toIso, toDateInput, getMaxPastDateInput, validateDateRange } from '../../shared/utils/presentation'
+import { apiErrorMessage } from '../../core/http/api-error'
 
 @Component({
   selector: 'app-incidents-page',
@@ -31,11 +32,25 @@ import { labelOf, toIso } from '../../shared/utils/presentation'
     <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]">
       <div>
         <label class="field-label">Từ ngày</label
-        ><input class="input-shell" type="date" [(ngModel)]="from" />
+        ><input
+          class="input-shell"
+          type="date"
+          min="2000-01-01"
+          [max]="maxPastDate"
+          [(ngModel)]="from"
+          (change)="load()"
+        />
       </div>
       <div>
         <label class="field-label">Đến ngày</label
-        ><input class="input-shell" type="date" [(ngModel)]="to" />
+        ><input
+          class="input-shell"
+          type="date"
+          min="2000-01-01"
+          [max]="maxPastDate"
+          [(ngModel)]="to"
+          (change)="load()"
+        />
       </div>
       <div>
         <label class="field-label">Trạng thái duyệt</label
@@ -178,6 +193,7 @@ export class IncidentsPage implements OnInit {
   protected status = 'Pending'
   protected reviewAction: 'confirm' | 'reject' = 'confirm'
   protected reviewNote = ''
+  protected maxPastDate = getMaxPastDateInput()
   protected readonly labelOf = labelOf
   protected filtered(): UsageLogResponse[] {
     return this.items().filter((item) => !this.status || item.incidentReviewStatus === this.status)
@@ -186,8 +202,8 @@ export class IncidentsPage implements OnInit {
     const now = new Date()
     const start = new Date()
     start.setDate(start.getDate() - 30)
-    this.from = start.toISOString().slice(0, 10)
-    this.to = now.toISOString().slice(0, 10)
+    this.from = toDateInput(start)
+    this.to = toDateInput(now)
     this.loadEquipments()
     this.load()
   }
@@ -218,10 +234,23 @@ export class IncidentsPage implements OnInit {
         )
         this.load()
       },
-      error: () => this.toast.error('Không thể xét duyệt sự cố'),
+      error: (err: unknown) => this.toast.error('Không thể xét duyệt sự cố', apiErrorMessage(err)),
     })
   }
   protected load(): void {
+    if (this.from || this.to) {
+      const validation = validateDateRange({
+        from: this.from,
+        to: this.to,
+        maxYear: new Date().getFullYear(),
+      })
+      if (!validation.valid && validation.error) {
+        this.toast.error('Khoảng ngày không hợp lệ', validation.error)
+        this.loading.set(false)
+        return
+      }
+    }
+
     this.loading.set(true)
     const from = this.from ? new Date(this.from + 'T00:00:00').toISOString() : undefined
     const to = this.to ? new Date(this.to + 'T23:59:59').toISOString() : undefined
@@ -230,9 +259,9 @@ export class IncidentsPage implements OnInit {
         this.items.set(x)
         this.loading.set(false)
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false)
-        this.toast.error('Không tải được danh sách sự cố')
+        this.toast.error('Không tải được danh sách sự cố', apiErrorMessage(err))
       },
     })
   }

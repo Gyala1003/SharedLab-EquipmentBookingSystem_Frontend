@@ -11,6 +11,7 @@ import { AuthStore } from '../../core/auth/auth.store'
 import { ApiError, apiErrorMessage } from '../../core/http/api-error'
 import { IconComponent } from '../../shared/ui/icon'
 import { ToastService } from '../../shared/ui/toast.service'
+import { getMaxPastDateInput, validateDateRange } from '../../shared/utils/presentation'
 
 const EMPTY_DASHBOARD: DashboardResponse = {
   from: '',
@@ -63,6 +64,8 @@ const EMPTY_DASHBOARD: DashboardResponse = {
             <input
               [(ngModel)]="fromDate"
               type="date"
+              min="2000-01-01"
+              [max]="maxPastDate"
               class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700"
             />
           </div>
@@ -72,6 +75,8 @@ const EMPTY_DASHBOARD: DashboardResponse = {
             <input
               [(ngModel)]="toDate"
               type="date"
+              min="2000-01-01"
+              [max]="maxPastDate"
               class="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700"
             />
           </div>
@@ -623,6 +628,7 @@ export class DashboardPage implements OnInit {
   ]
   protected fromDate = ''
   protected toDate = ''
+  protected maxPastDate = getMaxPastDateInput()
   protected readonly resourceTab = signal<'labs' | 'equipments'>('labs')
 
   protected readonly metricCards = computed(() => {
@@ -724,10 +730,17 @@ export class DashboardPage implements OnInit {
 
   protected load(): void {
     if (!this.fromDate || !this.toDate) return
-    if (new Date(this.fromDate) > new Date(this.toDate)) {
-      this.toast.error('Khoảng ngày không hợp lệ', 'Ngày bắt đầu phải trước ngày kết thúc.')
+
+    const rangeVal = validateDateRange({
+      from: this.fromDate,
+      to: this.toDate,
+      maxYear: new Date().getFullYear(),
+    })
+    if (!rangeVal.valid) {
+      this.toast.error('Khoảng ngày không hợp lệ', rangeVal.error || 'Vui lòng kiểm tra lại khoảng ngày đã chọn.')
       return
     }
+
     this.loading.set(true)
     const from = new Date(`${this.fromDate}T00:00:00`).toISOString()
     const to = new Date(`${this.toDate}T23:59:59`).toISOString()

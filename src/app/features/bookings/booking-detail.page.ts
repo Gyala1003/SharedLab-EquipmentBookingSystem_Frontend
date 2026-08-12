@@ -17,6 +17,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf } from '../../shared/utils/presentation'
 import { apiErrorMessage } from '../../core/http/api-error'
 
@@ -464,10 +465,11 @@ import { apiErrorMessage } from '../../core/http/api-error'
   `,
 })
 export class BookingDetailPage implements OnInit {
-  private readonly api = inject(SystemService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
+  private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly booking = signal<BookingDetailResponse | null>(null)
   protected readonly logs = signal<UsageLogResponse[]>([])
@@ -618,7 +620,7 @@ export class BookingDetailPage implements OnInit {
       .map((x) => x[0]?.toUpperCase() ?? '')
       .join('')
   }
-  protected action(action: 'approve' | 'cancel' | 'complete' | 'no-show'): void {
+  protected async action(action: 'approve' | 'cancel' | 'complete' | 'no-show'): Promise<void> {
     if (action === 'approve' && !this.canApprove()) {
       this.toast.info('Bạn không có quyền duyệt booking này')
       return
@@ -636,7 +638,23 @@ export class BookingDetailPage implements OnInit {
       return
     }
     const bookingLabel = this.store.isRequester() ? 'booking này' : `booking #${this.id}`
-    if (!confirm(`Xác nhận thao tác ${action} ${bookingLabel}?`)) return
+    const isDanger = action === 'cancel' || action === 'no-show'
+    const actionMap: Record<string, string> = {
+      approve: 'Duyệt',
+      cancel: 'Hủy',
+      complete: 'Hoàn thành',
+      'no-show': 'Đánh dấu không đến',
+    }
+    const actionText = actionMap[action] ?? action
+
+    const confirmed = await this.confirmDialog.open({
+      title: `${actionText} booking`,
+      message: `Xác nhận thao tác ${actionText.toLowerCase()} ${bookingLabel}?`,
+      confirmText: actionText,
+      cancelText: 'Hủy',
+      kind: isDanger ? 'danger' : 'primary',
+    })
+    if (!confirmed) return
     const request =
       action === 'approve'
         ? this.api.approveBooking(this.id)
@@ -694,12 +712,19 @@ export class BookingDetailPage implements OnInit {
     })
   }
 
-  protected checkOutBooking(): void {
+  protected async checkOutBooking(): Promise<void> {
     if (!this.canCheckOutBooking()) {
       this.toast.info('Booking chưa đủ điều kiện để check-out toàn bộ')
       return
     }
-    if (!confirm('Xác nhận check-out toàn bộ phòng và thiết bị trong booking?')) return
+    const confirmed = await this.confirmDialog.open({
+      title: 'Check-out booking',
+      message: 'Xác nhận check-out toàn bộ phòng và thiết bị trong booking?',
+      confirmText: 'Check-out',
+      cancelText: 'Hủy',
+      kind: 'primary',
+    })
+    if (!confirmed) return
 
     this.acting.set(true)
     this.api.checkOutBooking(this.id).subscribe({

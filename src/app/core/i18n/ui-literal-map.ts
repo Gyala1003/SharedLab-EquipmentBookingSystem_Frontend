@@ -1222,4 +1222,21 @@ export const UI_EN_LITERAL_MAP: Readonly<Record<string, string>> = {
   'Ẩn mật khẩu': 'Hide password',
   '• cập nhật theo khoảng thời gian đã chọn.': '• updated for the selected period.',
   '• tối đa': '• maximum',
+  'Xác nhận hành động': 'Confirm Action',
+  'Xác nhận xử lý': 'Confirm Resolution',
+  'Hủy vi phạm': 'Cancel Violation',
+  'Xử lý vi phạm': 'Process Violation',
+  'Kích hoạt phòng lab': 'Activate Lab',
+  'Ngừng sử dụng phòng lab': 'Deactivate Lab',
+  'Kích hoạt thiết bị': 'Activate Equipment',
+  'Ngừng sử dụng thiết bị': 'Deactivate Equipment',
+  'Hoàn thành booking': 'Complete Booking',
+  'Đánh dấu không đến': 'Mark No-Show',
+  'Hủy hàng chờ': 'Cancel Waitlist Entry',
+  'Cho hết hạn waitlist': 'Expire Waitlist Entry',
+  'Hủy waitlist': 'Cancel Waitlist',
+  'Hoàn thành bảo trì': 'Complete Maintenance',
+  'Check-out booking': 'Check Out Booking',
 }
+
+

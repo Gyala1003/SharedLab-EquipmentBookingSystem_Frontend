@@ -10,7 +10,7 @@ import { ModalComponent } from '../../shared/ui/modal'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toDateInput, toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
+import { labelOf, toDateInput, toIso, toLocalDateTimeInput, getMaxPastDateInput, validateDateRange } from '../../shared/utils/presentation'
 import { apiErrorMessage } from '../../core/http/api-error'
 import { validateKeyword } from '../../shared/utils/search'
 
@@ -99,11 +99,25 @@ import { validateKeyword } from '../../shared/utils/search'
       </div>
       <div>
         <label class="field-label">Từ ngày</label
-        ><input class="input-shell" type="date" [(ngModel)]="from" />
+        ><input
+          class="input-shell"
+          type="date"
+          min="2000-01-01"
+          [max]="maxPastDate"
+          [(ngModel)]="from"
+          (change)="onDateChange()"
+        />
       </div>
       <div>
         <label class="field-label">Đến ngày</label
-        ><input class="input-shell" type="date" [(ngModel)]="to" />
+        ><input
+          class="input-shell"
+          type="date"
+          min="2000-01-01"
+          [max]="maxPastDate"
+          [(ngModel)]="to"
+          (change)="onDateChange()"
+        />
       </div>
       <div class="flex items-end">
         <button class="btn-secondary w-full" (click)="reset()">
@@ -237,10 +251,28 @@ export class UsageLogsPage implements OnInit {
   private selectedId = 0
   protected selectedCheckin = ''
   protected readonly labelOf = labelOf
-  protected filtered(): UsageLogResponse[] {
-    if (this.from && this.to && this.from > this.to) {
-      this.toast.info('Từ ngày phải nhỏ hơn hoặc bằng Đến ngày')
+  protected maxPastDate = getMaxPastDateInput()
+  protected onDateChange(): void {
+    if (this.from || this.to) {
+      const validation = validateDateRange({
+        from: this.from,
+        to: this.to,
+        maxYear: new Date().getFullYear(),
+      })
+      if (!validation.valid && validation.error) {
+        this.toast.error('Khoảng ngày không hợp lệ', validation.error)
+      }
     }
+  }
+
+  protected filtered(): UsageLogResponse[] {
+    const dateVal = validateDateRange({
+      from: this.from,
+      to: this.to,
+      maxYear: new Date().getFullYear(),
+    })
+    if (!dateVal.valid) return []
+
     const kv = validateKeyword(this.keyword)
     const needle = kv.valid ? kv.trimmed : ''
     return this.items()

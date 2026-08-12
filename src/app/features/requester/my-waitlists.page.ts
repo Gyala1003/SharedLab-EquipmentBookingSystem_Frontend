@@ -14,6 +14,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 
 @Component({
   selector: 'app-my-waitlists-page',
@@ -150,6 +151,7 @@ export class MyWaitlistsPage implements OnInit, OnDestroy {
   private readonly store = inject(AuthStore)
   private readonly router = inject(Router)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly items = signal<WaitlistResponse[]>([])
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly equipments = signal<EquipmentResponse[]>([])
@@ -219,8 +221,15 @@ export class MyWaitlistsPage implements OnInit, OnDestroy {
       },
     })
   }
-  protected cancel(item: WaitlistResponse): void {
-    if (!confirm('Hủy lượt hàng chờ này?')) return
+  protected async cancel(item: WaitlistResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.open({
+      title: 'Hủy hàng chờ',
+      message: 'Hủy lượt hàng chờ này?',
+      confirmText: 'Hủy hàng chờ',
+      cancelText: 'Quay lại',
+      kind: 'danger',
+    })
+    if (!confirmed) return
     this.api.cancelWaitlist(item.waitlistId).subscribe({
       next: () => {
         this.toast.success('Đã hủy hàng chờ')

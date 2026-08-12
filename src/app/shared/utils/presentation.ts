@@ -230,3 +230,87 @@ export function stripTechnicalIds(value: string): string {
     .replace(/\s+([.,;:!?])/g, '$1')
     .trim()
 }
+
+export const MIN_DATE_INPUT = '2000-01-01'
+
+export function getMaxPastDateInput(): string {
+  return `${new Date().getFullYear()}-12-31`
+}
+
+export function getMaxFutureDateInput(): string {
+  return `${new Date().getFullYear() + 2}-12-31`
+}
+
+export interface DateFilterOptions {
+  from?: string
+  to?: string
+  minYear?: number
+  maxYear?: number
+  maxDays?: number
+  allowEqual?: boolean
+}
+
+export interface DateValidationResult {
+  valid: boolean
+  error?: string
+}
+
+export function validateDateRange(options: DateFilterOptions): DateValidationResult {
+  const minYear = options.minYear ?? 2000
+  const currentYear = new Date().getFullYear()
+  const maxYear = options.maxYear ?? currentYear
+  const allowEqual = options.allowEqual ?? true
+
+  if (options.from) {
+    const fromYear = parseInt(options.from.slice(0, 4), 10)
+    if (isNaN(fromYear) || fromYear < minYear || fromYear > maxYear) {
+      return {
+        valid: false,
+        error: `Năm của "Từ ngày" phải nằm trong khoảng ${minYear}–${maxYear}.`,
+      }
+    }
+    const fromDate = new Date(options.from)
+    if (isNaN(fromDate.getTime())) {
+      return { valid: false, error: 'Định dạng "Từ ngày" không hợp lệ.' }
+    }
+  }
+
+  if (options.to) {
+    const toYear = parseInt(options.to.slice(0, 4), 10)
+    if (isNaN(toYear) || toYear < minYear || toYear > maxYear) {
+      return {
+        valid: false,
+        error: `Năm của "Đến ngày" phải nằm trong khoảng ${minYear}–${maxYear}.`,
+      }
+    }
+    const toDate = new Date(options.to)
+    if (isNaN(toDate.getTime())) {
+      return { valid: false, error: 'Định dạng "Đến ngày" không hợp lệ.' }
+    }
+  }
+
+  if (options.from && options.to) {
+    const fromDate = new Date(options.from)
+    const toDate = new Date(options.to)
+    if (allowEqual ? fromDate > toDate : fromDate >= toDate) {
+      return {
+        valid: false,
+        error: '"Từ ngày" phải nhỏ hơn hoặc bằng "Đến ngày".',
+      }
+    }
+
+    if (options.maxDays) {
+      const diffTime = Math.abs(toDate.getTime() - fromDate.getTime())
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      if (diffDays > options.maxDays) {
+        return {
+          valid: false,
+          error: `Khoảng thời gian chọn không được vượt quá ${options.maxDays} ngày.`,
+        }
+      }
+    }
+  }
+
+  return { valid: true }
+}
+

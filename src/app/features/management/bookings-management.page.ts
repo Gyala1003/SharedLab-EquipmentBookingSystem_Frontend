@@ -10,7 +10,9 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toDateInput } from '../../shared/utils/presentation'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
+import { labelOf, toDateInput, getMaxFutureDateInput, validateDateRange } from '../../shared/utils/presentation'
+import { apiErrorMessage } from '../../core/http/api-error'
 import { searchIncludes, validateKeyword } from '../../shared/utils/search'
 
 type BookingManagementView = BookingResponse & { userName: string }
@@ -90,11 +92,25 @@ type BookingManagementView = BookingResponse & { userName: string }
         </div>
         <div>
           <label class="field-label">Từ ngày</label
-          ><input class="input-shell" type="date" [(ngModel)]="from" />
+          ><input
+            class="input-shell"
+            type="date"
+            min="2000-01-01"
+            [max]="maxFutureDate"
+            [(ngModel)]="from"
+            (change)="onDateChange()"
+          />
         </div>
         <div>
           <label class="field-label">Đến ngày</label
-          ><input class="input-shell" type="date" [(ngModel)]="to" />
+          ><input
+            class="input-shell"
+            type="date"
+            min="2000-01-01"
+            [max]="maxFutureDate"
+            [(ngModel)]="to"
+            (change)="onDateChange()"
+          />
         </div>
         <div class="flex items-end">
           <button class="btn-secondary w-full" (click)="reset()">
@@ -215,6 +231,7 @@ type BookingManagementView = BookingResponse & { userName: string }
 export class BookingsManagementPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly items = signal<BookingManagementView[]>([])
   protected readonly loading = signal(true)
   protected keyword = ''
@@ -232,7 +249,28 @@ export class BookingsManagementPage implements OnInit {
     { value: 'EmergencyCancelled', label: 'Hủy khẩn cấp' },
     { value: 'EmergencyEnded', label: 'Kết thúc khẩn cấp' },
   ]
+  protected maxFutureDate = getMaxFutureDateInput()
+  protected onDateChange(): void {
+    if (this.from || this.to) {
+      const validation = validateDateRange({
+        from: this.from,
+        to: this.to,
+        maxYear: new Date().getFullYear() + 2,
+      })
+      if (!validation.valid && validation.error) {
+        this.toast.error('Khoảng ngày không hợp lệ', validation.error)
+      }
+    }
+  }
+
   protected filtered(): BookingManagementView[] {
+    const dateVal = validateDateRange({
+      from: this.from,
+      to: this.to,
+      maxYear: new Date().getFullYear() + 2,
+    })
+    if (!dateVal.valid) return []
+
     const kv = validateKeyword(this.keyword)
     const safeKeyword = kv.valid ? kv.trimmed : ''
     return [...this.items()]
@@ -296,15 +334,15 @@ export class BookingsManagementPage implements OnInit {
             this.items.set(resolvedItems)
             this.loading.set(false)
           },
-          error: () => {
+          error: (err: unknown) => {
             this.loading.set(false)
-            this.toast.error('Không tải được tên người đặt')
+            this.toast.error('Không tải được tên người đặt', apiErrorMessage(err))
           },
         })
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false)
-        this.toast.error('Không tải được danh sách booking')
+        this.toast.error('Không tải được danh sách booking', apiErrorMessage(err))
       },
     })
   }
@@ -324,7 +362,7 @@ export class BookingsManagementPage implements OnInit {
     )
   }
 
-  protected action(item: BookingResponse, action: 'complete' | 'no-show'): void {
+  protected async action(item: BookingResponse, action: 'complete' | 'no-show'): Promise<void> {
     if (action === 'complete' && !this.canAttemptComplete(item)) {
       this.toast.info('Chỉ có thể hoàn thành booking sau giờ kết thúc')
       return
@@ -333,7 +371,15 @@ export class BookingsManagementPage implements OnInit {
       this.toast.info('Chỉ có thể đánh dấu không đến sau 30 phút kể từ giờ bắt đầu')
       return
     }
-    if (!confirm(`Xác nhận ${action} booking #${item.bookingId}?`)) return
+    const isComplete = action === 'complete'
+    const confirmed = await this.confirmDialog.open({
+      title: isComplete ? 'Hoàn thành booking' : 'Đánh dấu không đến',
+      message: `Xác nhận ${isComplete ? 'hoàn thành' : 'đánh dấu không đến'} cho booking #${item.bookingId}?`,
+      confirmText: isComplete ? 'Hoàn thành' : 'Đánh dấu không đến',
+      cancelText: 'Hủy',
+      kind: isComplete ? 'primary' : 'danger',
+    })
+    if (!confirmed) return
     const request =
       action === 'complete'
         ? this.api.completeBooking(item.bookingId)

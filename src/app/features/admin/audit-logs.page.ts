@@ -8,7 +8,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { PositiveIntegerDirective } from '../../shared/ui/positive-integer.directive'
 import { ToastService } from '../../shared/ui/toast.service'
-import { toDateInput } from '../../shared/utils/presentation'
+import { toDateInput, getMaxPastDateInput, validateDateRange } from '../../shared/utils/presentation'
 import { apiErrorMessage } from '../../core/http/api-error'
 import { validateKeyword } from '../../shared/utils/search'
 
@@ -93,11 +93,23 @@ import { validateKeyword } from '../../shared/utils/search'
         </div>
         <div>
           <label class="field-label">Từ ngày</label
-          ><input class="input-shell" type="date" [(ngModel)]="from" />
+          ><input
+            class="input-shell"
+            type="date"
+            min="2000-01-01"
+            [max]="maxPastDate"
+            [(ngModel)]="from"
+          />
         </div>
         <div>
           <label class="field-label">Đến ngày</label
-          ><input class="input-shell" type="date" [(ngModel)]="to" />
+          ><input
+            class="input-shell"
+            type="date"
+            min="2000-01-01"
+            [max]="maxPastDate"
+            [(ngModel)]="to"
+          />
         </div>
         <div>
           <label class="field-label">Số bản ghi/trang</label
@@ -317,10 +329,20 @@ export class AuditLogsPage implements OnInit {
     return 'border-indigo-200 bg-indigo-50 text-indigo-700'
   }
 
+  protected maxPastDate = getMaxPastDateInput()
+
   private load(): void {
-    if (this.from && this.to && this.from > this.to) {
-      this.toast.info('Từ ngày phải nhỏ hơn hoặc bằng Đến ngày')
-      return
+    if (this.from || this.to) {
+      const validation = validateDateRange({
+        from: this.from,
+        to: this.to,
+        maxYear: new Date().getFullYear(),
+      })
+      if (!validation.valid && validation.error) {
+        this.toast.error('Khoảng ngày không hợp lệ', validation.error)
+        this.loading.set(false)
+        return
+      }
     }
 
     this.loading.set(true)

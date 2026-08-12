@@ -11,6 +11,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { PositiveIntegerDirective } from '../../shared/ui/positive-integer.directive'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import { labelOf } from '../../shared/utils/presentation'
 import { searchIncludes } from '../../shared/utils/search'
 import { apiErrorMessage } from '../../core/http/api-error'
@@ -279,6 +280,7 @@ import { apiErrorMessage } from '../../core/http/api-error'
 export class ViolationsManagementPage implements OnInit, OnDestroy {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly items = signal<ViolationResponse[]>([])
   protected readonly users = signal<UserManagementResponse[]>([])
   protected readonly loading = signal(true)
@@ -475,8 +477,16 @@ export class ViolationsManagementPage implements OnInit, OnDestroy {
       },
     })
   }
-  protected action(item: ViolationResponse, action: 'resolve' | 'cancel'): void {
-    if (!confirm(`${action === 'resolve' ? 'Xử lý' : 'Hủy'} vi phạm #${item.violationId}?`)) return
+  protected async action(item: ViolationResponse, action: 'resolve' | 'cancel'): Promise<void> {
+    const isResolve = action === 'resolve'
+    const confirmed = await this.confirmDialog.open({
+      title: isResolve ? 'Xử lý vi phạm' : 'Hủy vi phạm',
+      message: `${isResolve ? 'Xử lý' : 'Hủy'} vi phạm #${item.violationId}?`,
+      confirmText: isResolve ? 'Xác nhận xử lý' : 'Hủy vi phạm',
+      cancelText: 'Hủy',
+      kind: isResolve ? 'primary' : 'danger',
+    })
+    if (!confirmed) return
     const req =
       action === 'resolve'
         ? this.api.resolveViolation(item.violationId)

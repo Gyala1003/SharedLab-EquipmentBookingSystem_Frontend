@@ -15,7 +15,8 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { labelOf, toDateInput } from '../../shared/utils/presentation'
+import { labelOf, toDateInput, getMaxFutureDateInput, validateDateRange } from '../../shared/utils/presentation'
+import { apiErrorMessage } from '../../core/http/api-error'
 
 @Component({
   selector: 'app-maintenances-page',
@@ -61,7 +62,7 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
         <p class="mt-2 text-3xl font-black text-emerald-600">{{ count('Completed') }}</p>
       </div>
     </div>
-    <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+    <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
       <div>
         <label class="field-label">Phòng lab</label
         ><select class="input-shell" [(ngModel)]="labId">
@@ -92,7 +93,25 @@ import { labelOf, toDateInput } from '../../shared/utils/presentation'
       </div>
       <div>
         <label class="field-label">Từ ngày</label
-        ><input class="input-shell" type="date" [(ngModel)]="from" />
+        ><input
+          class="input-shell"
+          type="date"
+          min="2000-01-01"
+          [max]="maxFutureDate"
+          [(ngModel)]="from"
+          (change)="onDateChange()"
+        />
+      </div>
+      <div>
+        <label class="field-label">Đến ngày</label
+        ><input
+          class="input-shell"
+          type="date"
+          min="2000-01-01"
+          [max]="maxFutureDate"
+          [(ngModel)]="to"
+          (change)="onDateChange()"
+        />
       </div>
       <div class="flex items-end">
         <button class="btn-secondary w-full" (click)="reset()">
@@ -239,6 +258,8 @@ export class MaintenancesPage implements OnInit {
   protected equipmentId: number | null = null
   protected status = ''
   protected from = ''
+  protected to = ''
+  protected maxFutureDate = getMaxFutureDateInput()
   protected readonly labelOf = labelOf
   protected readonly canManage = computed(() => this.store.isManager() || this.store.isAdmin())
   protected filteredEquipmentOptions(): EquipmentResponse[] {
@@ -247,7 +268,27 @@ export class MaintenancesPage implements OnInit {
       : this.equipments()
   }
 
+  protected onDateChange(): void {
+    if (this.from || this.to) {
+      const validation = validateDateRange({
+        from: this.from,
+        to: this.to,
+        maxYear: new Date().getFullYear() + 2,
+      })
+      if (!validation.valid && validation.error) {
+        this.toast.error('Khoảng ngày không hợp lệ', validation.error)
+      }
+    }
+  }
+
   protected filtered(): MaintenanceResponse[] {
+    const dateVal = validateDateRange({
+      from: this.from,
+      to: this.to,
+      maxYear: new Date().getFullYear() + 2,
+    })
+    if (!dateVal.valid) return []
+
     return this.items()
       .filter(
         (item) =>
@@ -259,7 +300,8 @@ export class MaintenancesPage implements OnInit {
             )) &&
           (!this.equipmentId || item.equipmentId === this.equipmentId) &&
           (!this.status || item.status === this.status) &&
-          (!this.from || toDateInput(new Date(item.startTime)) >= this.from),
+          (!this.from || toDateInput(new Date(item.startTime)) >= this.from) &&
+          (!this.to || toDateInput(new Date(item.startTime)) <= this.to),
       )
       .sort((a, b) => +new Date(b.startTime) - +new Date(a.startTime))
   }
@@ -292,9 +334,9 @@ export class MaintenancesPage implements OnInit {
         this.items.set(x)
         this.loading.set(false)
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false)
-        this.toast.error('Không tải được lịch bảo trì')
+        this.toast.error('Không tải được lịch bảo trì', apiErrorMessage(err))
       },
     })
   }
@@ -314,5 +356,6 @@ export class MaintenancesPage implements OnInit {
     this.equipmentId = null
     this.status = ''
     this.from = ''
+    this.to = ''
   }
 }

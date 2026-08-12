@@ -12,7 +12,8 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { toIso, toLocalDateTimeInput } from '../../shared/utils/presentation'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
+import { labelOf, toIso, toLocalDateTimeInput, getMaxFutureDateInput, validateDateRange, type DateValidationResult } from '../../shared/utils/presentation'
 import { apiErrorMessage } from '../../core/http/api-error'
 
 @Component({
@@ -67,11 +68,23 @@ import { apiErrorMessage } from '../../core/http/api-error'
       </div>
       <div>
         <label class="field-label">Khung giờ bắt đầu</label
-        ><input class="input-shell" type="datetime-local" [(ngModel)]="requestedStart" />
+        ><input
+          class="input-shell"
+          type="datetime-local"
+          min="2000-01-01T00:00"
+          [max]="maxFutureDateTime"
+          [(ngModel)]="requestedStart"
+        />
       </div>
       <div>
         <label class="field-label">Khung giờ kết thúc</label
-        ><input class="input-shell" type="datetime-local" [(ngModel)]="requestedEnd" />
+        ><input
+          class="input-shell"
+          type="datetime-local"
+          min="2000-01-01T00:00"
+          [max]="maxFutureDateTime"
+          [(ngModel)]="requestedEnd"
+        />
       </div>
       <div class="flex items-end">
         <button
@@ -193,6 +206,7 @@ import { apiErrorMessage } from '../../core/http/api-error'
 export class WaitlistsManagementPage implements OnInit {
   private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly items = signal<WaitlistResponse[]>([])
   protected readonly labs = signal<LabRoomResponse[]>([])
   protected readonly equipments = signal<EquipmentResponse[]>([])
@@ -266,9 +280,29 @@ export class WaitlistsManagementPage implements OnInit {
       : { labId: this.labId, equipmentId: null }
   }
 
+  protected maxFutureDateTime = `${getMaxFutureDateInput()}T23:59`
+
+  protected validateRequestedDates(): DateValidationResult {
+    if (!this.requestedStart || !this.requestedEnd) {
+      return { valid: false, error: 'Vui lòng chọn thời gian bắt đầu và kết thúc.' }
+    }
+    const fromStr = this.requestedStart.slice(0, 10)
+    const toStr = this.requestedEnd.slice(0, 10)
+    const rangeVal = validateDateRange({
+      from: fromStr,
+      to: toStr,
+      maxYear: new Date().getFullYear() + 2,
+    })
+    if (!rangeVal.valid) return rangeVal
+
+    if (new Date(this.requestedStart).getTime() >= new Date(this.requestedEnd).getTime()) {
+      return { valid: false, error: 'Thời gian bắt đầu phải trước thời gian kết thúc.' }
+    }
+    return { valid: true }
+  }
+
   protected validRequestedRange(): boolean {
-    if (!this.requestedStart || !this.requestedEnd) return false
-    return new Date(this.requestedStart).getTime() < new Date(this.requestedEnd).getTime()
+    return this.validateRequestedDates().valid
   }
   protected loadAll(): void {
     this.loading.set(true)
@@ -284,8 +318,9 @@ export class WaitlistsManagementPage implements OnInit {
     })
   }
   protected loadQueue(): void {
-    if (!this.validRequestedRange()) {
-      this.toast.info('Vui lòng chọn khung giờ hợp lệ (thời gian bắt đầu trước thời gian kết thúc)')
+    const val = this.validateRequestedDates()
+    if (!val.valid) {
+      this.toast.info(val.error || 'Vui lòng chọn khung giờ hợp lệ.')
       return
     }
     const resource = this.selectedResource()
@@ -317,8 +352,13 @@ export class WaitlistsManagementPage implements OnInit {
   }
   protected notifyNext(): void {
     const resource = this.selectedResource()
-    if ((!resource.labId && !resource.equipmentId) || !this.validRequestedRange()) {
-      this.toast.info('Hãy chọn đúng một tài nguyên và khung giờ hợp lệ')
+    const val = this.validateRequestedDates()
+    if (!resource.labId && !resource.equipmentId) {
+      this.toast.info('Hãy chọn đúng một tài nguyên phòng lab hoặc thiết bị')
+      return
+    }
+    if (!val.valid) {
+      this.toast.info(val.error || 'Khung giờ chọn không hợp lệ')
       return
     }
     this.api
@@ -336,8 +376,15 @@ export class WaitlistsManagementPage implements OnInit {
         error: (err: unknown) => this.toast.error('Không thể thông báo người tiếp theo', apiErrorMessage(err)),
       })
   }
-  protected cancel(item: WaitlistResponse): void {
-    if (!confirm(`Hủy waitlist #${item.waitlistId}?`)) return
+  protected async cancel(item: WaitlistResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.open({
+      title: 'Hủy hàng chờ',
+      message: `Hủy lượt waitlist #${item.waitlistId}?`,
+      confirmText: 'Hủy waitlist',
+      cancelText: 'Quay lại',
+      kind: 'danger',
+    })
+    if (!confirmed) return
     this.api.cancelWaitlist(item.waitlistId).subscribe({
       next: () => {
         this.toast.success('Đã hủy waitlist')
@@ -346,8 +393,15 @@ export class WaitlistsManagementPage implements OnInit {
       error: (err: unknown) => this.toast.error('Không thể hủy waitlist', apiErrorMessage(err)),
     })
   }
-  protected expire(item: WaitlistResponse): void {
-    if (!confirm(`Cho hết hạn waitlist #${item.waitlistId}?`)) return
+  protected async expire(item: WaitlistResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.open({
+      title: 'Cho hết hạn waitlist',
+      message: `Cho hết hạn lượt waitlist #${item.waitlistId}?`,
+      confirmText: 'Cho hết hạn',
+      cancelText: 'Hủy',
+      kind: 'warning',
+    })
+    if (!confirmed) return
     this.api.expireWaitlist(item.waitlistId).subscribe({
       next: () => {
         this.toast.success('Đã cho hết hạn')

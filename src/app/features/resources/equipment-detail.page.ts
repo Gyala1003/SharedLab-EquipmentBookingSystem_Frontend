@@ -20,6 +20,7 @@ import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { SmartImageComponent } from '../../shared/ui/smart-image'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import {
   isAvailableEquipmentStatus,
   isAvailableLabStatus,
@@ -338,10 +339,11 @@ import {
   `,
 })
 export class EquipmentDetailPage implements OnInit {
-  private readonly api = inject(SystemService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
+  private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly isRetiredEquipmentStatus = isRetiredEquipmentStatus
   protected readonly item = signal<EquipmentDetailResponse | null>(null)
@@ -403,10 +405,17 @@ export class EquipmentDetailPage implements OnInit {
       })
   }
 
-  protected reactivate(): void {
+  protected async reactivate(): Promise<void> {
     const equipment = this.item()
     if (!equipment || !isRetiredEquipmentStatus(equipment.status)) return
-    if (!confirm('Kích hoạt lại thiết bị này?')) return
+    const confirmed = await this.confirmDialog.open({
+      title: 'Kích hoạt thiết bị',
+      message: 'Kích hoạt lại thiết bị này?',
+      confirmText: 'Kích hoạt',
+      cancelText: 'Hủy',
+      kind: 'primary',
+    })
+    if (!confirmed) return
 
     this.saving.set(true)
     this.api.activateEquipment(this.id).subscribe({
@@ -457,8 +466,15 @@ export class EquipmentDetailPage implements OnInit {
     })
   }
 
-  protected remove(): void {
-    if (!confirm('Ngừng sử dụng thiết bị này?')) return
+  protected async remove(): Promise<void> {
+    const confirmed = await this.confirmDialog.open({
+      title: 'Ngừng sử dụng thiết bị',
+      message: 'Ngừng sử dụng thiết bị này?',
+      confirmText: 'Ngừng sử dụng',
+      cancelText: 'Hủy',
+      kind: 'danger',
+    })
+    if (!confirmed) return
     this.api.deleteEquipment(this.id).subscribe({
       next: () => {
         this.toast.success('Đã ngừng sử dụng thiết bị')

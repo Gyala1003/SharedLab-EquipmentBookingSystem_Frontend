@@ -21,6 +21,7 @@ import { PositiveIntegerDirective } from '../../shared/ui/positive-integer.direc
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { SmartImageComponent } from '../../shared/ui/smart-image'
 import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
 import {
   isAvailableEquipmentStatus,
   isAvailableLabStatus,
@@ -487,10 +488,11 @@ import {
   `,
 })
 export class LabDetailPage implements OnInit {
-  private readonly api = inject(SystemService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
+  private readonly api = inject(SystemService)
   private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
   protected readonly store = inject(AuthStore)
   protected readonly isAvailableLabStatus = isAvailableLabStatus
   protected readonly isInactiveLabStatus = isInactiveLabStatus
@@ -665,10 +667,17 @@ export class LabDetailPage implements OnInit {
         },
       })
   }
-  protected reactivate(): void {
+  protected async reactivate(): Promise<void> {
     const lab = this.lab()
     if (!lab || !isInactiveLabStatus(lab.status)) return
-    if (!confirm('Kích hoạt lại phòng lab này?')) return
+    const confirmed = await this.confirmDialog.open({
+      title: 'Kích hoạt phòng lab',
+      message: 'Kích hoạt lại phòng lab này?',
+      confirmText: 'Kích hoạt',
+      cancelText: 'Hủy',
+      kind: 'primary',
+    })
+    if (!confirmed) return
 
     this.saving.set(true)
     this.api.activateLab(this.id).subscribe({
@@ -685,8 +694,15 @@ export class LabDetailPage implements OnInit {
     })
   }
 
-  protected remove(): void {
-    if (!confirm('Ngừng sử dụng phòng lab này?')) return
+  protected async remove(): Promise<void> {
+    const confirmed = await this.confirmDialog.open({
+      title: 'Ngừng sử dụng phòng lab',
+      message: 'Ngừng sử dụng phòng lab này?',
+      confirmText: 'Ngừng sử dụng',
+      cancelText: 'Hủy',
+      kind: 'danger',
+    })
+    if (!confirmed) return
     this.api.deleteLab(this.id).subscribe({
       next: () => {
         this.toast.success('Đã ngừng sử dụng phòng lab')

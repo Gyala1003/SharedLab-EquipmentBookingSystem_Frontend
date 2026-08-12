@@ -20,7 +20,7 @@ import { IconComponent } from '../../shared/ui/icon'
 import { PageHeaderComponent } from '../../shared/ui/page-header'
 import { StatusBadgeComponent } from '../../shared/ui/status-badge'
 import { ToastService } from '../../shared/ui/toast.service'
-import { formatMoney, toDateInput } from '../../shared/utils/presentation'
+import { formatMoney, toDateInput, getMaxPastDateInput, validateDateRange } from '../../shared/utils/presentation'
 import { apiErrorMessage } from '../../core/http/api-error'
 
 @Component({
@@ -272,11 +272,23 @@ export class TrendCardComponent {
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
         <div>
           <label class="field-label">Từ ngày</label
-          ><input class="input-shell" type="date" [(ngModel)]="from" />
+          ><input
+            class="input-shell"
+            type="date"
+            min="2000-01-01"
+            [max]="maxPastDate"
+            [(ngModel)]="from"
+          />
         </div>
         <div>
           <label class="field-label">Đến ngày</label
-          ><input class="input-shell" type="date" [(ngModel)]="to" />
+          ><input
+            class="input-shell"
+            type="date"
+            min="2000-01-01"
+            [max]="maxPastDate"
+            [(ngModel)]="to"
+          />
         </div>
         <div>
           <label class="field-label">Top N</label
@@ -615,16 +627,26 @@ export class ReportsPage implements OnInit {
     this.load()
   }
 
+  protected maxPastDate = getMaxPastDateInput()
+  private lastErrorMessage = ''
+
   protected load(): void {
     if (!this.from || !this.to) return
 
-    const fromDate = new Date(`${this.from}T00:00:00`)
-    const toDate = new Date(`${this.to}T23:59:59`)
-    if (fromDate > toDate) {
-      this.toast.error('Khoảng ngày không hợp lệ', 'Ngày bắt đầu phải trước ngày kết thúc.')
+    const rangeVal = validateDateRange({
+      from: this.from,
+      to: this.to,
+      maxYear: new Date().getFullYear(),
+      maxDays: 366,
+    })
+    if (!rangeVal.valid) {
+      this.toast.error('Khoảng ngày không hợp lệ', rangeVal.error || 'Vui lòng kiểm tra lại khoảng ngày đã chọn.')
       return
     }
 
+    this.lastErrorMessage = ''
+    const fromDate = new Date(`${this.from}T00:00:00`)
+    const toDate = new Date(`${this.to}T23:59:59`)
     const from = fromDate.toISOString()
     const to = toDate.toISOString()
     this.loading.set(true)
@@ -862,8 +884,9 @@ export class ReportsPage implements OnInit {
 
   private safe<T>(request: Observable<T>, fallback: T, failed: { count: number }): Observable<T> {
     return request.pipe(
-      catchError(() => {
+      catchError((err: unknown) => {
         failed.count += 1
+        this.lastErrorMessage = apiErrorMessage(err)
         return of(fallback)
       }),
     )
@@ -874,13 +897,14 @@ export class ReportsPage implements OnInit {
     if (failedRequests === 0) return
 
     if (failedRequests >= totalRequests) {
-      this.toast.error('Không tải được báo cáo')
+      this.toast.error('Không tải được báo cáo', this.lastErrorMessage || 'Vui lòng thử lại sau.')
       return
     }
 
+    const errorDetails = this.lastErrorMessage ? ` (${this.lastErrorMessage})` : ''
     this.toast.info(
       'Một phần báo cáo chưa tải được',
-      `${failedRequests} nhóm dữ liệu chưa tải được; các phần còn lại vẫn được hiển thị.`,
+      `${failedRequests} nhóm dữ liệu chưa tải được; các phần còn lại vẫn được hiển thị.${errorDetails}`,
     )
   }
 
