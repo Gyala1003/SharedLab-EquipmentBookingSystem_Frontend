@@ -30,16 +30,7 @@ import { labelOf } from '../../shared/utils/presentation'
       <app-page-header
         title="Quy tắc ưu tiên booking"
         subtitle="Điều chỉnh thứ tự xử lý các mục đích đặt lịch. Số càng nhỏ thì mức ưu tiên càng cao."
-      >
-        <button
-          class="btn-primary"
-          type="button"
-          [disabled]="availablePurposeOptions().length === 0"
-          (click)="openCreate()"
-        >
-          <app-icon name="plus" [size]="17" /> Thêm quy tắc
-        </button>
-      </app-page-header>
+      />
 
       <div
         class="relative overflow-hidden rounded-[30px] bg-[#111a3a] p-6 text-white shadow-xl sm:p-8"
