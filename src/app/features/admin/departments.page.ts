@@ -54,12 +54,13 @@ import { searchIncludes } from '../../shared/utils/search'
       <div class="filter-bar md:grid-cols-[2fr_1fr_auto]">
         <div>
           <label class="field-label">Tìm kiếm</label>
-          <div class="relative">
-            <span class="pointer-events-none absolute top-3.5 left-4 text-slate-400"
+          <div class="relative flex items-center">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
               ><app-icon name="search" [size]="18" /></span
             ><input
               type="search"
-              class="input-shell pl-11"
+              class="input-shell search-input pr-10 !pl-11"
               [(ngModel)]="keyword"
               placeholder="Tên hoặc mô tả đơn vị..."
             />

@@ -78,12 +78,13 @@ import { searchIncludes } from '../../shared/utils/search'
               </button>
             }
           </div>
-          <div class="relative sm:w-72">
-            <span class="absolute top-3 left-3.5 text-slate-400"
+          <div class="relative flex items-center sm:w-72">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
               ><app-icon name="search" [size]="17" /></span
             ><input
               type="search"
-              class="input-shell search-input h-11 !pl-10"
+              class="input-shell search-input h-11 pr-10 !pl-10"
               [(ngModel)]="keyword"
               placeholder="Tìm theo mục đích"
             />

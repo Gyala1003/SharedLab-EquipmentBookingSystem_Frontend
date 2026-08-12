@@ -50,13 +50,20 @@ import { apiErrorMessage } from '../../core/http/api-error'
     </div>
     <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_auto]">
       <div>
-        <label class="field-label">Tìm kiếm</label
-        ><input
-          type="search"
-          class="input-shell"
-          [(ngModel)]="keyword"
-          placeholder="Violation ID, tên người dùng, Booking ID..."
-        />
+        <label class="field-label">Tìm kiếm</label>
+        <div class="relative flex items-center">
+          <span
+            class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
+          >
+            <app-icon name="search" [size]="18" />
+          </span>
+          <input
+            type="search"
+            class="input-shell search-input pr-10 !pl-11"
+            [(ngModel)]="keyword"
+            placeholder="Violation ID, tên người dùng, Booking ID..."
+          />
+        </div>
       </div>
       <div>
         <label class="field-label">Loại vi phạm</label

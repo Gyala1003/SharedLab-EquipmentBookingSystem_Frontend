@@ -82,16 +82,16 @@ type NotificationTab = 'all' | 'unread'
               </div>
 
               <div class="flex flex-col gap-3 sm:flex-row">
-                <div class="relative min-w-[220px]">
+                <div class="relative flex min-w-[220px] items-center">
                   <span
-                    class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400"
+                    class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
                     ><app-icon name="search" [size]="17"
                   /></span>
                   <input
                     [(ngModel)]="searchText"
                     type="search"
                     placeholder="Tìm trong thông báo..."
-                    class="h-10 w-full rounded-xl border border-slate-200 bg-white pr-3 pl-10 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400"
+                    class="search-input h-10 w-full rounded-xl border border-slate-200 bg-white pr-3 !pl-10 text-xs text-slate-700 placeholder:text-slate-400 focus:border-indigo-400"
                   />
                 </div>
                 <div class="relative">

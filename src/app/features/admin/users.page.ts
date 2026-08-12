@@ -78,13 +78,13 @@ import { ToastService } from '../../shared/ui/toast.service'
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1.2fr_1fr_auto]">
         <div>
           <label class="field-label">Tìm kiếm</label>
-          <div class="relative">
+          <div class="relative flex items-center">
             <span
-              class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400"
+              class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
               ><app-icon name="search" [size]="18" /></span
             ><input
               type="search"
-              class="input-shell h-12 pr-11 pl-11"
+              class="input-shell search-input h-12 pr-10 !pl-11"
               [(ngModel)]="keyword"
               (ngModelChange)="scheduleSearch()"
               (keyup.enter)="applyFilters()"

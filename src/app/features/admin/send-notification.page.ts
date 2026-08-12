@@ -53,12 +53,13 @@ interface NotificationRecipient {
           <div class="space-y-5 p-6">
             <div>
               <label class="field-label">Tìm người nhận *</label>
-              <div class="relative">
-                <span class="pointer-events-none absolute top-3.5 left-4 text-slate-400"
+              <div class="relative flex items-center">
+                <span
+                  class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
                   ><app-icon name="search" [size]="18" /></span
                 ><input
                   type="search"
-                  class="input-shell pl-11"
+                  class="input-shell search-input pr-10 !pl-11"
                   [(ngModel)]="userSearch"
                   name="userSearch"
                   placeholder="Tìm theo họ tên, username hoặc email..."

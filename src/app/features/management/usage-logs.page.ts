@@ -52,8 +52,20 @@ import { labelOf, toDateInput, toIso, toLocalDateTimeInput } from '../../shared/
     </div>
     <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
       <div>
-        <label class="field-label">Tìm theo Log / BookingItem</label
-        ><input type="search" class="input-shell" [(ngModel)]="keyword" placeholder="VD: 1024" />
+        <label class="field-label">Tìm theo Log / BookingItem</label>
+        <div class="relative flex items-center">
+          <span
+            class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
+          >
+            <app-icon name="search" [size]="18" />
+          </span>
+          <input
+            type="search"
+            class="input-shell search-input pr-10 !pl-11"
+            [(ngModel)]="keyword"
+            placeholder="Mã log, mã booking..."
+          />
+        </div>
       </div>
       <div>
         <label class="field-label">Trạng thái sử dụng</label

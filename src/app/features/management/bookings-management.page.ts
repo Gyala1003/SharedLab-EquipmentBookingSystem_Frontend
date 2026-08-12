@@ -53,13 +53,20 @@ type BookingManagementView = BookingResponse & { userName: string }
       </div>
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_1fr_auto]">
         <div>
-          <label class="field-label">Tìm kiếm</label
-          ><input
-            type="search"
-            class="input-shell"
-            [(ngModel)]="keyword"
-            placeholder="Mã booking, tên người đặt, mục đích..."
-          />
+          <label class="field-label">Tìm kiếm</label>
+          <div class="relative flex items-center">
+            <span
+              class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
+            >
+              <app-icon name="search" [size]="18" />
+            </span>
+            <input
+              type="search"
+              class="input-shell search-input pr-10 !pl-11"
+              [(ngModel)]="keyword"
+              placeholder="Mã booking, tên người đặt, mục đích..."
+            />
+          </div>
         </div>
         <div>
           <label class="field-label">Trạng thái</label

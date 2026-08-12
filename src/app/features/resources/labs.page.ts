@@ -60,13 +60,13 @@ interface LabForm {
       <div class="filter-bar md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto]">
         <div>
           <label class="field-label">Tìm kiếm</label>
-          <div class="relative">
+          <div class="relative flex items-center">
             <span
-              class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400"
+              class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400"
               ><app-icon name="search" [size]="18" /></span
             ><input
               type="search"
-              class="input-shell search-input h-12 pr-11 !pl-11"
+              class="input-shell search-input h-12 pr-10 !pl-11"
               [(ngModel)]="keyword"
               (ngModelChange)="scheduleSearch()"
               (keyup.enter)="runSearchNow()"
@@ -109,23 +109,34 @@ interface LabForm {
         </div>
         <div>
           <label class="field-label">Kiểu hiển thị</label>
-          <div class="flex h-12 rounded-2xl bg-slate-100 p-1">
+          <div
+            class="inline-flex h-12 w-full items-center justify-center gap-1 rounded-2xl bg-slate-100 p-1"
+          >
             <button
-              class="inline-flex flex-1 items-center justify-center rounded-xl text-xs font-black"
+              class="flex h-10 flex-1 items-center justify-center rounded-xl text-xs font-black transition"
               [ngClass]="
-                view() === 'grid' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-400'
+                view() === 'grid'
+                  ? 'bg-white text-violet-700 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
               "
               (click)="view.set('grid')"
+              title="Dạng lưới"
+              aria-label="Dạng lưới"
             >
-              <app-icon name="grid" [size]="17" /></button
-            ><button
-              class="inline-flex flex-1 items-center justify-center rounded-xl text-xs font-black"
+              <app-icon name="grid" [size]="18" />
+            </button>
+            <button
+              class="flex h-10 flex-1 items-center justify-center rounded-xl text-xs font-black transition"
               [ngClass]="
-                view() === 'table' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-400'
+                view() === 'table'
+                  ? 'bg-white text-violet-700 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600'
               "
               (click)="view.set('table')"
+              title="Dạng bảng"
+              aria-label="Dạng bảng"
             >
-              <app-icon name="list" [size]="17" />
+              <app-icon name="list" [size]="18" />
             </button>
           </div>
         </div>

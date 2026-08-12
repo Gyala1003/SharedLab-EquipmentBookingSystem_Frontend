@@ -93,8 +93,9 @@ textarea:focus-visible {
 }
 
 .input-shell.search-input,
-input.search-input {
-  padding-left: 2.5rem !important;
+input.search-input,
+input[type='search'] {
+  padding-left: 2.75rem !important;
 }
 
 .input-shell:hover {
