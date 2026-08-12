@@ -354,5 +354,24 @@
   "NOTIFICATION": {
     "CHECKIN_REMINDER": "You have a scheduled reservation on {{time}}. Please check in on time.",
     "CHECKOUT_REMINDER": "Your booking will end at {{time}}. Please open the system to check out: {{link}}"
+  },
+  "RESOURCE_NAME": {
+    "LAB_NET": "Network & Infrastructure Lab",
+    "LAB_ELEC": "Electronics & Telecommunications Lab",
+    "LAB_AI": "AI & Data Science Lab",
+    "LAB_PHYSICS": "Physics & Optics Lab",
+    "LAB_CHEM": "Chemistry Laboratory",
+    "LAB_BIO": "Biology Laboratory"
+  },
+  "NOTIF": {
+    "MAINTENANCE_UPDATE": "Maintenance Update",
+    "MAINTENANCE_OVERDUE": "Maintenance Overdue",
+    "MAINTENANCE_REMINDER": "Maintenance Reminder",
+    "INCIDENT_ALERT": "Incident Alert: {{type}}",
+    "AUTO_STARTED": "Maintenance schedule for {{type}} {{name}} has been automatically started by the system.",
+    "COMPLETED": "Maintenance schedule for {{type}} {{name}} has been completed."
+  },
+  "CALENDAR": {
+    "MAINTENANCE_EVENT": "Maintenance: {{target}}"
   }
 }

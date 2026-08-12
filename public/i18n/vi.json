@@ -354,5 +354,24 @@
   "NOTIFICATION": {
     "CHECKIN_REMINDER": "Bạn có lịch sử dụng phòng lúc {{time}}. Please check-in đúng giờ.",
     "CHECKOUT_REMINDER": "Booking của bạn sẽ End lúc {{time}}. Please mở hệ thống để check-out: {{link}}"
+  },
+  "RESOURCE_NAME": {
+    "LAB_NET": "Phòng Thực hành Mạng và Hạ tầng",
+    "LAB_ELEC": "Laboratory Điện tử và Viễn thông",
+    "LAB_AI": "Phòng AI và Khoa học dữ liệu",
+    "LAB_PHYSICS": "Phòng Vật lý và Quang học",
+    "LAB_CHEM": "Laboratory Hóa học",
+    "LAB_BIO": "Laboratory Sinh học"
+  },
+  "NOTIF": {
+    "MAINTENANCE_UPDATE": "Cập nhật bảo trì",
+    "MAINTENANCE_OVERDUE": "Bảo trì quá thời gian dự kiến",
+    "MAINTENANCE_REMINDER": "Nhắc lịch bảo trì",
+    "INCIDENT_ALERT": "Cảnh báo sự cố {{type}}",
+    "AUTO_STARTED": "Lịch bảo trì cho {{type}} {{name}} đã được hệ thống tự động bắt đầu.",
+    "COMPLETED": "Lịch bảo trì cho {{type}} {{name}} đã hoàn thành."
+  },
+  "CALENDAR": {
+    "MAINTENANCE_EVENT": "Bảo trì: {{target}}"
   }
 }

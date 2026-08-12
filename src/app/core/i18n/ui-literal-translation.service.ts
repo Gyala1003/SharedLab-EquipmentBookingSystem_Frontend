@@ -35,20 +35,16 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Booking được duyệt': 'Booking approved',
   'Booking bị từ chối': 'Booking rejected',
   'Phòng AI': 'AI Lab',
+  'Phòng Thực hành Mạng và Hạ tầng': 'Network & Infrastructure Lab',
+  'Laboratory Điện tử và Viễn thông': 'Electronics & Telecommunications Lab',
   'Phòng AI và Khoa học dữ liệu': 'AI & Data Science Lab',
-  'Phòng An toàn thông tin': 'Information Security Lab',
-  'Phòng Cơ khí và In 3D': 'Mechanical & 3D Printing Lab',
-  'Phòng IoT và Hệ thống nhúng': 'IoT & Embedded Systems Lab',
-  'Phòng Robot và Tự động hóa': 'Robotics & Automation Lab',
-  'Phòng Thực hành Mạng và An ninh mạng': 'Network & Cybersecurity Practice Lab',
-  'Phòng thực hành Vật Lý': 'Physics Practice Lab',
-  'Phòng Thực hành Vật lý': 'Physics Practice Lab',
-  'Phòng Máy tính cấu hình cao': 'High-Performance Computing Lab',
-  'Phòng Workstation GPU': 'GPU Workstation Lab',
+  'Phòng Vật lý và Quang học': 'Physics & Optics Lab',
   'Laboratory Hóa học': 'Chemistry Laboratory',
-  'Phòng Hóa học': 'Chemistry Laboratory',
-  'Phòng Điện tử': 'Electronics Laboratory',
-  'Phòng Máy tính': 'Computer Laboratory',
+  'Laboratory Sinh học': 'Biology Laboratory',
+  'Cập nhật bảo trì': 'Maintenance Update',
+  'Bảo trì quá thời gian dự kiến': 'Maintenance Overdue',
+  'Bảo trì quá Time dự kiến': 'Maintenance Overdue',
+  'Nhắc lịch bảo trì': 'Maintenance Reminder',
   'Máy quang phổ UV-Vis': 'UV-Vis Spectrophotometer',
   'Máy quang phổ FTIR': 'FTIR Spectrophotometer',
   'Máy in 3D công nghiệp': 'Industrial 3D Printer',
@@ -784,6 +780,38 @@ function translateDynamic(value: string): string | null {
     ))
   ) {
     return `Your booking will end at ${match[1]}. Please open the system to check out${match[2]}`
+  }
+  if ((match = value.match(/^(\d{2}:\d{2}\s*-\s*)?Bảo trì\s+(phòng|thiết bị)?\s*(.*)$/i))) {
+    const timePrefix = match[1] ?? ''
+    const targetType = match[2]
+      ? match[2].toLowerCase() === 'phòng'
+        ? 'Laboratory '
+        : 'Equipment '
+      : ''
+    const targetName = translateLiteral(match[3].trim())
+    return `${timePrefix}Maintenance: ${targetType}${targetName}`
+  }
+  if ((match = value.match(/^Cảnh báo sự cố\s+(.*)$/i))) {
+    return `Incident Alert: ${translateLiteral(match[1].trim())}`
+  }
+  if (
+    (match = value.match(
+      /^Lịch bảo trì cho (phòng|thiết bị|tài nguyên)?\s*(.+?)\s+đã được hệ thống tự động (?:Start|bắt đầu)\.?$/i,
+    ))
+  ) {
+    const rType = match[1]
+      ? match[1].toLowerCase() === 'phòng'
+        ? 'laboratory'
+        : 'equipment'
+      : 'resource'
+    return `Maintenance schedule for ${rType} ${translateLiteral(match[2].trim())} has been automatically started by the system.`
+  }
+  if (
+    (match = value.match(
+      /^Manager báo:\s*(.+?)\.\s*Time:\s*(.+?)\.\s*Mô tả:\s*(.+?)\.\s*Số booking đã (?:Cancel\/End|hủy\/kết thúc):\s*(\d+)\.(.*)$/i,
+    ))
+  ) {
+    return `Manager report: ${match[1]}. Time: ${match[2]}. Description: ${translateLiteral(match[3])}. Cancelled/Ended bookings: ${match[4]}.${match[5]}`
   }
   if ((match = value.match(/^Tầng\s+(\d+)\s*-\s*Tòa\s+([A-Za-z0-9]+)$/i))) {
     return `Floor ${match[1]} - Building ${match[2]}`
