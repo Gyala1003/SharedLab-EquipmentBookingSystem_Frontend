@@ -1,0 +1,482 @@
+import { DatePipe, NgClass } from '@angular/common'
+import { Component, OnInit, inject, signal } from '@angular/core'
+import { FormsModule } from '@angular/forms'
+import { SystemService } from '../../core/api/system.service'
+import type {
+  EquipmentResponse,
+  LabRoomResponse,
+  WaitlistResponse,
+} from '../../core/api/system.models'
+import { DataStateComponent } from '../../shared/ui/data-state'
+import { IconComponent } from '../../shared/ui/icon'
+import { PageHeaderComponent } from '../../shared/ui/page-header'
+import { StatusBadgeComponent } from '../../shared/ui/status-badge'
+import { ToastService } from '../../shared/ui/toast.service'
+import { ConfirmDialogService } from '../../shared/ui/confirm-dialog'
+import { labelOf, toIso, toLocalDateTimeInput, getMaxFutureDateInput, validateDateRange, type DateValidationResult } from '../../shared/utils/presentation'
+import { apiErrorMessage } from '../../core/http/api-error'
+
+@Component({
+  selector: 'app-waitlists-management-page',
+  imports: [
+    DatePipe,
+    NgClass,
+    FormsModule,
+    PageHeaderComponent,
+    IconComponent,
+    StatusBadgeComponent,
+    DataStateComponent,
+  ],
+  template: `<section class="space-y-6">
+    <app-page-header
+      title="Quản lý hàng chờ"
+      subtitle="Theo dõi thứ tự, thông báo người tiếp theo, hết hạn hoặc hủy lượt trong phạm vi quản lý."
+    />
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      @for (tab of tabs; track tab.value) {
+        <button
+          class="kpi-card text-left transition hover:-translate-y-1"
+          (click)="status = tab.value"
+        >
+          <p class="text-xs font-bold text-slate-400">{{ tab.label }}</p>
+          <p class="mt-2 text-3xl font-black" [ngClass]="tab.className">{{ count(tab.value) }}</p>
+        </button>
+      }
+    </div>
+    <div class="filter-bar md:grid-cols-2 xl:grid-cols-4">
+      <div>
+        <label class="field-label">Phòng lab</label
+        ><select
+          class="input-shell"
+          [(ngModel)]="labId"
+          (ngModelChange)="onLabChange($event)"
+        >
+          <option [ngValue]="null">Tất cả phòng</option>
+          @for (lab of labs(); track lab.labId) {
+            <option [ngValue]="lab.labId">{{ lab.labName }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Thiết bị</label
+        ><select
+          class="input-shell"
+          [(ngModel)]="equipmentId"
+          (ngModelChange)="onEquipmentChange($event)"
+        >
+          <option [ngValue]="null">Tất cả thiết bị</option>
+          @for (eq of equipmentOptions(); track eq.equipmentId) {
+            <option [ngValue]="eq.equipmentId">{{ eq.equipmentName }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Khung giờ bắt đầu</label
+        ><input
+          class="input-shell"
+          type="datetime-local"
+          min="2000-01-01T00:00"
+          [max]="maxFutureDateTime"
+          [(ngModel)]="requestedStart"
+          (ngModelChange)="onRequestedStartChange($event)"
+        />
+        @if (isInvalidRange()) {
+          <p class="mt-1 text-xs font-semibold text-rose-600">
+            Thời gian bắt đầu phải trước thời gian kết thúc.
+          </p>
+        }
+      </div>
+      <div>
+        <label class="field-label">Khung giờ kết thúc</label
+        ><input
+          class="input-shell"
+          type="datetime-local"
+          min="2000-01-01T00:00"
+          [max]="maxFutureDateTime"
+          [(ngModel)]="requestedEnd"
+          (ngModelChange)="onRequestedEndChange($event)"
+        />
+        @if (isInvalidRange()) {
+          <p class="mt-1 text-xs font-semibold text-rose-600">
+            Thời gian kết thúc phải sau thời gian bắt đầu.
+          </p>
+        }
+      </div>
+    </div>
+    @if (!labId && !equipmentId) {
+      <p class="text-xs font-semibold text-amber-600">
+        💡 Chọn 1 phòng lab hoặc 1 thiết bị cụ thể để lọc hàng chờ (Queue) theo khung giờ.
+      </p>
+    } @else if (!validRequestedRange()) {
+      <p class="text-xs font-semibold text-rose-600">
+        ⚠️ Khung giờ không hợp lệ (Thời gian bắt đầu phải trước thời gian kết thúc).
+      </p>
+    }
+    <article class="card-surface overflow-hidden">
+      <header class="flex items-center justify-between border-b border-slate-100 px-5 py-5">
+        <div>
+          <h2 class="font-black text-slate-950">Danh sách hàng chờ</h2>
+          <p class="mt-1 text-xs text-slate-400">{{ filtered().length }} bản ghi</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn-secondary" (click)="loadAll()">
+            <app-icon name="refresh" [size]="16" /> Toàn bộ</button
+          ><button class="btn-primary" [disabled]="!canNotify()" (click)="notifyNext()">
+            <app-icon name="bell" [size]="16" /> Thông báo người tiếp theo
+          </button>
+        </div>
+      </header>
+      @if (loading()) {
+        <div class="p-6"><div class="skeleton h-80 rounded-2xl"></div></div>
+      } @else if (filtered().length === 0) {
+        <div class="p-6">
+          <app-data-state
+            title="Hàng chờ đang trống"
+            message="Không có bản ghi phù hợp với trạng thái hoặc bộ lọc queue."
+            icon="clock"
+          />
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="table-shell">
+            <thead>
+              <tr>
+                <th>Vị trí</th>
+                <th>Waitlist</th>
+                <th>Người dùng</th>
+                <th>Tài nguyên</th>
+                <th>Khung giờ</th>
+                <th>Thông báo</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filtered(); track item.waitlistId) {
+                <tr>
+                  <td>
+                    <span
+                      class="flex h-10 min-w-10 items-center justify-center rounded-2xl bg-violet-50 px-3 font-black text-violet-700"
+                      >#{{ item.queuePosition }}</span
+                    >
+                  </td>
+                  <td class="font-black text-slate-900">#WL-{{ item.waitlistId }}</td>
+                  <td class="font-bold text-slate-800">
+                    {{ item.userName || 'Chưa xác định người dùng' }}
+                  </td>
+                  <td>
+                    <p class="font-bold text-slate-800">{{ resourceName(item) }}</p>
+                  </td>
+                  <td>
+                    <p class="font-bold text-slate-700">
+                      {{ item.requestedStart | date: 'HH:mm dd/MM' }}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-400">
+                      {{ item.requestedEnd | date: 'HH:mm dd/MM' }}
+                    </p>
+                  </td>
+                  <td>
+                    {{ item.notifiedAt ? (item.notifiedAt | date: 'HH:mm dd/MM/yyyy') : '—' }}
+                  </td>
+                  <td><app-status-badge [value]="item.status" domain="waitlist" /></td>
+                  <td>
+                    <div class="flex gap-2">
+                      @if (item.status === 'Waiting' || item.status === 'Notified') {
+                        <button
+                          class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700"
+                          title="Hủy"
+                          (click)="cancel(item)"
+                        >
+                          <app-icon name="x" [size]="16" />
+                        </button>
+                      }
+                      @if (item.status === 'Notified') {
+                        <button
+                          class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700"
+                          title="Cho hết hạn"
+                          (click)="expire(item)"
+                        >
+                          <app-icon name="clock" [size]="16" />
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </article>
+  </section>`,
+})
+export class WaitlistsManagementPage implements OnInit {
+  private readonly api = inject(SystemService)
+  private readonly toast = inject(ToastService)
+  private readonly confirmDialog = inject(ConfirmDialogService)
+  protected readonly items = signal<WaitlistResponse[]>([])
+  protected readonly labs = signal<LabRoomResponse[]>([])
+  protected readonly equipments = signal<EquipmentResponse[]>([])
+  protected readonly loading = signal(true)
+  protected status = ''
+  protected labId: number | null = null
+  protected equipmentId: number | null = null
+  protected requestedStart = toLocalDateTimeInput(new Date(Date.now() + 24 * 60 * 60_000))
+  protected requestedEnd = toLocalDateTimeInput(new Date(Date.now() + 26 * 60 * 60_000))
+  private previousRequestedEnd = this.requestedEnd
+  private dateDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  protected readonly tabs = [
+    { value: '', label: 'Tất cả', className: 'text-slate-950' },
+    { value: 'Waiting', label: 'Đang chờ', className: 'text-amber-600' },
+    { value: 'Notified', label: 'Đã thông báo', className: 'text-emerald-600' },
+    { value: 'Booked', label: 'Đã booking', className: 'text-indigo-600' },
+    { value: 'Expired', label: 'Hết hạn', className: 'text-rose-600' },
+  ]
+  protected equipmentOptions(): EquipmentResponse[] {
+    return this.labId
+      ? this.equipments().filter((item) => item.labId === this.labId)
+      : this.equipments()
+  }
+
+  protected filtered(): WaitlistResponse[] {
+    return this.items()
+      .filter((item) => {
+        const matchesStatus = !this.status || item.status === this.status
+        const matchesLab = !this.labId || item.labId === this.labId
+        const matchesEquipment = !this.equipmentId || item.equipmentId === this.equipmentId
+
+        let matchesDate = true
+        if (this.requestedStart && this.requestedEnd && this.validRequestedRange()) {
+          const filterStart = new Date(this.requestedStart).getTime()
+          const filterEnd = new Date(this.requestedEnd).getTime()
+          const itemStart = item.requestedStart ? new Date(item.requestedStart).getTime() : 0
+          const itemEnd = item.requestedEnd ? new Date(item.requestedEnd).getTime() : 0
+          matchesDate = itemStart >= filterStart && itemEnd <= filterEnd
+        }
+
+        return matchesStatus && matchesLab && matchesEquipment && matchesDate
+      })
+      .sort((a, b) => a.queuePosition - b.queuePosition)
+  }
+  ngOnInit(): void {
+    this.api.labs().subscribe((x) => this.labs.set(x))
+    this.api.equipments().subscribe((x) => this.equipments.set(x))
+    this.loadAll()
+  }
+  protected count(status: string): number {
+    return status ? this.items().filter((x) => x.status === status).length : this.items().length
+  }
+  protected resourceName(item: WaitlistResponse): string {
+    if (item.labId)
+      return this.labs().find((x) => x.labId === item.labId)?.labName ?? `Phòng #${item.labId}`
+    return (
+      this.equipments().find((x) => x.equipmentId === item.equipmentId)?.equipmentName ??
+      `Thiết bị #${item.equipmentId}`
+    )
+  }
+  protected canNotify(): boolean {
+    const hasExactlyOneResource = Boolean(this.equipmentId || this.labId)
+    return Boolean(hasExactlyOneResource && this.validRequestedRange())
+  }
+
+  protected onLabChange(value: number | null): void {
+    this.labId = value
+    this.equipmentId = null
+    this.triggerFilter()
+  }
+
+  protected onEquipmentChange(value: number | null): void {
+    this.equipmentId = value
+    this.triggerFilter()
+  }
+
+  protected triggerFilter(): void {
+    if (!this.labId && !this.equipmentId) {
+      this.loadAll()
+    } else if (this.validRequestedRange()) {
+      this.loadQueue()
+    }
+  }
+
+  protected triggerFilterDebounced(): void {
+    if (this.dateDebounceTimer) {
+      clearTimeout(this.dateDebounceTimer)
+    }
+    this.dateDebounceTimer = setTimeout(() => {
+      this.triggerFilter()
+    }, 300)
+  }
+
+  protected onRequestedStartChange(value: string): void {
+    this.requestedStart = value
+    if (value && this.requestedEnd) {
+      const startMs = new Date(value).getTime()
+      const endMs = new Date(this.requestedEnd).getTime()
+      if (!isNaN(startMs) && !isNaN(endMs) && startMs >= endMs) {
+        const newEndMs = startMs + 2 * 60 * 60_000
+        this.requestedEnd = toLocalDateTimeInput(new Date(newEndMs))
+        this.previousRequestedEnd = this.requestedEnd
+      }
+    }
+    this.triggerFilterDebounced()
+  }
+
+  protected onRequestedEndChange(value: string): void {
+    if (value && this.requestedStart) {
+      const startMs = new Date(this.requestedStart).getTime()
+      const endMs = new Date(value).getTime()
+      if (!isNaN(startMs) && !isNaN(endMs) && endMs <= startMs) {
+        this.toast.error('Khung giờ kết thúc phải sau khung giờ bắt đầu')
+        setTimeout(() => {
+          this.requestedEnd = this.previousRequestedEnd
+        })
+        return
+      }
+    }
+    this.requestedEnd = value
+    this.previousRequestedEnd = value
+    this.triggerFilterDebounced()
+  }
+
+  protected isInvalidRange(): boolean {
+    return !this.validRequestedRange()
+  }
+
+  private selectedResource(): { labId: number | null; equipmentId: number | null } {
+    return this.equipmentId
+      ? { labId: null, equipmentId: this.equipmentId }
+      : { labId: this.labId, equipmentId: null }
+  }
+
+  protected maxFutureDateTime = `${getMaxFutureDateInput()}T23:59`
+
+  protected validateRequestedDates(): DateValidationResult {
+    if (!this.requestedStart || !this.requestedEnd) {
+      return { valid: false, error: 'Vui lòng chọn thời gian bắt đầu và kết thúc.' }
+    }
+    const fromStr = this.requestedStart.slice(0, 10)
+    const toStr = this.requestedEnd.slice(0, 10)
+    const rangeVal = validateDateRange({
+      from: fromStr,
+      to: toStr,
+      maxYear: new Date().getFullYear() + 2,
+    })
+    if (!rangeVal.valid) return rangeVal
+
+    if (new Date(this.requestedStart).getTime() >= new Date(this.requestedEnd).getTime()) {
+      return { valid: false, error: 'Thời gian bắt đầu phải trước thời gian kết thúc.' }
+    }
+    return { valid: true }
+  }
+
+  protected validRequestedRange(): boolean {
+    return this.validateRequestedDates().valid
+  }
+  protected loadAll(): void {
+    this.loading.set(true)
+    this.api.waitlists().subscribe({
+      next: (x) => {
+        this.items.set(x)
+        this.loading.set(false)
+      },
+      error: (err: unknown) => {
+        this.loading.set(false)
+        this.toast.error('Không tải được hàng chờ', apiErrorMessage(err))
+      },
+    })
+  }
+  protected loadQueue(): void {
+    const val = this.validateRequestedDates()
+    if (!val.valid) {
+      this.toast.info(val.error || 'Vui lòng chọn khung giờ hợp lệ.')
+      return
+    }
+    const resource = this.selectedResource()
+    const startIso = new Date(this.requestedStart).toISOString()
+    const endIso = new Date(this.requestedEnd).toISOString()
+
+    this.loading.set(true)
+    if (resource.labId || resource.equipmentId) {
+      this.api
+        .waitlistQueue({
+          labId: resource.labId ?? undefined,
+          equipmentId: resource.equipmentId ?? undefined,
+          requestedStart: startIso,
+          requestedEnd: endIso,
+        })
+        .subscribe({
+          next: (x) => {
+            this.items.set(x)
+            this.loading.set(false)
+          },
+          error: (err: unknown) => {
+            this.loading.set(false)
+            this.toast.error('Không tải được queue', apiErrorMessage(err))
+          },
+        })
+    } else {
+      this.loadAll()
+    }
+  }
+  protected notifyNext(): void {
+    const resource = this.selectedResource()
+    const val = this.validateRequestedDates()
+    if (!resource.labId && !resource.equipmentId) {
+      this.toast.info('Hãy chọn đúng một tài nguyên phòng lab hoặc thiết bị')
+      return
+    }
+    if (!val.valid) {
+      this.toast.info(val.error || 'Khung giờ chọn không hợp lệ')
+      return
+    }
+    this.api
+      .notifyNextWaitlist({
+        labId: resource.labId,
+        equipmentId: resource.equipmentId,
+        requestedStart: toIso(this.requestedStart),
+        requestedEnd: toIso(this.requestedEnd),
+      })
+      .subscribe({
+        next: () => {
+          this.toast.success('Đã thông báo người tiếp theo')
+          this.loadQueue()
+        },
+        error: (err: unknown) => this.toast.error('Không thể thông báo người tiếp theo', apiErrorMessage(err)),
+      })
+  }
+  protected async cancel(item: WaitlistResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.open({
+      title: 'Hủy hàng chờ',
+      message: `Hủy lượt waitlist #${item.waitlistId}?`,
+      confirmText: 'Hủy waitlist',
+      cancelText: 'Quay lại',
+      kind: 'danger',
+    })
+    if (!confirmed) return
+    this.api.cancelWaitlist(item.waitlistId).subscribe({
+      next: () => {
+        this.toast.success('Đã hủy waitlist')
+        this.loadAll()
+      },
+      error: (err: unknown) => this.toast.error('Không thể hủy waitlist', apiErrorMessage(err)),
+    })
+  }
+  protected async expire(item: WaitlistResponse): Promise<void> {
+    const confirmed = await this.confirmDialog.open({
+      title: 'Cho hết hạn waitlist',
+      message: `Cho hết hạn lượt waitlist #${item.waitlistId}?`,
+      confirmText: 'Cho hết hạn',
+      cancelText: 'Hủy',
+      kind: 'warning',
+    })
+    if (!confirmed) return
+    this.api.expireWaitlist(item.waitlistId).subscribe({
+      next: () => {
+        this.toast.success('Đã cho hết hạn')
+        this.loadAll()
+      },
+      error: (err: unknown) => this.toast.error('Không thể cho hết hạn', apiErrorMessage(err)),
+    })
+  }
+}
