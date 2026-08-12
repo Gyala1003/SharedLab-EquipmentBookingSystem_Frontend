@@ -43,10 +43,14 @@ import { apiErrorMessage } from '../../core/http/api-error'
         </button>
       }
     </div>
-    <div class="filter-bar md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+    <div class="filter-bar md:grid-cols-2 xl:grid-cols-4">
       <div>
         <label class="field-label">Phòng lab</label
-        ><select class="input-shell" [(ngModel)]="labId" (ngModelChange)="equipmentId = null">
+        ><select
+          class="input-shell"
+          [(ngModel)]="labId"
+          (ngModelChange)="onLabChange($event)"
+        >
           <option [ngValue]="null">Tất cả phòng</option>
           @for (lab of labs(); track lab.labId) {
             <option [ngValue]="lab.labId">{{ lab.labName }}</option>
@@ -74,7 +78,13 @@ import { apiErrorMessage } from '../../core/http/api-error'
           min="2000-01-01T00:00"
           [max]="maxFutureDateTime"
           [(ngModel)]="requestedStart"
+          (ngModelChange)="onRequestedStartChange($event)"
         />
+        @if (isInvalidRange()) {
+          <p class="mt-1 text-xs font-semibold text-rose-600">
+            Thời gian bắt đầu phải trước thời gian kết thúc.
+          </p>
+        }
       </div>
       <div>
         <label class="field-label">Khung giờ kết thúc</label
@@ -84,16 +94,13 @@ import { apiErrorMessage } from '../../core/http/api-error'
           min="2000-01-01T00:00"
           [max]="maxFutureDateTime"
           [(ngModel)]="requestedEnd"
+          (ngModelChange)="onRequestedEndChange($event)"
         />
-      </div>
-      <div class="flex items-end">
-        <button
-          class="btn-primary w-full"
-          [disabled]="(!labId && !equipmentId) || !validRequestedRange()"
-          (click)="loadQueue()"
-        >
-          <app-icon name="filter" [size]="17" /> Lọc queue
-        </button>
+        @if (isInvalidRange()) {
+          <p class="mt-1 text-xs font-semibold text-rose-600">
+            Thời gian kết thúc phải sau thời gian bắt đầu.
+          </p>
+        }
       </div>
     </div>
     @if (!labId && !equipmentId) {
@@ -216,6 +223,9 @@ export class WaitlistsManagementPage implements OnInit {
   protected equipmentId: number | null = null
   protected requestedStart = toLocalDateTimeInput(new Date(Date.now() + 24 * 60 * 60_000))
   protected requestedEnd = toLocalDateTimeInput(new Date(Date.now() + 26 * 60 * 60_000))
+  private previousRequestedEnd = this.requestedEnd
+  private dateDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
   protected readonly tabs = [
     { value: '', label: 'Tất cả', className: 'text-slate-950' },
     { value: 'Waiting', label: 'Đang chờ', className: 'text-amber-600' },
@@ -270,8 +280,67 @@ export class WaitlistsManagementPage implements OnInit {
     return Boolean(hasExactlyOneResource && this.validRequestedRange())
   }
 
+  protected onLabChange(value: number | null): void {
+    this.labId = value
+    this.equipmentId = null
+    this.triggerFilter()
+  }
+
   protected onEquipmentChange(value: number | null): void {
     this.equipmentId = value
+    this.triggerFilter()
+  }
+
+  protected triggerFilter(): void {
+    if (!this.labId && !this.equipmentId) {
+      this.loadAll()
+    } else if (this.validRequestedRange()) {
+      this.loadQueue()
+    }
+  }
+
+  protected triggerFilterDebounced(): void {
+    if (this.dateDebounceTimer) {
+      clearTimeout(this.dateDebounceTimer)
+    }
+    this.dateDebounceTimer = setTimeout(() => {
+      this.triggerFilter()
+    }, 300)
+  }
+
+  protected onRequestedStartChange(value: string): void {
+    this.requestedStart = value
+    if (value && this.requestedEnd) {
+      const startMs = new Date(value).getTime()
+      const endMs = new Date(this.requestedEnd).getTime()
+      if (!isNaN(startMs) && !isNaN(endMs) && startMs >= endMs) {
+        const newEndMs = startMs + 2 * 60 * 60_000
+        this.requestedEnd = toLocalDateTimeInput(new Date(newEndMs))
+        this.previousRequestedEnd = this.requestedEnd
+      }
+    }
+    this.triggerFilterDebounced()
+  }
+
+  protected onRequestedEndChange(value: string): void {
+    if (value && this.requestedStart) {
+      const startMs = new Date(this.requestedStart).getTime()
+      const endMs = new Date(value).getTime()
+      if (!isNaN(startMs) && !isNaN(endMs) && endMs <= startMs) {
+        this.toast.error('Khung giờ kết thúc phải sau khung giờ bắt đầu')
+        setTimeout(() => {
+          this.requestedEnd = this.previousRequestedEnd
+        })
+        return
+      }
+    }
+    this.requestedEnd = value
+    this.previousRequestedEnd = value
+    this.triggerFilterDebounced()
+  }
+
+  protected isInvalidRange(): boolean {
+    return !this.validRequestedRange()
   }
 
   private selectedResource(): { labId: number | null; equipmentId: number | null } {
