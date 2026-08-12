@@ -1,6 +1,7 @@
 import { Pipe, PipeTransform, inject } from '@angular/core'
 import { LanguageService } from '../../core/i18n/language.service'
 import { UI_EN_LITERAL_MAP } from '../../core/i18n/ui-literal-map'
+import { UI_EN_OVERRIDES } from '../../core/i18n/ui-literal-translation.service'
 
 @Pipe({
   name: 'localizedName',
@@ -15,6 +16,6 @@ export class LocalizedNamePipe implements PipeTransform {
     if (this.languageService.locale() !== 'en') return value
 
     const key = value.trim()
-    return UI_EN_LITERAL_MAP[key] ?? value
+    return UI_EN_OVERRIDES[key] ?? UI_EN_LITERAL_MAP[key] ?? value
   }
 }

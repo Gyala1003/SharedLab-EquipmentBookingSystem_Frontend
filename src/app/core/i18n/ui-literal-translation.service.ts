@@ -10,7 +10,7 @@ type AttributeState = { original: string; translated: string }
 const TRANSLATABLE_ATTRIBUTES = ['placeholder', 'title', 'aria-label', 'alt'] as const
 const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'CODE', 'PRE'])
 
-const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
+export const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Shared Lab Workspace': 'Shared Lab Workspace',
   'Không gian phòng thí nghiệm dùng chung': 'Shared Lab Workspace',
   'Các phòng lab bạn đang quản lý • cập nhật theo khoảng thời gian đã chọn.':
@@ -35,20 +35,36 @@ const UI_EN_OVERRIDES: Readonly<Record<string, string>> = {
   'Booking được duyệt': 'Booking approved',
   'Booking bị từ chối': 'Booking rejected',
   'Phòng AI': 'AI Lab',
-  'Phòng Thực hành Mạng và Hạ tầng': 'Network & Infrastructure Lab',
-  'Laboratory Điện tử và Viễn thông': 'Electronics & Telecommunications Lab',
   'Phòng AI và Khoa học dữ liệu': 'AI & Data Science Lab',
+  'Phòng Cơ khí và In 3D': 'Mechanical & 3D Printing Lab',
+  'Phòng Robot và Tự động hóa': 'Robotics & Automation Lab',
+  'Phòng An toàn thông tin': 'Information Security Lab',
+  'Phòng IoT và Hệ thống nhúng': 'IoT & Embedded Systems Lab',
+  'Phòng Thực hành Mạng và Hạ tầng': 'Network & Infrastructure Lab',
+  'Phòng Thực hành Mạng và An ninh mạng': 'Network & Cybersecurity Practice Lab',
+  'Phòng thực hành Vật Lý': 'Physics Practice Lab',
+  'Phòng Thực hành Vật lý': 'Physics Practice Lab',
   'Phòng Vật lý và Quang học': 'Physics & Optics Lab',
+  'Phòng Máy tính cấu hình cao': 'High-Performance Computing Lab',
+  'Phòng Workstation GPU': 'GPU Workstation Lab',
+  'Laboratory Điện tử và Viễn thông': 'Electronics & Telecommunications Lab',
+  'Phòng Điện tử và Viễn thông': 'Electronics & Telecommunications Lab',
   'Laboratory Hóa học': 'Chemistry Laboratory',
+  'Phòng Hóa học': 'Chemistry Laboratory',
   'Laboratory Sinh học': 'Biology Laboratory',
+  'Phòng Sinh học': 'Biology Laboratory',
   'Cập nhật bảo trì': 'Maintenance Update',
   'Bảo trì quá thời gian dự kiến': 'Maintenance Overdue',
   'Bảo trì quá Time dự kiến': 'Maintenance Overdue',
   'Nhắc lịch bảo trì': 'Maintenance Reminder',
+  'Máy Create huyết thanh siêu chiến binh': 'Super Soldier Serum Synthesizer',
+  'Máy tạo huyết thanh siêu chiến binh': 'Super Soldier Serum Synthesizer',
   'Máy quang phổ UV-Vis': 'UV-Vis Spectrophotometer',
   'Máy quang phổ FTIR': 'FTIR Spectrophotometer',
   'Máy in 3D công nghiệp': 'Industrial 3D Printer',
   'Kính hiển vi điện tử': 'Electron Microscope',
+  'Bộ thực hành IoT': 'IoT Practice Kit',
+  'Máy đo quang phổ': 'Spectrophotometer',
   'Phòng workstation GPU phục vụ huấn luyện mô hình học máy và trí tuệ nhân tạo.':
     'GPU workstation lab for machine learning and artificial intelligence model training.',
   'Phòng máy tính cấu hình cao phục vụ giảng dạy và thực hành.':
